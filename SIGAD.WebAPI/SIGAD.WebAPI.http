@@ -1,0 +1,6 @@
+@SIGAD.WebAPI_HostAddress = http://localhost:5217
+
+GET {{SIGAD.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
