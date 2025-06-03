@@ -1,0 +1,67 @@
+﻿@page "/ver-rangos"
+@using SIGAD.BlazorApp.Models // Para acceder a RangoDto
+@inject HttpClient Http
+
+<PageTitle>Lista de Rangos Académicos</PageTitle>
+
+<h3>Rangos Académicos</h3>
+
+@if (rangos == null)
+{
+    <p><em>Cargando rangos...</em></p>
+}
+else if (!rangos.Any())
+{
+    <p><em>No se encontraron rangos.</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rango in rangos)
+            {
+                <tr>
+                    <td>@rango.Nombre</td>
+                    <td>@rango.Descripcion</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<RangoDto>? rangos; // Lista para almacenar los rangos obtenidos de la API
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Hacemos la llamada GET a nuestro endpoint de la API
+            // La URL completa será: BaseAddress + "api/rangos"
+            var result = await Http.GetFromJsonAsync<List<RangoDto>>("api/rangos");
+            if (result != null)
+            {
+                rangos = result;
+            }
+            else
+            {
+                rangos = new List<RangoDto>(); // Inicializa como lista vacía si la respuesta es null
+                // Aquí podrías manejar el error o loguearlo
+                Console.WriteLine("La API no devolvió datos para los rangos.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Manejo básico de errores (en una app real, sería más robusto)
+            Console.WriteLine($"Error al obtener los rangos: {ex.Message}");
+            rangos = new List<RangoDto>(); // Prepara una lista vacía para evitar error de renderizado
+            // Aquí podrías mostrar un mensaje de error al usuario
+        }
+    }
+}
