@@ -43,10 +43,12 @@ app.UseHttpsRedirection();
 // Esto es importante para que Blazor pueda llamar a la API desde un origen diferente (tu app Blazor corriendo en otro puerto)
 // En producción, deberías configurar esto de forma más restrictiva.
 app.UseCors(policy =>
-    policy.WithOrigins("https://localhost:PORT_BLAZOR_APP", "http://localhost:PORT_BLAZOR_APP_HTTP") // Reemplaza con los puertos de tu app Blazor
+    policy.WithOrigins(
+            "https://localhost:7087", // Origen HTTPS de tu Blazor App
+            "http://localhost:5250" // Reemplaza o elimina si no usas HTTP para Blazor
+        )
     .AllowAnyMethod()
     .AllowAnyHeader());
-
 app.UseAuthorization(); // Si añades autenticación más adelante
 
 app.MapControllers(); // Mapea las rutas a tus controladores
