@@ -542,7 +542,3 @@ Este flujo es el que seguirán para la mayoría de las funcionalidades del proyect
 * **Pruebas:** Comiencen a pensar en pruebas unitarias y de integración.
 
 ---
-### Conclusión
-Este tutorial práctico debería darles a tus compañeros una base sólida para comenzar a contribuir al proyecto SIGAD. La clave es entender el rol de cada capa y seguir el flujo de desarrollo establecido. ¡Fomenten la comunicación y la revisión de código entre ustedes!
-
-Este manual es un punto de partida. ¡Modifíquenlo y mejórenlo como equipo a medida que aprendan más!
