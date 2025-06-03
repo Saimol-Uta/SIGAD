@@ -26,18 +26,20 @@ namespace SIGAD.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // Aquí puedes configurar tus entidades usando Fluent API si las convenciones no son suficientes.
-            // Por ejemplo, para la entidad Rango, EF Core por convención ya sabe que 'Id' es la clave primaria.
-            // Pero si quisieras ser explícito o configurar otras cosas:
-            // modelBuilder.Entity<Rango>(entity =>
-            // {
-            //     entity.HasKey(r => r.Id);
-            //     entity.Property(r => r.Nombre).IsRequired().HasMaxLength(100);
-            //     entity.Property(r => r.Descripcion).HasMaxLength(500);
-            // });
+            modelBuilder.Entity<Rango>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Nombre).IsRequired().HasMaxLength(100);
+                entity.Property(r => r.Descripcion).HasMaxLength(500);
+            });
 
-            // Aplicar configuraciones desde ensamblados (forma más organizada para proyectos grandes)
-            // modelBuilder.ApplyConfigurationsFromAssembly(typeof(SigadDbContext).Assembly);
+            // Sembrar datos para la entidad Rango CON GUIDs ESTÁTICOS
+            modelBuilder.Entity<Rango>().HasData(
+                new Rango(new Guid("c1a75764-3420-4e00-91c0-66917c0d3e6f"), "Profesor Auxiliar TC", "Profesor de Tiempo Completo en categoría Auxiliar."),
+                new Rango(new Guid("d2b86889-81b2-4a3a-984e-127424d349af"), "Profesor Asistente TC", "Profesor de Tiempo Completo en categoría Asistente."),
+                new Rango(new Guid("e3c97990-92c3-5b4b-a95f-238535e450b0"), "Profesor Asociado TC", "Profesor de Tiempo Completo en categoría Asociado."),
+                new Rango(new Guid("f4d08aa1-a3d4-6c5c-ba60-349646f561c1"), "Profesor Titular TC", "Profesor de Tiempo Completo en categoría Titular.")
+            );
         }
     }
 }
