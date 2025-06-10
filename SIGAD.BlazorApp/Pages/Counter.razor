@@ -1,18 +1,66 @@
 ﻿@page "/counter"
+@page "/promotion-detail"
 
-<PageTitle>Counter</PageTitle>
+<h2>Promotion Progress</h2>
+<p>Step 1 of 4 - 25%</p>
 
-<h1>Counter</h1>
+<div class="progress-bar">
+    <div class="progress" style="width: 25%;"></div>
+</div>
 
-<p role="status">Current count: @currentCount</p>
-
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<div class="step-grid">
+    @foreach (var step in Steps)
+    {
+        <PromotionDetailStep Step="step" />
+    }
+</div>
 
 @code {
-    private int currentCount = 0;
-
-    private void IncrementCount()
+    private List<PromotionStepDetailModel> Steps = new()
     {
-        currentCount++;
-    }
+        new()
+        {
+            Title = "1. Recepción de Solicitud y Documentos Iniciales.",
+            Status = "APPROVED",
+            StatusDate = "04-06-25",
+            Items = new()
+            {
+                new() { Label = "Fecha Envío:", Value = "05-24", Type = "text" },
+                new() { Label = "Formulario de Solicitud de Promoción/Ascenso", Value = "formulario.pdf", Type = "file" },
+                new() { Label = "Copia del Documento de Identidad:", Value = "copia1.pdf", Type = "file" },
+                new() { Label = "Copia del Documento de Identidad:", Value = "copia2.pdf", Type = "file" },
+                new() { Label = "Hoja de Vida Actualizada (Currículum Vitae)", Value = "cv.pdf", Type = "file" }
+            }
+        },
+        new()
+        {
+            Title = "2. Verificación de Requisitos Mínimos.",
+            Status = "PROGRESS",
+            StatusDate = "",
+            Items = new()
+            {
+                new() { Label = "Fecha de Inicio de Verificación", Value = "03-06-25", Type = "text" },
+                new() { Label = "Fecha de Finalización de Verificación", Value = "03-06-25", Type = "text" },
+                new() { Label = "Antigüedad Mínima en la Institución", Value = "", Type = "text" },
+                new() { Label = "Categoría Actual del Docente", Value = "", Type = "text" },
+                new() { Label = "Dedicación Horaria", Value = "", Type = "text" },
+                new() { Label = "Última Evaluación de Desempeño", Value = "", Type = "text" },
+                new() { Label = "No Poseer Sanciones Disciplinarias Vigentes", Value = "", Type = "text" },
+                new() { Label = "Cumplimiento de Titulación Mínima para la Categoría a la que Aspira", Value = "", Type = "text" },
+            }
+        },
+        new()
+        {
+            Title = "3. Revisión por el Comité de Ascensos.",
+            Status = "PROGRESS",
+            StatusDate = "",
+            Items = new()
+            {
+                new() { Label = "Fecha de Sesión del Comité", Value = "03-06-25", Type = "text" },
+                new() { Label = "Fecha de Emisión de la Decisión:", Value = "15-06-25", Type = "text" },
+                new() { Label = "Resultado de la Revisión del Comité", Value = "", Type = "button" },
+                new() { Label = "Justificación o Fundamentos de la Decisión del Comité", Value = "", Type = "textarea" },
+            }
+        }
+    };
 }

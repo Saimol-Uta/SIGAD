@@ -1,36 +1,28 @@
 ﻿@page "/"
 
-<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f8;">
-    <div style="background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
 
-        <h2 style="text-align: center; font-weight: 600; margin-bottom: 24px; color: #2e2e2e;">
-            Rechazar Solicitud
-        </h2>
+<h2>Promotion Progress</h2>
+<p>Stage 3 of 5 – 60%</p>
 
-        <EditForm>
-            <div style="margin-bottom: 20px;">
-                <label for="razon" style="display: block; font-weight: 500; margin-bottom: 8px; color: #555;">
-                    Razón del rechazo
-                </label>
-                <textarea id="razon"
-                          placeholder="Ingrese aquí la razón del rechazo..."
-                          style="width: 100%; height: 120px; padding: 12px; font-size: 14px; border-radius: 8px; border: 1px solid #ccc; resize: none;">
-                </textarea>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; gap: 10px;">
-                <button type="submit"
-                        style="flex: 1; background: linear-gradient(to right, #4a00e0, #8e2de2); border: none; color: white; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;">
-                    Enviar
-                </button>
-
-                <button type="button"
-                        style="flex: 1; background: #e0e0e0; border: none; color: #333; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;">
-                    Cancelar
-                </button>
-            </div>
-        </EditForm>
-    </div>
+<div class="progress-bar">
+    <div class="progress" style="width: 60%;"></div>
 </div>
 
+<div class="card-grid">
+    @foreach (var step in PromotionSteps)
+    {
+        <Card Step="step" />
+    }
+</div>
 
+@code {
+    private List<PromotionStep> PromotionSteps = new()
+    {
+        new() { Heading = "1. Application Submitted", Status = "APPROVED", Tag = "", DocId = "Usst U3- 2021", Description = "Submitted Documents...", CanUpload = false },
+        new() { Heading = "2. Document Review", Status = "IN REVIEW", Tag = "ACTION REQUIRED", DocId = "Usst UP94 2024", Description = "Submitted Documents...", CanUpload = false },
+        new() { Heading = "3. Committee Evaluation", Status = "MIMEUS", Tag = "", DocId = "Usst US1 - 2021", Description = "Submitted Documents...", CanUpload = false },
+        new() { Heading = "3. Committee Evaluation", Status = "APPROVED", Tag = "", DocId = "Usst US5 - 2022", Description = "Submitted Documents...", CanUpload = true },
+        new() { Heading = "4. Committee Evaluation", Status = "IN REVIEW", Tag = "", DocId = "Usst UF-34 - 2012", Description = "Submitted Documents...", CanUpload = false },
+        new() { Heading = "4. Committed Documents", Status = "APPROVED", Tag = "", DocId = "Usst UF3 - 2017", Description = "Submitted Documents...", CanUpload = true },
+    };
+}

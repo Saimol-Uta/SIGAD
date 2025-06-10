@@ -1,0 +1,41 @@
+﻿<div class="step-card">
+    <h4>@Step.Title</h4>
+    <div class="step-status">
+        <span class="icon">✅</span>
+        <span class="text">@Step.Status</span>
+        <span class="date">@Step.StatusDate</span>
+    </div>
+
+    <div class="step-content">
+        @foreach (var item in Step.Items)
+        {
+            if (item.Type == "text")
+            {
+                <p><strong>@item.Label</strong> @item.Value</p>
+            }
+            else if (item.Type == "file")
+            {
+                <p>
+                    <strong>@item.Label</strong>
+                    <span class="file">
+                        <span class="file-name">@item.Value</span>
+                        <span class="file-status">📄</span>
+                    </span>
+                </p>
+            }
+            else if (item.Type == "button")
+            {
+                <button class="resolution">@item.Label</button>
+            }
+            else if (item.Type == "textarea")
+            {
+                <p><strong>@item.Label</strong></p>
+                <textarea class="feedback-box" rows="3">@item.Value</textarea>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public PromotionStepDetailModel Step { get; set; }
+}
