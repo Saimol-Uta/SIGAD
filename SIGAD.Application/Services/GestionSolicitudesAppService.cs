@@ -1,9 +1,10 @@
 ﻿using SIGAD.Application.DTOs;
+using SIGAD.Domain.Entities;
+using SIGAD.Domain.Enums;
 using SIGAD.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SIGAD.Application.Services
@@ -11,46 +12,90 @@ namespace SIGAD.Application.Services
     public class GestionSolicitudesAppService
     {
         private readonly ISolicitudAscensoRepository _solicitudRepository;
-        // private readonly IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
 
-        // Inyectamos las dependencias que necesitará
-        public GestionSolicitudesAppService(ISolicitudAscensoRepository solicitudRepository /*, IUnitOfWork unitOfWork*/)
+        // Inyectamos las dependencias
+        public GestionSolicitudesAppService(ISolicitudAscensoRepository solicitudRepository, IUnitOfWork unitOfWork)
         {
             _solicitudRepository = solicitudRepository;
-            // _unitOfWork = unitOfWork;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IEnumerable<VerSolicitudDto>> GetAllSolicitudesAsync()
         {
-            // TAREA para un compañero: Implementar la lógica real para obtener y mapear las solicitudes.
-            Console.WriteLine("Lógica para obtener todas las solicitudes no implementada.");
-            await Task.Delay(10); // Simula trabajo asíncrono
-            return new List<VerSolicitudDto>(); // Devuelve una lista vacía por ahora
+            // IMPORTANTE: Este método ahora necesita obtener los datos relacionados (joins).
+            // Tu repositorio debe tener un método que haga esto usando .Include() de EF Core.
+            var solicitudesConDetalles = await _solicitudRepository.GetAllWithDetailsAsync();
+
+            return solicitudesConDetalles.Select(s => new VerSolicitudDto
+            {
+                Id = s.Id,
+                FechaCreacion = s.FechaCreacion,
+                Estado = s.Estado.ToString(),
+
+                NombreDocente = s.Docente != null ? $"{s.Docente.Nombre1} {s.Docente.Apellido1}" : "N/A",
+                RangoSolicitado = s.RangoSolicitado != null ? s.RangoSolicitado.Nombre : "N/A",
+                RangoActual = s.RangoActual != null ? s.RangoActual.Nombre : "Sin Rango Previo"
+            }).ToList();
         }
 
         public async Task<Guid> CrearSolicitudAsync(CrearSolicitudDto dto, string docenteCedula)
         {
-            // TAREA para un compañero: Implementar lógica para crear la entidad SolicitudAscenso,
-            // añadirla con el repositorio y guardar los cambios con UnitOfWork.
-            Console.WriteLine("Lógica para crear solicitud no implementada.");
-            await Task.Delay(10);
-            return Guid.NewGuid(); // Devuelve un Guid de prueba
+            var todasLasSolicitudes = await _solicitudRepository.GetAllAsync();
+            var ultimaAprobada = todasLasSolicitudes
+                .Where(s => s.DocenteCedula == docenteCedula && s.Estado == EstadoSolicitud.Aprobada)
+                .OrderByDescending(s => s.FechaResolucion)
+                .FirstOrDefault();
+
+            int? rangoActualId = ultimaAprobada?.RangoSolicitadoId;
+
+
+            var nuevaSolicitud = new SolicitudAscenso
+            {
+                Id = Guid.NewGuid(),
+                DocenteCedula = docenteCedula,
+                FechaCreacion = DateTime.UtcNow,
+                Estado = EstadoSolicitud.Borrador,
+
+                RangoSolicitadoId = dto.RangoSolicitadoId,
+                RangoActualId = rangoActualId
+            };
+
+            await _solicitudRepository.AddAsync(nuevaSolicitud);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return nuevaSolicitud.Id;
         }
 
         public async Task AprobarSolicitudAsync(Guid solicitudId)
         {
-            // TAREA para un compañero: Implementar lógica para obtener la solicitud,
-            // cambiar su estado a "Aprobada", y guardar los cambios.
-            Console.WriteLine($"Lógica para aprobar solicitud {solicitudId} no implementada.");
-            await Task.Delay(10);
+            var solicitud = await _solicitudRepository.GetByIdAsync(solicitudId);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException($"No se encontró la solicitud con el ID: {solicitudId}");
+            }
+
+            solicitud.Estado = EstadoSolicitud.Aprobada;
+            solicitud.FechaResolucion = DateTime.UtcNow;
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task RechazarSolicitudAsync(Guid solicitudId)
         {
-            // TAREA para un compañero: Implementar lógica para obtener la solicitud,
-            // cambiar su estado a "Rechazada", y guardar los cambios.
-            Console.WriteLine($"Lógica para rechazar solicitud {solicitudId} no implementada.");
-            await Task.Delay(10);
+            var solicitud = await _solicitudRepository.GetByIdAsync(solicitudId);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException($"No se encontró la solicitud con el ID: {solicitudId}");
+            }
+
+            solicitud.Estado = EstadoSolicitud.Rechazada;
+            solicitud.FechaResolucion = DateTime.UtcNow;
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

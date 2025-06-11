@@ -1,0 +1,264 @@
+﻿@page "/Dashboard"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+
+@code {
+    string NombreUsuarioLogueado = "Carlos Ramos";
+    string NombreCompletoUsuario = "Carlos Giovanni Ramos Jacome";
+    string UrlFotoPerfil = "/images/IconoUser.png";
+    int CantidadNotificaciones = 2;
+    string FechaInicioProceso = "31/03/2024";
+    int PorcentajeAvance = 85;
+}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #0a1d44;
+            object-fit: cover;
+        }
+
+    .main-content {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        padding: 2rem;
+        gap: 2rem;
+        z-index: 1;
+    }
+
+    .left {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1.5rem;
+        padding-left: 60px; /* espacio hacia la izquierda */
+        margin-top: 100px;
+    }
+
+        .left h1 {
+            font-size: 6.5rem;
+            font-weight: 500;
+            line-height: 1.2;
+            color: #0a1d44;
+        }
+
+        .left p {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #3a3a3a;
+        }
+
+    .notifications {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 0.5rem;
+    }
+
+        .notifications img {
+            width: 24px;
+        }
+
+    .badge {
+        background-color: #dc3545;
+        color: white;
+        font-size: 0.75rem;
+        border-radius: 50%;
+        padding: 3px 7px;
+        position: absolute;
+        top: -8px;
+        left: 16px;
+    }
+
+    .buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+        .buttons button {
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.2rem;
+            cursor: pointer;
+            transition: 0.5s ease;
+        }
+
+    .primary-btn {
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+    }
+
+        .primary-btn:hover {
+            background-color: #f1f1f1;
+            color: #09203f;
+            border: 1px solid #09203f;
+        }
+
+    .secondary-btn {
+        background-color: white;
+        border: 1px solid #09203f;
+        color: #333;
+    }
+
+        .secondary-btn:hover {
+            background-color: #09203f;
+            color: #fff;
+            border: 1px solid #09203f;
+        }
+
+    .promotion-card {
+        align-self: flex-start;
+        flex: 20;
+        margin-top: 140px;
+        margin-right: 550px;
+        background: white;
+        padding: 1.5rem;
+        max-width: 500px;
+        border: 0.1px solid #09203f;
+        border-radius: 0.1vw;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease;
+    }
+
+        .promotion-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .promotion-card h3 {
+            font-size: 1.3rem;
+        }
+
+        .promotion-card small {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .promotion-card .advance {
+            margin-top: 1rem;
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #0a1d44;
+        }
+
+        .promotion-card button {
+            margin-top: 1.5rem;
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            background-color: #0a1d44;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+            .promotion-card button:hover {
+                background-color: #09203f;
+            }
+
+    .triangle-bg {
+        position: fixed; /* detrás del contenido */
+        top: 115px; /* debajo del header */
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0; /* detrás del contenido */
+        object-fit: contain;
+        pointer-events: none;
+    }
+
+</style>
+<body>
+
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
+        </div>
+        <div class="user-profile">
+            <span>@NombreUsuarioLogueado</span>
+            <img src="@UrlFotoPerfil" alt="Usuario" />
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="left">
+            <h1>Welcome<br />System</h1>
+            <p>@NombreCompletoUsuario</p>
+
+            <div class="notifications" style="position: relative">
+                <img src="/images/iconoBell.png" alt="Notifications" />
+                @if (CantidadNotificaciones > 0)
+                {
+                    <span class="badge">@CantidadNotificaciones</span>
+                }
+                <span>Notifications</span>
+            </div>
+
+            <div class="buttons">
+                <button class="primary-btn">Start New Promotion Process</button>
+                <button class="secondary-btn">Manage Documents</button>
+            </div>
+        </div>
+
+        <div class="promotion-card">
+            <h3>View Promotion</h3>
+            <small>Start Promotion</small>
+            <div>@FechaInicioProceso</div>
+            <div class="advance">
+                <small>Advance</small><br />
+                @PorcentajeAvance%
+            </div>
+            <button>View Progress</button>
+        </div>
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>

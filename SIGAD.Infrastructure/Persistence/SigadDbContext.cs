@@ -33,59 +33,63 @@ namespace SIGAD.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // Convertir Enums a string en la base de datos para mayor legibilidad
+            // --- Configuración de Claves Primarias ---
+            modelBuilder.Entity<Docente>().HasKey(d => d.Cedula);
+            modelBuilder.Entity<Cuenta>().HasKey(c => c.Correo);
+            modelBuilder.Entity<Articulo>().HasKey(a => a.DOI);
+            modelBuilder.Entity<Articulo>().Property(a => a.DOI).HasColumnType("varchar(200)");
 
-            modelBuilder.Entity<Docente>()
-                 .HasKey(d => d.Cedula);
+            // --- Configuración de Precisión Decimal ---
+            modelBuilder.Entity<Rango>().Property(r => r.PuntajePromedioEvaluacionesRequerido).HasColumnType("decimal(5, 2)");
+            modelBuilder.Entity<EvaluacionDocente>().Property(e => e.PuntajePorcentual).HasColumnType("decimal(5, 2)");
 
-            modelBuilder.Entity<Cuenta>()
-                .HasKey(c => c.Correo);
+            // --- Configuración de Relaciones Específicas ---
+            modelBuilder.Entity<Docente>().HasOne(d => d.Cuenta).WithOne(c => c.Docente).HasForeignKey<Cuenta>(c => c.DocenteCedula);
+            modelBuilder.Entity<SolicitudAscenso>().HasOne(s => s.RangoActual).WithMany(r => r.SolicitudesComoRangoActual).HasForeignKey(s => s.RangoActualId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<SolicitudAscenso>().HasOne(s => s.RangoSolicitado).WithMany(r => r.SolicitudesComoRangoSolicitado).HasForeignKey(s => s.RangoSolicitadoId).OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Articulo>()
-                .HasKey(a => a.DOI);
+            // --- Configuración de Tablas de Vínculo (Junction Tables) ---
 
-            modelBuilder.Entity<Cuenta>()
-                .Property(c => c.Rol)
-                .HasConversion<string>();
+            modelBuilder.Entity<ArticulosPorSolicitud>(entity =>
+            {
+                entity.HasKey(aps => new { aps.SolicitudId, aps.ArticuloDOI });
+                entity.Property(aps => aps.ArticuloDOI).HasColumnType("varchar(200)");
+                // El borrado de una Solicitud borra el vínculo, pero el borrado de un Artículo no (Restrict).
+                entity.HasOne(aps => aps.SolicitudAscenso).WithMany(s => s.ArticulosPorSolicitud).HasForeignKey(aps => aps.SolicitudId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(aps => aps.Articulo).WithMany().HasForeignKey(aps => aps.ArticuloDOI).OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<SolicitudAscenso>()
-                .Property(s => s.Estado)
-                .HasConversion<string>();
+            modelBuilder.Entity<CursosPorSolicitud>(entity =>
+            {
+                entity.HasKey(cps => new { cps.SolicitudId, cps.CursoId });
+                entity.HasOne(cps => cps.SolicitudAscenso).WithMany(s => s.CursosPorSolicitud).HasForeignKey(cps => cps.SolicitudId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(cps => cps.Curso).WithMany().HasForeignKey(cps => cps.CursoId).OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<Docente>()
-            .HasOne(d => d.Cuenta)
-            .WithOne(c => c.Docente)
-            .HasForeignKey<Cuenta>(c => c.DocenteCedula);
+            modelBuilder.Entity<InvestigacionesPorSolicitud>(entity =>
+            {
+                entity.HasKey(ips => new { ips.SolicitudId, ips.InvestigacionId });
+                entity.HasOne(ips => ips.SolicitudAscenso).WithMany(s => s.InvestigacionesPorSolicitud).HasForeignKey(ips => ips.SolicitudId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(ips => ips.Investigacion).WithMany().HasForeignKey(ips => ips.InvestigacionId).OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<Rango>()
-             .Property(r => r.PuntajePromedioEvaluacionesRequerido)
-              .HasColumnType("decimal(5, 2)");
+            modelBuilder.Entity<ExperienciaPorSolicitud>(entity =>
+            {
+                entity.HasKey(eps => new { eps.SolicitudId, eps.ExperienciaId });
+                entity.HasOne(eps => eps.SolicitudAscenso).WithMany(s => s.ExperienciaPorSolicitud).HasForeignKey(eps => eps.SolicitudId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(eps => eps.ExperienciaLaboral).WithMany().HasForeignKey(eps => eps.ExperienciaId).OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<EvaluacionDocente>()
-                .Property(e => e.PuntajePorcentual)
-                .HasColumnType("decimal(5, 2)");
+            modelBuilder.Entity<EvaluacionesPorSolicitud>(entity =>
+            {
+                entity.HasKey(evps => new { evps.SolicitudId, evps.EvaluacionId });
+                entity.HasOne(evps => evps.SolicitudAscenso).WithMany(s => s.EvaluacionesPorSolicitud).HasForeignKey(evps => evps.SolicitudId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(evps => evps.EvaluacionDocente).WithMany().HasForeignKey(evps => evps.EvaluacionId).OnDelete(DeleteBehavior.Restrict);
+            });
 
-            // Configurar claves primarias compuestas para las tablas de vínculo
-            modelBuilder.Entity<ArticulosPorSolicitud>().HasKey(aps => new { aps.SolicitudId, aps.ArticuloDOI });
-            modelBuilder.Entity<CursosPorSolicitud>().HasKey(cps => new { cps.SolicitudId, cps.CursoId });
-            modelBuilder.Entity<InvestigacionesPorSolicitud>().HasKey(ips => new { ips.SolicitudId, ips.InvestigacionId });
-            modelBuilder.Entity<ExperienciaPorSolicitud>().HasKey(eps => new { eps.SolicitudId, eps.ExperienciaId });
-            modelBuilder.Entity<EvaluacionesPorSolicitud>().HasKey(evps => new { evps.SolicitudId, evps.EvaluacionId });
-
-            // Configurar la doble relación entre SolicitudAscenso y Rango
-            modelBuilder.Entity<SolicitudAscenso>()
-                .HasOne(s => s.RangoActual)
-                .WithMany(r => r.SolicitudesComoRangoActual)
-                .HasForeignKey(s => s.RangoActualId)
-                .OnDelete(DeleteBehavior.Restrict); // Evitar eliminación en cascada si es necesario
-
-            modelBuilder.Entity<SolicitudAscenso>()
-                .HasOne(s => s.RangoSolicitado)
-                .WithMany(r => r.SolicitudesComoRangoSolicitado)
-                .HasForeignKey(s => s.RangoSolicitadoId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Aquí se pueden añadir más configuraciones Fluent API si son necesarias...
+            // ... (Conversión de Enums a string, si no la has movido)
+            modelBuilder.Entity<Cuenta>().Property(c => c.Rol).HasConversion<string>();
+            modelBuilder.Entity<SolicitudAscenso>().Property(s => s.Estado).HasConversion<string>();
         }
     }
 }

@@ -1,0 +1,118 @@
+﻿@page "/login"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    .login-background {
+        background-color: white;
+        height: 100vh;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .decor-top-right, .decor-bottom-left {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        z-index: 1;
+    }
+
+    .decor-top-right {
+        background-image: url("/images/blueWatercolor.jpg");
+        top: 0;
+        right: 0;
+        transform: rotate(360deg);
+
+    }
+
+    .decor-bottom-left {
+        background-image: url("/images/blueWatercolor.jpg");
+        bottom: 0;
+        left: 0;
+        transform: rotate(180deg);
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 2;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        width: 650px;
+        text-align: center;
+    }
+
+    .login-container img {
+        width: 50px;
+        margin-bottom: 10px;
+    }
+
+    .login-container h2 {
+        font-size: 16px;
+        color: #0a1d44;
+        margin-bottom: 30px;
+    }
+
+    .login-input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .login-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin-top: 20px;
+        cursor: pointer;
+    }
+
+    .login-button:hover {
+        background-color: #0e2c6c;
+    }
+
+    .forgot-password {
+        display: block;
+        margin-top: 10px;
+        font-size: 0.8em;
+        color: #0a1d44;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+</style>
+
+<div class="login-background">
+    <!-- Imágenes decorativas -->
+    <div class="decor-top-right"></div>
+    <div class="decor-bottom-left"></div>
+
+    <!-- Caja de login -->
+    <div class="login-container">
+        <img src="/images/IconoUser.png" alt="User Icon" />
+        <h2>ACADEMIC MANAGEMENT EVENTS</h2>
+
+        <input type="text" placeholder="Username" class="login-input" />
+        <input type="password" placeholder="Password" class="login-input" />
+
+        <button class="login-button">LOGIN</button>
+        <a class="forgot-password">Forgot your Password</a>
+    </div>
+</div>

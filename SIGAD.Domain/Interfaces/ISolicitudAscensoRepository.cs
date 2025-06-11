@@ -11,6 +11,7 @@ namespace SIGAD.Domain.Interfaces
     {
         Task<SolicitudAscenso?> GetByIdAsync(Guid id);
         Task<IEnumerable<SolicitudAscenso>> GetAllAsync();
+        Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync();
         Task AddAsync(SolicitudAscenso solicitud);
         Task UpdateAsync(SolicitudAscenso solicitud);
     }
