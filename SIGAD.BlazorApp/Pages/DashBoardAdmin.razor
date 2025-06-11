@@ -1,0 +1,19 @@
+﻿@page "/admin-dashboard"
+
+<h1>Panel de Administración</h1>
+
+<div class="dashboard-container">
+    <p>Bienvenido al panel de administrador.</p>
+
+    <button class="btn btn-primary" @onclick="RedirigirAVerSolicitude">Ver Solicitudes</button>
+</div>
+
+@code {
+    private void RedirigirAVerSolicitude()
+    {
+        NavigationManager.NavigateTo("/ver-solicitudes");
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+}
