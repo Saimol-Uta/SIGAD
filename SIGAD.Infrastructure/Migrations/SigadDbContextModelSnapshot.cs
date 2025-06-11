@@ -25,7 +25,7 @@ namespace SIGAD.Infrastructure.Migrations
             modelBuilder.Entity("SIGAD.Domain.Entities.Articulo", b =>
                 {
                     b.Property<string>("DOI")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("AnioPublicacion")
                         .HasColumnType("int");
@@ -54,7 +54,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("Articulos", (string)null);
+                    b.ToTable("Articulos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ArticulosPorSolicitud", b =>
@@ -63,18 +63,13 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ArticuloDOI")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("SolicitudId", "ArticuloDOI");
 
                     b.HasIndex("ArticuloDOI");
 
-                    b.HasIndex("SolicitudAscensoId");
-
-                    b.ToTable("ArticulosPorSolicitud", (string)null);
+                    b.ToTable("ArticulosPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Cuenta", b =>
@@ -99,7 +94,7 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasIndex("DocenteCedula")
                         .IsUnique();
 
-                    b.ToTable("Cuentas", (string)null);
+                    b.ToTable("Cuentas");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Curso", b =>
@@ -141,7 +136,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("OrganizacionId");
 
-                    b.ToTable("Cursos", (string)null);
+                    b.ToTable("Cursos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.CursosPorSolicitud", b =>
@@ -152,16 +147,11 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("CursoId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "CursoId");
 
                     b.HasIndex("CursoId");
 
-                    b.HasIndex("SolicitudAscensoId");
-
-                    b.ToTable("CursosPorSolicitud", (string)null);
+                    b.ToTable("CursosPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Docente", b =>
@@ -186,7 +176,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Cedula");
 
-                    b.ToTable("Docentes", (string)null);
+                    b.ToTable("Docentes");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.EvaluacionDocente", b =>
@@ -223,7 +213,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("EvaluacionesDocentes", (string)null);
+                    b.ToTable("EvaluacionesDocentes");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.EvaluacionesPorSolicitud", b =>
@@ -234,19 +224,11 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("EvaluacionId")
                         .HasColumnType("int");
 
-                    b.Property<int>("EvaluacionDocenteId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "EvaluacionId");
 
-                    b.HasIndex("EvaluacionDocenteId");
+                    b.HasIndex("EvaluacionId");
 
-                    b.HasIndex("SolicitudAscensoId");
-
-                    b.ToTable("EvaluacionesPorSolicitud", (string)null);
+                    b.ToTable("EvaluacionesPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ExperienciaLaboral", b =>
@@ -288,7 +270,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("OrganizacionId");
 
-                    b.ToTable("ExperienciasLaborales", (string)null);
+                    b.ToTable("ExperienciasLaborales");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ExperienciaPorSolicitud", b =>
@@ -299,19 +281,11 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("ExperienciaId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ExperienciaLaboralId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "ExperienciaId");
 
-                    b.HasIndex("ExperienciaLaboralId");
+                    b.HasIndex("ExperienciaId");
 
-                    b.HasIndex("SolicitudAscensoId");
-
-                    b.ToTable("ExperienciaPorSolicitud", (string)null);
+                    b.ToTable("ExperienciaPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Investigacion", b =>
@@ -355,7 +329,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("Investigaciones", (string)null);
+                    b.ToTable("Investigaciones");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.InvestigacionesPorSolicitud", b =>
@@ -366,16 +340,11 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("InvestigacionId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "InvestigacionId");
 
                     b.HasIndex("InvestigacionId");
 
-                    b.HasIndex("SolicitudAscensoId");
-
-                    b.ToTable("InvestigacionesPorSolicitud", (string)null);
+                    b.ToTable("InvestigacionesPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Organizacion", b =>
@@ -396,7 +365,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Organizaciones", (string)null);
+                    b.ToTable("Organizaciones");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Rango", b =>
@@ -428,7 +397,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rangos", (string)null);
+                    b.ToTable("Rangos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.SolicitudAscenso", b =>
@@ -471,7 +440,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("RangoSolicitadoId");
 
-                    b.ToTable("SolicitudesAscenso", (string)null);
+                    b.ToTable("SolicitudesAscenso");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Articulo", b =>
@@ -490,12 +459,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Articulo", "Articulo")
                         .WithMany()
                         .HasForeignKey("ArticuloDOI")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("ArticulosPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -539,12 +508,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Curso", "Curso")
                         .WithMany()
                         .HasForeignKey("CursoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("CursosPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -568,13 +537,13 @@ namespace SIGAD.Infrastructure.Migrations
                 {
                     b.HasOne("SIGAD.Domain.Entities.EvaluacionDocente", "EvaluacionDocente")
                         .WithMany()
-                        .HasForeignKey("EvaluacionDocenteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("EvaluacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("EvaluacionesPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -606,13 +575,13 @@ namespace SIGAD.Infrastructure.Migrations
                 {
                     b.HasOne("SIGAD.Domain.Entities.ExperienciaLaboral", "ExperienciaLaboral")
                         .WithMany()
-                        .HasForeignKey("ExperienciaLaboralId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("ExperienciaId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("ExperienciaPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -637,12 +606,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Investigacion", "Investigacion")
                         .WithMany()
                         .HasForeignKey("InvestigacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("InvestigacionesPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

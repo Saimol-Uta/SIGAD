@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SIGAD.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSchemaFromDb : Migration
+    public partial class InitialSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -62,7 +62,7 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "Articulos",
                 columns: table => new
                 {
-                    DOI = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DOI = table.Column<string>(type: "varchar(200)", nullable: false),
                     Titulo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Revista = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AnioPublicacion = table.Column<int>(type: "int", nullable: false),
@@ -255,8 +255,7 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ArticuloDOI = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ArticuloDOI = table.Column<string>(type: "varchar(200)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -266,10 +265,10 @@ namespace SIGAD.Infrastructure.Migrations
                         column: x => x.ArticuloDOI,
                         principalTable: "Articulos",
                         principalColumn: "DOI",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ArticulosPorSolicitud_SolicitudesAscenso_SolicitudAscensoId",
-                        column: x => x.SolicitudAscensoId,
+                        name: "FK_ArticulosPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -280,8 +279,7 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CursoId = table.Column<int>(type: "int", nullable: false),
-                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    CursoId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -291,10 +289,10 @@ namespace SIGAD.Infrastructure.Migrations
                         column: x => x.CursoId,
                         principalTable: "Cursos",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_CursosPorSolicitud_SolicitudesAscenso_SolicitudAscensoId",
-                        column: x => x.SolicitudAscensoId,
+                        name: "FK_CursosPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -305,22 +303,20 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    EvaluacionId = table.Column<int>(type: "int", nullable: false),
-                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    EvaluacionDocenteId = table.Column<int>(type: "int", nullable: false)
+                    EvaluacionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_EvaluacionesPorSolicitud", x => new { x.SolicitudId, x.EvaluacionId });
                     table.ForeignKey(
-                        name: "FK_EvaluacionesPorSolicitud_EvaluacionesDocentes_EvaluacionDocenteId",
-                        column: x => x.EvaluacionDocenteId,
+                        name: "FK_EvaluacionesPorSolicitud_EvaluacionesDocentes_EvaluacionId",
+                        column: x => x.EvaluacionId,
                         principalTable: "EvaluacionesDocentes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_EvaluacionesPorSolicitud_SolicitudesAscenso_SolicitudAscensoId",
-                        column: x => x.SolicitudAscensoId,
+                        name: "FK_EvaluacionesPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -331,22 +327,20 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ExperienciaId = table.Column<int>(type: "int", nullable: false),
-                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ExperienciaLaboralId = table.Column<int>(type: "int", nullable: false)
+                    ExperienciaId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ExperienciaPorSolicitud", x => new { x.SolicitudId, x.ExperienciaId });
                     table.ForeignKey(
-                        name: "FK_ExperienciaPorSolicitud_ExperienciasLaborales_ExperienciaLaboralId",
-                        column: x => x.ExperienciaLaboralId,
+                        name: "FK_ExperienciaPorSolicitud_ExperienciasLaborales_ExperienciaId",
+                        column: x => x.ExperienciaId,
                         principalTable: "ExperienciasLaborales",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ExperienciaPorSolicitud_SolicitudesAscenso_SolicitudAscensoId",
-                        column: x => x.SolicitudAscensoId,
+                        name: "FK_ExperienciaPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -357,8 +351,7 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    InvestigacionId = table.Column<int>(type: "int", nullable: false),
-                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    InvestigacionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -368,10 +361,10 @@ namespace SIGAD.Infrastructure.Migrations
                         column: x => x.InvestigacionId,
                         principalTable: "Investigaciones",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_InvestigacionesPorSolicitud_SolicitudesAscenso_SolicitudAscensoId",
-                        column: x => x.SolicitudAscensoId,
+                        name: "FK_InvestigacionesPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -386,11 +379,6 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "IX_ArticulosPorSolicitud_ArticuloDOI",
                 table: "ArticulosPorSolicitud",
                 column: "ArticuloDOI");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ArticulosPorSolicitud_SolicitudAscensoId",
-                table: "ArticulosPorSolicitud",
-                column: "SolicitudAscensoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cuentas_DocenteCedula",
@@ -414,34 +402,19 @@ namespace SIGAD.Infrastructure.Migrations
                 column: "CursoId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CursosPorSolicitud_SolicitudAscensoId",
-                table: "CursosPorSolicitud",
-                column: "SolicitudAscensoId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_EvaluacionesDocentes_DocenteCedula",
                 table: "EvaluacionesDocentes",
                 column: "DocenteCedula");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EvaluacionesPorSolicitud_EvaluacionDocenteId",
+                name: "IX_EvaluacionesPorSolicitud_EvaluacionId",
                 table: "EvaluacionesPorSolicitud",
-                column: "EvaluacionDocenteId");
+                column: "EvaluacionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EvaluacionesPorSolicitud_SolicitudAscensoId",
-                table: "EvaluacionesPorSolicitud",
-                column: "SolicitudAscensoId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ExperienciaPorSolicitud_ExperienciaLaboralId",
+                name: "IX_ExperienciaPorSolicitud_ExperienciaId",
                 table: "ExperienciaPorSolicitud",
-                column: "ExperienciaLaboralId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ExperienciaPorSolicitud_SolicitudAscensoId",
-                table: "ExperienciaPorSolicitud",
-                column: "SolicitudAscensoId");
+                column: "ExperienciaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ExperienciasLaborales_DocenteCedula",
@@ -462,11 +435,6 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "IX_InvestigacionesPorSolicitud_InvestigacionId",
                 table: "InvestigacionesPorSolicitud",
                 column: "InvestigacionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InvestigacionesPorSolicitud_SolicitudAscensoId",
-                table: "InvestigacionesPorSolicitud",
-                column: "SolicitudAscensoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SolicitudesAscenso_DocenteCedula",
