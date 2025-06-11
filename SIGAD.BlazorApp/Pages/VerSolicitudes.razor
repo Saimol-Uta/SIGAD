@@ -1,0 +1,79 @@
+﻿@page "/ver-solicitudes"
+@inject HttpClient Http
+
+<h3>Solicitudes</h3>
+
+@if (solicitudes == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!solicitudes.Any())
+{
+    <p>No hay solicitudes pendientes.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var solicitud in solicitudes)
+            {
+                <tr>
+                    <td>@solicitud.Id</td>
+                    <td>@solicitud.Nombre</td>
+                    <td>@solicitud.Fecha.ToShortDateString()</td>
+                    <td>@solicitud.Estado</td>
+                    <td>
+                        <button class="btn btn-success" @onclick="() => AprobarSolicitud(solicitud.Id)" disabled="@solicitud.Estado == " Aprobado"">Aprobar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<SolicitudDto>? solicitudes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        solicitudes = await Http.GetFromJsonAsync<List<SolicitudDto>>("/api/solicitudes");
+    }
+
+    private async Task AprobarSolicitud(int id)
+    {
+        var response = await Http.PutAsync($"/api/solicitudes/{id}/aprobar", null);
+        if (response.IsSuccessStatusCode)
+        {
+            var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
+            if (solicitud != null)
+            {
+                solicitud.Estado = "Aprobado";
+            }
+        }
+        else
+        {
+            Console.Error.WriteLine($"Error al aprobar la solicitud con ID {id}");
+        }
+    }
+
+    public class SolicitudDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public DateTime Fecha { get; set; }
+        public string Estado { get; set; } = string.Empty;
+    }
+}
+
+@code {
+
+}
