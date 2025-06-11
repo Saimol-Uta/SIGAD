@@ -1,7 +1,23 @@
 ﻿@page "/admin-dashboard"
+@code {
+    string NombreUsuarioLogueado = "Carlos Ramos";
+    string NombreCompletoUsuario = "Carlos Giovanni Ramos Jacome";
+    string UrlFotoPerfil = "/images/IconoUser.png";
+    int CantidadNotificaciones = 2;
+    string FechaInicioProceso = "31/03/2024";
+    int PorcentajeAvance = 85;
+}
 
-<h1>Panel de Administración</h1>
-
+<div class="header">
+    <div class="branding">
+        <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+        <h1>SIGAD</h1>
+    </div>
+    <div class="user-profile">
+        <span>@NombreUsuarioLogueado</span>
+        <img src="@UrlFotoPerfil" alt="Usuario" />
+    </div>
+</div>
 <div class="dashboard-container">
     <p>Bienvenido al panel de administrador.</p>
 

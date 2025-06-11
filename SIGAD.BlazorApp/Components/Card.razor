@@ -1,0 +1,40 @@
+﻿@using BlazorApp.Models
+<div class="card @StatusClass">
+    <div class="card-header">
+        <h4>@Step.Heading</h4>
+        <span class="status">@Step.Status</span>
+        @if (!string.IsNullOrEmpty(Step.Tag))
+        {
+            <span class="tag">@Step.Tag</span>
+        }
+    </div>
+    <div class="card-body">
+        <p class="doc-id">@Step.DocId</p>
+        <p class="doc-text">@Step.Description</p>
+
+        <div class="actions">
+            <select>
+                <option disabled selected>View/download</option>
+                <option>Document 1</option>
+                <option>Document 2</option>
+            </select>
+
+            @if (Step.CanUpload)
+            {
+                <button class="upload">Upload Missing Document</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public PromotionStep Step { get; set; }
+
+    private string StatusClass => Step.Status switch
+    {
+        "APPROVED" => "approved",
+        "IN REVIEW" => "review",
+        "MIMEUS" => "mimeus",
+        _ => "default"
+    };
+}

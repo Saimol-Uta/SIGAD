@@ -1,0 +1,64 @@
+﻿@page "/gestionar-documentacion"
+
+@using Microsoft.AspNetCore.Components.Forms
+@inject NavigationManager Navigation
+
+<h3>Gestión de Documentación</h3>
+
+@foreach (var seccion in secciones)
+{
+    <div class="card p-3 my-3 shadow-sm">
+        <h5>@seccion</h5>
+        <label class="btn button-home">
+            Importar
+            <InputFile OnChange="e => SubirArchivo(e, seccion)" accept=".pdf" style="display:none" />
+        </label>
+
+        <button class="btn btn-outline-success mt-2"
+                @onclick="() => Exportar(seccion)">
+            Exportar
+        </button>
+    </div>
+}
+
+@code {
+    List<string> secciones = new()
+    {
+        "Historial del docente",
+        "Cursos",
+        "Artículos científicos",
+        "Evaluación",
+        "Investigaciones"
+    };
+
+    async Task SubirArchivo(InputFileChangeEventArgs e, string seccion)
+    {
+        var archivo = e.File;
+
+        if (archivo != null && Path.GetExtension(archivo.Name).ToLower() == ".pdf")
+        {
+            // Aquí deberías enviar el archivo al backend para guardarlo
+            using var stream = archivo.OpenReadStream(10 * 1024 * 1024); // Límite 10MB
+
+            // Enviar el archivo y la sección al backend
+            Console.WriteLine($"Archivo '{archivo.Name}' subido para la sección '{seccion}'");
+
+            // Puedes usar HttpClient para enviar esto al servidor
+        }
+        else
+        {
+            Console.WriteLine("Archivo inválido.");
+        }
+    }
+
+    void Exportar(string seccion)
+    {
+        var ruta = $"/ver-documentos/{NormalizarRuta(seccion)}";
+        Navigation.NavigateTo(ruta);
+    }
+
+    string NormalizarRuta(string seccion)
+    {
+        return seccion.ToLower().Replace(" ", "-");
+    }
+}
