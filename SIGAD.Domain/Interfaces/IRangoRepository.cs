@@ -9,10 +9,10 @@ namespace SIGAD.Domain.Interfaces
 {
     public interface IRangoRepository
     {
-        Task<Rango> GetByIdAsync(Guid id);
+        Task<Rango> GetByIdAsync(int id);
         Task<IEnumerable<Rango>> GetAllAsync();
         Task AddAsync(Rango rango);
         Task UpdateAsync(Rango rango);
-        Task DeleteAsync(Guid id);
+        Task DeleteAsync(int id);
     }
 }

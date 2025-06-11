@@ -12,11 +12,16 @@ namespace SIGAD.WebAPI.Controllers
     public class RangosController : ControllerBase
     {
         private readonly ConsultaRangoAppService _rangoAppService;
+        private readonly GestionRangoAppService _gestionRangoService;
+        private readonly ActualizarRangoService _actualizarRangoService;
+
 
         // El servicio de aplicación se inyecta a través del constructor
-        public RangosController(ConsultaRangoAppService rangoAppService)
+        public RangosController(ConsultaRangoAppService rangoAppService, GestionRangoAppService gestionRangoService, ActualizarRangoService actualizarRangoService)
         {
             _rangoAppService = rangoAppService;
+            _gestionRangoService = gestionRangoService;
+            _actualizarRangoService = actualizarRangoService;
         }
 
         // GET: api/rangos
@@ -31,19 +36,69 @@ namespace SIGAD.WebAPI.Controllers
             return Ok(rangos); // Devuelve 200 OK con la lista de rangos
         }
 
-        // NOTA SOBRE SaveChangesAsync():
-        // Si tuviéramos un método POST para crear un rango, se vería algo así:
-        // [HttpPost]
-        // public async Task<IActionResult> CreateRango([FromBody] CrearRangoDto crearRangoDto)
-        // {
-        //     // Suponiendo que tienes un CrearRangoAppService o un método en ConsultaRangoAppService
-        //     // var rangoId = await _rangoAppService.CreateRangoAsync(crearRangoDto);
-        //
-        //     // Aquí es donde el Application Service se habría encargado de llamar a AddAsync del repositorio
-        //     // y luego, importante, a SaveChangesAsync() (ya sea directamente en el App Service si tiene
-        //     // el DbContext inyectado -menos ideal- o a través de un servicio de Unit of Work).
-        //
-        //     // return CreatedAtAction(nameof(GetRangoById), new { id = rangoId }, crearRangoDto);
-        // }
+        [HttpPost]
+        public async Task<IActionResult> CrearRango([FromBody] CrearRangoDto rangoDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Devuelve errores de validación
+            }
+
+            try
+            {
+                var nuevoRango = await _gestionRangoService.CrearRangoAsync(rangoDto);
+                // Devuelve un 201 Created con una referencia al nuevo recurso y el objeto creado.
+                // Necesitaríamos un endpoint GetById para que esto funcione perfectamente.
+                return CreatedAtAction(nameof(GetRangoById), new { id = nuevoRango.Id }, nuevoRango);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message); // Devuelve 409 Conflict si el rango ya existe
+            }
+            catch (Exception ex)
+            {
+                // Manejo de otros posibles errores
+                return StatusCode(500, "Ocurrió un error interno.");
+            }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<RangoDto>> GetRangoById(int id)
+        {
+            var rangos = await _rangoAppService.GetAllRangosAsync();
+            var rango = rangos.FirstOrDefault(r => r.Id == id);
+
+            if (rango == null)
+            {
+                return NotFound($"No se encontró un rango con Id {id}.");
+            }
+
+            return Ok(rango);
+        }
+
+        // Aquí podrías añadir más métodos para actualizar, eliminar, etc. rangos según sea necesario.
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarRango(int id, [FromBody] ActualizarRangoDto rangoDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _actualizarRangoService.ActualizarRangoAsync(id, rangoDto);
+                // HTTP 204 No Content es la respuesta estándar para un UPDATE exitoso que no devuelve datos.
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message); // HTTP 404 si no se encontró el recurso
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ocurrió un error interno: {ex.Message}");
+            }
+        }
     }
 }

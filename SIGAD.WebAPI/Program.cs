@@ -17,10 +17,19 @@ builder.Services.AddDbContext<SigadDbContext>(options =>
 // 2. Registrar servicios para Inyección de Dependencias (DI)
 // Aquí es donde hacemos la corrección.
 // Le decimos: "Cuando se necesite un IRangoRepository, usa la clase EfRangoRepository".
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
-
+builder.Services.AddScoped<GestionArticulosAppService>();
+builder.Services.AddScoped<GestionInvestigacionesAppService>();
 // Registramos el servicio de aplicación que usa el repositorio.
 builder.Services.AddScoped<ConsultaRangoAppService>();
+builder.Services.AddScoped<GestionRangoAppService>();
+builder.Services.AddScoped<ActualizarRangoService>();
+builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>(); // Necesitarás crear esta clase
+builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>(); // Necesitarás crear esta clase
+builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>(); // Necesitarás crear esta clase
+
 
 // NOTA PARA EL FUTURO: A medida que crees más repositorios y servicios
 // (como para TipoDocumento), los añadirás aquí de la misma forma.
