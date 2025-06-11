@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SIGAD.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    partial class SigadDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250611021641_InitialSchemaFromDb")]
+    partial class InitialSchemaFromDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("Articulos", (string)null);
+                    b.ToTable("Articulos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ArticulosPorSolicitud", b =>
@@ -74,7 +77,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("SolicitudAscensoId");
 
-                    b.ToTable("ArticulosPorSolicitud", (string)null);
+                    b.ToTable("ArticulosPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Cuenta", b =>
@@ -99,7 +102,7 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasIndex("DocenteCedula")
                         .IsUnique();
 
-                    b.ToTable("Cuentas", (string)null);
+                    b.ToTable("Cuentas");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Curso", b =>
@@ -141,7 +144,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("OrganizacionId");
 
-                    b.ToTable("Cursos", (string)null);
+                    b.ToTable("Cursos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.CursosPorSolicitud", b =>
@@ -161,7 +164,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("SolicitudAscensoId");
 
-                    b.ToTable("CursosPorSolicitud", (string)null);
+                    b.ToTable("CursosPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Docente", b =>
@@ -186,7 +189,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Cedula");
 
-                    b.ToTable("Docentes", (string)null);
+                    b.ToTable("Docentes");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.EvaluacionDocente", b =>
@@ -223,7 +226,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("EvaluacionesDocentes", (string)null);
+                    b.ToTable("EvaluacionesDocentes");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.EvaluacionesPorSolicitud", b =>
@@ -246,7 +249,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("SolicitudAscensoId");
 
-                    b.ToTable("EvaluacionesPorSolicitud", (string)null);
+                    b.ToTable("EvaluacionesPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ExperienciaLaboral", b =>
@@ -288,7 +291,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("OrganizacionId");
 
-                    b.ToTable("ExperienciasLaborales", (string)null);
+                    b.ToTable("ExperienciasLaborales");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.ExperienciaPorSolicitud", b =>
@@ -311,7 +314,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("SolicitudAscensoId");
 
-                    b.ToTable("ExperienciaPorSolicitud", (string)null);
+                    b.ToTable("ExperienciaPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Investigacion", b =>
@@ -355,7 +358,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("DocenteCedula");
 
-                    b.ToTable("Investigaciones", (string)null);
+                    b.ToTable("Investigaciones");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.InvestigacionesPorSolicitud", b =>
@@ -375,7 +378,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("SolicitudAscensoId");
 
-                    b.ToTable("InvestigacionesPorSolicitud", (string)null);
+                    b.ToTable("InvestigacionesPorSolicitud");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Organizacion", b =>
@@ -396,7 +399,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Organizaciones", (string)null);
+                    b.ToTable("Organizaciones");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Rango", b =>
@@ -428,7 +431,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rangos", (string)null);
+                    b.ToTable("Rangos");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.SolicitudAscenso", b =>
@@ -471,7 +474,7 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("RangoSolicitadoId");
 
-                    b.ToTable("SolicitudesAscenso", (string)null);
+                    b.ToTable("SolicitudesAscenso");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Articulo", b =>

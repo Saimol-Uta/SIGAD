@@ -1,25 +1,16 @@
-﻿using SIGAD.Application.DTOs;
+﻿// En: SIGAD.Application/Services/ConsultaRangoAppService.cs
+using SIGAD.Application.DTOs;
 using SIGAD.Domain.Interfaces;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SIGAD.Application.Services
 {
-    // Opcional: definir una interfaz IConsultaRangoAppService si planeas tener múltiples implementaciones
-    // o si otros servicios de aplicación dependerán de este. Por simplicidad, la omitimos por ahora.
-    // public interface IConsultaRangoAppService
-    // {
-    //     Task<IEnumerable<RangoDto>> GetAllRangosAsync();
-    // }
-
-    public class ConsultaRangoAppService // Si tuvieras la interfaz: public class ConsultaRangoAppService : IConsultaRangoAppService
+    public class ConsultaRangoAppService
     {
         private readonly IRangoRepository _rangoRepository;
 
-        // El constructor recibe la implementación de IRangoRepository mediante Inyección de Dependencias
         public ConsultaRangoAppService(IRangoRepository rangoRepository)
         {
             _rangoRepository = rangoRepository;
@@ -27,16 +18,16 @@ namespace SIGAD.Application.Services
 
         public async Task<IEnumerable<RangoDto>> GetAllRangosAsync()
         {
-            // 1. Obtener las entidades del dominio desde el repositorio
-            var rangos = await _rangoRepository.GetAllAsync();
+            // 1. Llama al método del repositorio para obtener las entidades del dominio.
+            var rangosEntidades = await _rangoRepository.GetAllAsync();
 
-            // 2. Mapear las entidades del dominio a DTOs
-            // Esto es un mapeo manual simple. Para proyectos más grandes, se usan librerías como AutoMapper.
-            var rangosDto = rangos.Select(rango => new RangoDto
+            // 2. Mapea la lista de entidades a una lista de DTOs.
+            // Esta transformación es una responsabilidad clave del Servicio de Aplicación.
+            var rangosDto = rangosEntidades.Select(r => new RangoDto
             {
-                Id = rango.Id,
-                Nombre = rango.Nombre,
-                Descripcion = rango.Descripcion
+                Id = r.Id, // El Id es INT en este caso
+                Nombre = r.Nombre,
+                Descripcion = "Requisitos: " + r.ArticulosRequeridos + " artículos, " + r.AniosExperienciaRequeridos + " años de exp." // Ejemplo de cómo podrías transformar los datos
             }).ToList();
 
             return rangosDto;

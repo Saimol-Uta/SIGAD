@@ -1,11 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// En: SIGAD.Infrastructure/Repositories/EfRangoRepository.cs
+using Microsoft.EntityFrameworkCore; // ¡Importante para ToListAsync!
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
@@ -19,48 +18,44 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<Rango> GetByIdAsync(Guid id)
-        {
-            // FindAsync es eficiente para buscar por clave primaria.
-            // Retorna null si no lo encuentra.
-            return await _context.Rangos.FindAsync(id);
-        }
-
+        // --- VAMOS A IMPLEMENTAR ESTE MÉTODO ---
         public async Task<IEnumerable<Rango>> GetAllAsync()
         {
-            // ToListAsync ejecuta la consulta a la base de datos y trae todos los resultados.
-            return await _context.Rangos.ToListAsync();
+            // Usa el DbContext para acceder a la tabla Rangos y convertirla a una lista de forma asíncrona.
+            // Esto se traduce en un "SELECT * FROM Rangos" en SQL.
+            return await _context.Rangos.AsNoTracking().ToListAsync();
+        }
+
+        // --- Dejaremos los otros métodos para más tarde, pero así se verían ---
+        public async Task<Rango?> GetByIdAsync(Guid id)
+        {
+            // Lo cambiamos a int porque en la BD el ID de Rango es INT
+            // return await _context.Rangos.FindAsync(id);
+            // NOTA: Como el Id de Rango es INT, no Guid, lo buscamos así:
+            return await _context.Rangos.FirstOrDefaultAsync(r => r.Id == (int)(object)id); // Conversión temporal, idealmente el parámetro sería int
+        }
+        public async Task<Rango> GetByIdAsync(int id) // Método sobrecargado con el tipo correcto
+        {
+            return await _context.Rangos.FindAsync(id);
         }
 
         public async Task AddAsync(Rango rango)
         {
-            // AddAsync marca la entidad para ser insertada.
             await _context.Rangos.AddAsync(rango);
-            // NOTA: SaveChangesAsync() no se llama aquí usualmente en un patrón Repositorio puro.
-            // Se maneja a un nivel superior (ej. Unit of Work en el Application Service)
-            // para agrupar múltiples operaciones en una sola transacción.
-            // Por ahora, para simplificar y ver resultados rápidos, podríamos llamarlo aquí
-            // o lo llamaremos explícitamente en el Application Service después de esta operación.
-            // Para nuestro primer ejemplo, lo dejaremos sin SaveChangesAsync aquí.
         }
 
         public Task UpdateAsync(Rango rango)
         {
-            // EF Core rastrea cambios en entidades que ha cargado.
-            // Simplemente marcar el estado como modificado es una forma.
-            _context.Entry(rango).State = EntityState.Modified;
-            // O si ya está siendo rastreado y modificaste sus propiedades, SaveChangesAsync lo detectará.
-            // De nuevo, SaveChangesAsync() se manejaría idealmente a un nivel superior.
-            return Task.CompletedTask; // Si no hay operaciones async directas
+            _context.Rangos.Update(rango);
+            return Task.CompletedTask;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id) // También necesitaría ser int
         {
-            var rango = await _context.Rangos.FindAsync(id);
+            var rango = await GetByIdAsync((int)(object)id);
             if (rango != null)
             {
                 _context.Rangos.Remove(rango);
-                // SaveChangesAsync() se manejaría a un nivel superior.
             }
         }
     }
