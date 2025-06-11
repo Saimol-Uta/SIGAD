@@ -25,21 +25,6 @@ namespace SIGAD.Application.Services
             _rangoRepository = rangoRepository;
         }
 
-        public async Task<IEnumerable<RangoDto>> GetAllRangosAsync()
-        {
-            // 1. Obtener las entidades del dominio desde el repositorio
-            var rangos = await _rangoRepository.GetAllAsync();
-
-            // 2. Mapear las entidades del dominio a DTOs
-            // Esto es un mapeo manual simple. Para proyectos más grandes, se usan librerías como AutoMapper.
-            var rangosDto = rangos.Select(rango => new RangoDto
-            {
-                Id = rango.Id,
-                Nombre = rango.Nombre,
-                Descripcion = rango.Descripcion
-            }).ToList();
-
-            return rangosDto;
-        }
+       
     }
 }

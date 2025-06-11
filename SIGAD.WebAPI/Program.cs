@@ -1,33 +1,42 @@
 // SIGAD.WebAPI/Program.cs
 using Microsoft.EntityFrameworkCore;
-using SIGAD.Application.Services;    // Para ConsultaRangoAppService
-using SIGAD.Domain.Interfaces;       // Para IRangoRepository
-using SIGAD.Infrastructure.Persistence; // Para SigadDbContext
-using SIGAD.Infrastructure.Repositories; // Para EfRangoRepository
+using SIGAD.Application.Services;
+using SIGAD.Domain.Interfaces;
+using SIGAD.Infrastructure.Persistence;
+using SIGAD.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- SECCIÓN DE CONFIGURACIÓN DE SERVICIOS ---
+
 // 1. Configurar DbContext para Entity Framework Core
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<SigadDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // 2. Registrar servicios para Inyección de Dependencias (DI)
-// Cuando una clase pida IRangoRepository, se le dará una instancia de EfRangoRepository.
-// AddScoped significa que se creará una instancia por cada solicitud HTTP.
+// Aquí es donde hacemos la corrección.
+// Le decimos: "Cuando se necesite un IRangoRepository, usa la clase EfRangoRepository".
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
 
-// Registrar el servicio de aplicación
+// Registramos el servicio de aplicación que usa el repositorio.
 builder.Services.AddScoped<ConsultaRangoAppService>();
-// Si hubieras usado una interfaz para el servicio de aplicación:
-// builder.Services.AddScoped<IConsultaRangoAppService, ConsultaRangoAppService>();
+
+// NOTA PARA EL FUTURO: A medida que crees más repositorios y servicios
+// (como para TipoDocumento), los añadirás aquí de la misma forma.
 
 
-// 3. Agregar servicios para controladores (necesario para que funcionen las APIs)
+// 3. Agregar servicios para controladores de API
 builder.Services.AddControllers();
 
-// 4. Configurar Swagger/OpenAPI (útil para probar tu API)
+// 4. Configurar Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 5. Configurar CORS
+builder.Services.AddCors();
+
+// --- CONSTRUCCIÓN DE LA APLICACIÓN Y PIPELINE ---
 
 var app = builder.Build();
 
@@ -40,17 +49,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Esto es importante para que Blazor pueda llamar a la API desde un origen diferente (tu app Blazor corriendo en otro puerto)
-// En producción, deberías configurar esto de forma más restrictiva.
+// Usar la política de CORS (recuerda ajustar los puertos si son diferentes)
 app.UseCors(policy =>
-    policy.WithOrigins(
-            "https://localhost:7087", // Origen HTTPS de tu Blazor App
-            "http://localhost:5250" // Reemplaza o elimina si no usas HTTP para Blazor
-        )
+    policy.WithOrigins("https://localhost:7087", "http://localhost:5250")
     .AllowAnyMethod()
     .AllowAnyHeader());
-app.UseAuthorization(); // Si añades autenticación más adelante
 
-app.MapControllers(); // Mapea las rutas a tus controladores
+app.UseAuthorization();
+
+app.MapControllers();
 
 app.Run();
