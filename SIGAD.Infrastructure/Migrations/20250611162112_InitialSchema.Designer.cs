@@ -12,8 +12,8 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    [Migration("20250611021641_InitialSchemaFromDb")]
-    partial class InitialSchemaFromDb
+    [Migration("20250611162112_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -28,7 +28,7 @@ namespace SIGAD.Infrastructure.Migrations
             modelBuilder.Entity("SIGAD.Domain.Entities.Articulo", b =>
                 {
                     b.Property<string>("DOI")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("AnioPublicacion")
                         .HasColumnType("int");
@@ -66,16 +66,11 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ArticuloDOI")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("SolicitudId", "ArticuloDOI");
 
                     b.HasIndex("ArticuloDOI");
-
-                    b.HasIndex("SolicitudAscensoId");
 
                     b.ToTable("ArticulosPorSolicitud");
                 });
@@ -155,14 +150,9 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("CursoId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "CursoId");
 
                     b.HasIndex("CursoId");
-
-                    b.HasIndex("SolicitudAscensoId");
 
                     b.ToTable("CursosPorSolicitud");
                 });
@@ -237,17 +227,9 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("EvaluacionId")
                         .HasColumnType("int");
 
-                    b.Property<int>("EvaluacionDocenteId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "EvaluacionId");
 
-                    b.HasIndex("EvaluacionDocenteId");
-
-                    b.HasIndex("SolicitudAscensoId");
+                    b.HasIndex("EvaluacionId");
 
                     b.ToTable("EvaluacionesPorSolicitud");
                 });
@@ -302,17 +284,9 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("ExperienciaId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ExperienciaLaboralId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "ExperienciaId");
 
-                    b.HasIndex("ExperienciaLaboralId");
-
-                    b.HasIndex("SolicitudAscensoId");
+                    b.HasIndex("ExperienciaId");
 
                     b.ToTable("ExperienciaPorSolicitud");
                 });
@@ -369,14 +343,9 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("InvestigacionId")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("SolicitudAscensoId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("SolicitudId", "InvestigacionId");
 
                     b.HasIndex("InvestigacionId");
-
-                    b.HasIndex("SolicitudAscensoId");
 
                     b.ToTable("InvestigacionesPorSolicitud");
                 });
@@ -493,12 +462,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Articulo", "Articulo")
                         .WithMany()
                         .HasForeignKey("ArticuloDOI")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("ArticulosPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -542,12 +511,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Curso", "Curso")
                         .WithMany()
                         .HasForeignKey("CursoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("CursosPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -571,13 +540,13 @@ namespace SIGAD.Infrastructure.Migrations
                 {
                     b.HasOne("SIGAD.Domain.Entities.EvaluacionDocente", "EvaluacionDocente")
                         .WithMany()
-                        .HasForeignKey("EvaluacionDocenteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("EvaluacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("EvaluacionesPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -609,13 +578,13 @@ namespace SIGAD.Infrastructure.Migrations
                 {
                     b.HasOne("SIGAD.Domain.Entities.ExperienciaLaboral", "ExperienciaLaboral")
                         .WithMany()
-                        .HasForeignKey("ExperienciaLaboralId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("ExperienciaId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("ExperienciaPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -640,12 +609,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasOne("SIGAD.Domain.Entities.Investigacion", "Investigacion")
                         .WithMany()
                         .HasForeignKey("InvestigacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("InvestigacionesPorSolicitud")
-                        .HasForeignKey("SolicitudAscensoId")
+                        .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
