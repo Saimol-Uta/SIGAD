@@ -1,0 +1,147 @@
+﻿@page "/Crear-rangos"
+@using SIGAD.BlazorApp.Models
+@inject HttpClient Http
+
+<PageTitle>Gestionar Rangos Académicos</PageTitle>
+
+<h3>Gestionar Rangos</h3>
+
+<div class="card mb-4">
+    <div class="card-header">
+        Crear Nuevo Rango
+    </div>
+    <div class="card-body">
+        <EditForm Model="@nuevoRango" OnValidSubmit="@HandleCrearSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label for="id" class="form-label">Id del Rango (ej. 1, 2, 3)</label>
+                <InputNumber id="id" class="form-control" @bind-Value="nuevoRango.Id" />
+                <ValidationMessage For="@(() => nuevoRango.Id)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre del Rango</label>
+                <InputText id="nombre" class="form-control" @bind-Value="nuevoRango.Nombre" />
+                <ValidationMessage For="@(() => nuevoRango.Nombre)" />
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label>Artículos Requeridos</label>
+                    <InputNumber class="form-control" @bind-Value="nuevoRango.ArticulosRequeridos" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Años de Experiencia</label>
+                    <InputNumber class="form-control" @bind-Value="nuevoRango.AniosExperienciaRequeridos" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Horas de Curso</label>
+                    <InputNumber class="form-control" @bind-Value="nuevoRango.HorasCursoRequeridas" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Meses de Investigación</label>
+                    <InputNumber class="form-control" @bind-Value="nuevoRango.MesesInvestigacionRequeridos" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label>Puntaje Promedio (%)</label>
+                    <InputNumber class="form-control" @bind-Value="nuevoRango.PuntajePromedioEvaluacionesRequerido" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Guardar Nuevo Rango</button>
+        </EditForm>
+
+        @if (!string.IsNullOrWhiteSpace(mensajeError))
+        {
+            <div class="alert alert-danger mt-3">@mensajeError</div>
+        }
+        @if (creacionExitosa)
+        {
+            <div class="alert alert-success mt-3">¡Rango creado exitosamente!</div>
+        }
+    </div>
+</div>
+<h4 class="mt-4">Lista de Rangos Existentes</h4>
+@if (rangos == null)
+{
+    <p><em>Cargando rangos...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Requisitos</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rango in rangos)
+            {
+                <tr>
+                    <td>@rango.Id</td>
+                    <td>@rango.Nombre</td>
+                    <td>@rango.Descripcion</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<RangoDto>? rangos; // Lista para mostrar los rangos
+    private CrearRangoDto nuevoRango = new(); // Objeto para el formulario de creación
+    private string? mensajeError;
+    private bool creacionExitosa;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarRangos();
+    }
+
+    private async Task CargarRangos()
+    {
+        try
+        {
+            rangos = await Http.GetFromJsonAsync<List<RangoDto>>("api/rangos");
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar los rangos: {ex.Message}";
+            Console.WriteLine(mensajeError);
+        }
+    }
+
+    private async Task HandleCrearSubmit()
+    {
+        mensajeError = null;
+        creacionExitosa = false;
+
+        try
+        {
+            // Hacemos la llamada POST a nuestra API, enviando el objeto del formulario como JSON
+            var response = await Http.PostAsJsonAsync("api/rangos", nuevoRango);
+
+            if (response.IsSuccessStatusCode)
+            {
+                creacionExitosa = true;
+                nuevoRango = new CrearRangoDto(); // Limpiamos el formulario
+                await CargarRangos(); // Recargamos la lista para mostrar el nuevo rango
+            }
+            else
+            {
+                // Mostramos el error que devuelve la API (ej. "Ya existe un rango con este Id.")
+                var error = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error al crear el rango: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de conexión: {ex.Message}";
+        }
+
+        StateHasChanged(); // Notifica a Blazor que la UI debe re-renderizarse
+    }
+}
