@@ -1,4 +1,5 @@
 ﻿@page "/ver-solicitudes"
+@using SIGAD.BlazorApp.Models
 @inject HttpClient Http
 
 <h3>Solicitudes</h3>
@@ -9,71 +10,94 @@
 }
 else if (!solicitudes.Any())
 {
-    <p>No hay solicitudes pendientes.</p>
+    <p>No hay solicitudes.</p>
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Fecha</th>
+                <th>Nombre del Docente</th>
+                <th>Rango Actual</th>
+                <th>Rango Solicitado</th>
+                <th>Fecha de Creación</th>
                 <th>Estado</th>
-                <th>Acciones</th>
+                <th>Cambiar Estado</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var solicitud in solicitudes)
             {
                 <tr>
-                    <td>@solicitud.Id</td>
-                    <td>@solicitud.Nombre</td>
-                    <td>@solicitud.Fecha.ToShortDateString()</td>
+                    <td>@solicitud.NombreDocente</td>
+                    <td>@solicitud.RangoActual</td>
+                    <td>@solicitud.RangoSolicitado</td>
+                    <td>@solicitud.FechaCreacion.ToShortDateString()</td>
                     <td>@solicitud.Estado</td>
                     <td>
-                        <button class="btn btn-success" @onclick="() => AprobarSolicitud(solicitud.Id)" disabled="@solicitud.Estado == " Aprobado"">Aprobar</button>
+                        <select class="form-select" @onchange="(e) => CambiarEstado(solicitud.Id, e.Value!.ToString())">
+                            @foreach (var estado in estadosDisponibles)
+                            {
+                                <option value="@estado" selected="@(estado == solicitud.Estado)">
+                                    @estado
+                                </option>
+                            }
+                        </select>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
 }
-
 @code {
-    private List<SolicitudDto>? solicitudes;
+    private List<VerSolicitudDTO>? solicitudes;
+
+    // Solo mostrar las opciones que puedes ejecutar desde la UI
+    private readonly List<string> estadosDisponibles = new()
+    {
+        "Aprobada", "Rechazada"
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        solicitudes = await Http.GetFromJsonAsync<List<SolicitudDto>>("/api/solicitudes");
+        try
+        {
+            solicitudes = await Http.GetFromJsonAsync<List<VerSolicitudDTO>>("/api/solicitudes");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error al cargar solicitudes: {ex.Message}");
+        }
     }
 
-    private async Task AprobarSolicitud(int id)
+    private async Task CambiarEstado(Guid id, string nuevoEstado)
     {
-        var response = await Http.PutAsync($"/api/solicitudes/{id}/aprobar", null);
+        string endpoint = nuevoEstado switch
+        {
+            "Aprobada" => $"/api/solicitudes/{id}/aprobar",
+            "Rechazada" => $"/api/solicitudes/{id}/rechazar",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            Console.Error.WriteLine($"Estado no válido: {nuevoEstado}");
+            return;
+        }
+
+        var response = await Http.PutAsync(endpoint, null);
+
         if (response.IsSuccessStatusCode)
         {
             var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
             if (solicitud != null)
             {
-                solicitud.Estado = "Aprobado";
+                solicitud.Estado = nuevoEstado;
             }
         }
         else
         {
-            Console.Error.WriteLine($"Error al aprobar la solicitud con ID {id}");
+            Console.Error.WriteLine($"Error al cambiar el estado de la solicitud con ID {id}");
         }
     }
-
-    public class SolicitudDto
-    {
-        public int Id { get; set; }
-        public string Nombre { get; set; } = string.Empty;
-        public DateTime Fecha { get; set; }
-        public string Estado { get; set; } = string.Empty;
-    }
-}
-
-@code {
-
 }
