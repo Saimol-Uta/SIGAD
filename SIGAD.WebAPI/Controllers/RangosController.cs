@@ -20,7 +20,16 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         // GET: api/rangos
-      
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<RangoDto>>> GetAllRangosAsync()
+        {
+            var rangos = await _rangoAppService.GetAllRangosAsync();
+            if (rangos == null || !rangos.Any())
+            {
+                return NotFound("No se encontraron rangos."); // Opcional: podrías devolver una lista vacía Ok(new List<RangoDto>())
+            }
+            return Ok(rangos); // Devuelve 200 OK con la lista de rangos
+        }
 
         // NOTA SOBRE SaveChangesAsync():
         // Si tuviéramos un método POST para crear un rango, se vería algo así:
