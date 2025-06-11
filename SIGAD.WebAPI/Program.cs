@@ -1,9 +1,13 @@
 // SIGAD.WebAPI/Program.cs
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SIGAD.Application.Services;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,35 +18,88 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SigadDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 2. Registrar servicios para Inyección de Dependencias (DI)
-// Aquí es donde hacemos la corrección.
-// Le decimos: "Cuando se necesite un IRangoRepository, usa la clase EfRangoRepository".
+// 2. Configurar JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurada");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// 3. Registrar servicios para Inyección de Dependencias (DI)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
+builder.Services.AddScoped<ICuentaRepository, EfCuentaRepository>();
+builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>();
+builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
+builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
+
+// Servicios de aplicación
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<GestionArticulosAppService>();
 builder.Services.AddScoped<GestionInvestigacionesAppService>();
-// Registramos el servicio de aplicación que usa el repositorio.
 builder.Services.AddScoped<ConsultaRangoAppService>();
 builder.Services.AddScoped<GestionRangoAppService>();
 builder.Services.AddScoped<ActualizarRangoService>();
-builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>(); // Necesitarás crear esta clase
 builder.Services.AddScoped<GestionSolicitudesAppService>();
-builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>(); // Necesitarás crear esta clase
-builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>(); // Necesitarás crear esta clase
 
-
-// NOTA PARA EL FUTURO: A medida que crees más repositorios y servicios
-// (como para TipoDocumento), los añadirás aquí de la misma forma.
-
-
-// 3. Agregar servicios para controladores de API
+// 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();
 
-// 4. Configurar Swagger/OpenAPI
+// 5. Configurar Swagger/OpenAPI con soporte para JWT
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "SIGAD API",
+        Version = "v1",
+        Description = "API para el Sistema de Gestión Académica Docente (SIGAD)"
+    });
 
-// 5. Configurar CORS
+    // Configurar autenticación JWT en Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header usando el esquema Bearer. Ejemplo: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+// 6. Configurar CORS
 builder.Services.AddCors();
 
 // --- CONSTRUCCIÓN DE LA APLICACIÓN Y PIPELINE ---
@@ -53,7 +110,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGAD API v1");
+        c.DocumentTitle = "SIGAD API - Documentación";
+    });
 }
 
 app.UseHttpsRedirection();
@@ -64,6 +125,8 @@ app.UseCors(policy =>
     .AllowAnyMethod()
     .AllowAnyHeader());
 
+// IMPORTANTE: El orden de estos middlewares es crucial
+app.UseAuthentication(); // Debe ir antes de UseAuthorization
 app.UseAuthorization();
 
 app.MapControllers();
