@@ -1,11 +1,5 @@
-﻿// En: SIGAD.Infrastructure/Repositories/EfRangoRepository.cs
-using Microsoft.EntityFrameworkCore; // ¡Importante para ToListAsync!
-using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -18,34 +12,18 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Rango>> GetAllAsync()
+        public async Task<object?> GetByIdAsync(int id)
         {
-            return await _context.Rangos.AsNoTracking().ToListAsync();
+            // Implementación básica - se completará más adelante
+            await Task.CompletedTask;
+            return null;
         }
 
-        public async Task<Rango> GetByIdAsync(int id)
+        public async Task<IEnumerable<object>> GetAllAsync()
         {
-            return await _context.Rangos.FindAsync(id);
-        }
-
-        public async Task AddAsync(Rango rango)
-        {
-            await _context.Rangos.AddAsync(rango);
-        }
-
-        public Task UpdateAsync(Rango rango)
-        {
-            _context.Rangos.Update(rango);
-            return Task.CompletedTask;
-        }
-
-        public async Task DeleteAsync(int id)
-        {
-            var rango = await GetByIdAsync(id);
-            if (rango != null)
-            {
-                _context.Rangos.Remove(rango);
-            }
+            // Implementación básica - se completará más adelante
+            await Task.CompletedTask;
+            return new List<object>();
         }
     }
-}
+} 

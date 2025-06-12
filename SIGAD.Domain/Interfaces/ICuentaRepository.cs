@@ -1,0 +1,13 @@
+using SIGAD.Domain.Entities;
+
+namespace SIGAD.Domain.Interfaces
+{
+    public interface ICuentaRepository
+    {
+        Task<Cuenta?> GetByEmailAsync(string email);
+        Task<bool> ExistsByEmailAsync(string email);
+        Task<bool> ExistsByDocenteCedulaAsync(string docenteCedula);
+        Task AddAsync(Cuenta cuenta);
+        Task UpdateAsync(Cuenta cuenta);
+    }
+} 

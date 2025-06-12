@@ -1,34 +1,40 @@
-﻿using SIGAD.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SIGAD.Domain.Entities
 {
+    [Table("SolicitudesAscenso")]
     public class SolicitudAscenso
     {
-        public Guid Id { get; set; } // Mapea a: Id UNIQUEIDENTIFIER PRIMARY KEY
-        public string DocenteCedula { get; set; }
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [StringLength(10)]
+        public string DocenteCedula { get; set; } = string.Empty;
+
         public int? RangoActualId { get; set; }
+
+        [Required]
         public int RangoSolicitadoId { get; set; }
+
+        [Required]
         public DateTime FechaCreacion { get; set; }
+
         public DateTime? FechaEnvio { get; set; }
+
         public DateTime? FechaResolucion { get; set; }
-        public EstadoSolicitud Estado { get; set; } // Usamos nuestro enum
+
+        [Required]
+        [StringLength(20)]
+        public string Estado { get; set; } = string.Empty;
+
         public string? ObservacionesAdmin { get; set; }
 
         // Propiedades de navegación
-        public virtual Docente Docente { get; set; }
-        public virtual Rango RangoActual { get; set; }
-        public virtual Rango RangoSolicitado { get; set; }
+        [ForeignKey("DocenteCedula")]
+        public virtual Docente? Docente { get; set; }
 
-        // Navegación a las tablas de vínculo
-        public virtual ICollection<ArticulosPorSolicitud> ArticulosPorSolicitud { get; set; } = new List<ArticulosPorSolicitud>();
-        public virtual ICollection<CursosPorSolicitud> CursosPorSolicitud { get; set; } = new List<CursosPorSolicitud>();
-        public virtual ICollection<InvestigacionesPorSolicitud> InvestigacionesPorSolicitud { get; set; } = new List<InvestigacionesPorSolicitud>();
-        public virtual ICollection<ExperienciaPorSolicitud> ExperienciaPorSolicitud { get; set; } = new List<ExperienciaPorSolicitud>();
-        public virtual ICollection<EvaluacionesPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionesPorSolicitud>();
+        public virtual ICollection<EvaluacionPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionPorSolicitud>();
     }
-}
+} 
