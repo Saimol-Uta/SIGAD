@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIGAD.Application.Services;
 using SIGAD.Domain.Interfaces;
-using SIGAD.Domain.Repositories;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
 using System.Text;
@@ -56,12 +55,12 @@ builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepo
 // Servicios de aplicaci�n
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
-builder.Services.AddScoped<GestionArticulosAppService>();
-builder.Services.AddScoped<GestionInvestigacionesAppService>();
-builder.Services.AddScoped<ConsultaRangoAppService>();
-builder.Services.AddScoped<GestionRangoAppService>();
-builder.Services.AddScoped<ActualizarRangoService>();
-builder.Services.AddScoped<GestionSolicitudesAppService>();
+// builder.Services.AddScoped<GestionArticulosAppService>();
+// builder.Services.AddScoped<GestionInvestigacionesAppService>();
+// builder.Services.AddScoped<ConsultaRangoAppService>();
+// builder.Services.AddScoped<GestionRangoAppService>();
+// builder.Services.AddScoped<ActualizarRangoService>();
+// builder.Services.AddScoped<GestionSolicitudesAppService>();
 
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();

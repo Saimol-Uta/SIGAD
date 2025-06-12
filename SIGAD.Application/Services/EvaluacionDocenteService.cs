@@ -3,10 +3,9 @@ using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using SIGAD.Domain.Repositories;
 using System.Security.Cryptography;
 using System.Text;
-using ISolicitudAscensoRepository = SIGAD.Domain.Repositories.ISolicitudAscensoRepository;
+using ISolicitudAscensoRepository = SIGAD.Domain.Interfaces.ISolicitudAscensoRepository;
 
 namespace SIGAD.Application.Services
 {

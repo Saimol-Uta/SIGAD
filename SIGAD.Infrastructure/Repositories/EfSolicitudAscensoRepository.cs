@@ -1,5 +1,5 @@
 using SIGAD.Domain.Entities;
-using SIGAD.Domain.Repositories;
+using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +22,15 @@ namespace SIGAD.Infrastructure.Repositories
         public async Task<IEnumerable<SolicitudAscenso>> GetAllAsync()
         {
             return await _context.SolicitudesAscenso.ToListAsync();
+        }
+
+        public async Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync()
+        {
+            return await _context.SolicitudesAscenso
+                .Include(s => s.Docente)
+                .Include(s => s.RangoActual)
+                .Include(s => s.RangoSolicitado)
+                .ToListAsync();
         }
 
         public async Task AddAsync(SolicitudAscenso solicitud)
