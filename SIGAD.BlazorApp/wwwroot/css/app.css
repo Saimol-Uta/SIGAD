@@ -308,3 +308,92 @@ a {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     margin: 0 auto 2rem auto;
 }
+.etapas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.etapa-card {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.doc-card {
+    margin-top: 0.5rem;
+}
+
+.estado {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+    display: inline-block;
+}
+
+.estado-aprobado {
+    color: green;
+}
+
+.estado-revision {
+    color: #3b82f6;
+}
+
+.estado-reprobado {
+    color: red;
+}
+
+.estado-sinrevisar {
+    color: #6b7280;
+}
+/* gris */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.card {
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background-color: #f9f9f9;
+}
+
+.titulo {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.valor {
+    margin: 0.5rem 0;
+    font-size: 1.25rem;
+}
+
+.estado {
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.estado-aprobado {
+    color: #10b981;
+    background-color: #ecfdf5;
+}
+
+.estado-revision {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.estado-reprobado {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.estado-sinrevisar {
+    color: #6b7280;
+    background-color: #f3f4f6;
+}
