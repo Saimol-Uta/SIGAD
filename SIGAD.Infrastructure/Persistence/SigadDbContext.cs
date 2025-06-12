@@ -84,7 +84,10 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.FechaCreacion).IsRequired();
-                entity.Property(e => e.Estado).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.Estado)
+                     .HasConversion<string>() // Esto convierte el enum a string en la base de datos
+                        .HasMaxLength(20)
+                        .IsRequired();
 
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Solicitudes)

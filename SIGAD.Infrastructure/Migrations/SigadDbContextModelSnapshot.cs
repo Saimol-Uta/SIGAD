@@ -447,9 +447,10 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("Estado")
+                    b.Property<string>("Estado")
+                        .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("int");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
