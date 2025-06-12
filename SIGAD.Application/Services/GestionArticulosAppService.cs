@@ -4,21 +4,18 @@ using SIGAD.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-
 
 namespace SIGAD.Application.Services
 {
     public class GestionArticulosAppService
     {
-
-        // Implementación básica - se completará más adelante
-        public GestionArticulosAppService(){
-
+        // 1. Los campos se declaran aquí, a nivel de la clase
         private readonly IArticuloRepository _articuloRepository;
         private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
+
+        // 2. Solo hay un constructor que recibe las dependencias
         public GestionArticulosAppService(IArticuloRepository articuloRepository, IDocenteRepository docenteRepository, IUnitOfWork unitOfWork)
         {
             _articuloRepository = articuloRepository;
@@ -28,10 +25,11 @@ namespace SIGAD.Application.Services
 
         public async Task<Articulo> CrearArticuloAsync(CrearArticuloDto articuloDto, string docenteCedula)
         {
-            var articuloExistente = await _articuloRepository.GetByDoiAsync(articuloDto.DOI);
-            if (articuloExistente == null)
+            // 3. Lógica corregida: Lanza error si el artículo YA EXISTE (!= null)
+            var articuloExistente = await _articuloRepository.GetByIdAsync(articuloDto.DOI);
+            if (articuloExistente != null)
             {
-                throw new InvalidOperationException("El artículo ya ha sido ingresado con anterioridad");
+                throw new InvalidOperationException("Un artículo con el mismo DOI ya ha sido ingresado.");
             }
 
             bool docenteExiste = await _docenteRepository.ExistsByCedulaAsync(docenteCedula);
@@ -40,35 +38,33 @@ namespace SIGAD.Application.Services
                 throw new InvalidOperationException("El docente con la cédula proporcionada no existe.");
             }
 
-            var nuevoArticulo = new Articulo();
-            nuevoArticulo.Titulo = articuloDto.Titulo;
-            nuevoArticulo.DOI = articuloDto.DOI;
-            nuevoArticulo.ArchivoRuta = articuloDto.ArchivoRuta;
-            nuevoArticulo.AnioPublicacion = articuloDto.AnioPublicacion;
-            nuevoArticulo.Revista = articuloDto.Revista;
-            nuevoArticulo.ContenidoHash = articuloDto.ContenidoHash;
-            nuevoArticulo.DocenteCedula = docenteCedula;
+            var nuevoArticulo = new Articulo
+            {
+                Titulo = articuloDto.Titulo,
+                DOI = articuloDto.DOI,
+                ArchivoRuta = articuloDto.ArchivoRuta,
+                AnioPublicacion = articuloDto.AnioPublicacion,
+                Revista = articuloDto.Revista,
+                ContenidoHash = articuloDto.ContenidoHash,
+                DocenteCedula = docenteCedula
+            };
 
             await _articuloRepository.AddAsync(nuevoArticulo);
-
             await _unitOfWork.SaveChangesAsync();
-
             return nuevoArticulo;
         }
 
         public async Task<IEnumerable<VerArticuloDto>> GetArticulosPorDocenteAsync(string docenteCedula)
         {
-            // 1. Verifica si el docente existe
             bool docenteExiste = await _docenteRepository.ExistsByCedulaAsync(docenteCedula);
             if (!docenteExiste)
             {
                 throw new InvalidOperationException("El docente con la cédula proporcionada no existe.");
             }
+            
+            // 4. Lógica corregida: Usa el método que definimos en la interfaz
+            var articulos = await _articuloRepository.GetByDocenteAsync(docenteCedula);
 
-            // 2. Obtiene los artículos asociados al docente
-            var articulos = await _articuloRepository.GetAllByDocenteAsync(docenteCedula);
-
-            // 3. Mapea los artículos a DTOs para visualización
             var articulosDto = articulos.Select(a => new VerArticuloDto
             {
                 Titulo = a.Titulo,
@@ -80,4 +76,4 @@ namespace SIGAD.Application.Services
             return articulosDto;
         }
     }
-} 
+}

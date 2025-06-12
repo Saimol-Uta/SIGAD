@@ -51,6 +51,8 @@ builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoReposi
 builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
 builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
+builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
+builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 
 // Servicios de aplicaci�n
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -60,7 +62,7 @@ builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>(
 // builder.Services.AddScoped<ConsultaRangoAppService>();
 // builder.Services.AddScoped<GestionRangoAppService>();
 // builder.Services.AddScoped<ActualizarRangoService>();
-// builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<GestionSolicitudesAppService>();
 
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();

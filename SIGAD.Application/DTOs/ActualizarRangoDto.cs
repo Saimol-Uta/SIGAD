@@ -11,7 +11,7 @@ namespace SIGAD.Application.DTOs
     {
         [Required(ErrorMessage = "El Nombre es requerido.")]
         [StringLength(100)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
 
         [Range(0, 100)]
         public int ArticulosRequeridos { get; set; }

@@ -14,7 +14,7 @@ namespace SIGAD.Application.DTOs
 
         [Required(ErrorMessage = "El Nombre es requerido.")]
         [StringLength(100, ErrorMessage = "El Nombre no puede exceder los 100 caracteres.")]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
 
         [Range(0, 100, ErrorMessage = "El valor debe estar entre 0 y 100.")]
         public int ArticulosRequeridos { get; set; }
