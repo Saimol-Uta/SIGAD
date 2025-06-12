@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SIGAD.Application.Interfaces;
 using SIGAD.Application.Services;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
@@ -49,6 +50,7 @@ builder.Services.AddScoped<ICuentaRepository, EfCuentaRepository>();
 builder.Services.AddScoped<IDocenteRepository, EfDocenteRepository>();
 builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>();
 builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
+builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
 builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
 
@@ -56,6 +58,7 @@ builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepo
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
 builder.Services.AddScoped<IArticuloService, ArticuloService>();
+builder.Services.AddScoped<ICursoService, CursoService>();
 // builder.Services.AddScoped<GestionArticulosAppService>();
 // builder.Services.AddScoped<GestionInvestigacionesAppService>();
 // builder.Services.AddScoped<ConsultaRangoAppService>();
