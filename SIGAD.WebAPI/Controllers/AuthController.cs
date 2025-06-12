@@ -265,12 +265,7 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 _logger.LogInformation("Login exitoso para el correo: {Correo}", loginRequest.Correo);
-                return Ok(new
-                {
-                    success = true,
-                    message = "Login exitoso",
-                    data = result
-                });
+                return Ok(result); // Retornar directamente el LoginResponseDto
             }
             catch (Exception ex)
             {
