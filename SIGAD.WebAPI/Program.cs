@@ -55,6 +55,7 @@ builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepo
 // Servicios de aplicaci�n
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
+builder.Services.AddScoped<IArticuloService, ArticuloService>();
 // builder.Services.AddScoped<GestionArticulosAppService>();
 // builder.Services.AddScoped<GestionInvestigacionesAppService>();
 // builder.Services.AddScoped<ConsultaRangoAppService>();
