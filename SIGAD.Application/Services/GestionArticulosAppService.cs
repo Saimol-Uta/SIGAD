@@ -1,4 +1,4 @@
-﻿using SIGAD.Application.DTOs;
+using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using System;
@@ -7,10 +7,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace SIGAD.Application.Services
 {
     public class GestionArticulosAppService
     {
+
+        // Implementación básica - se completará más adelante
+        public GestionArticulosAppService(){
+
         private readonly IArticuloRepository _articuloRepository;
         private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -74,6 +79,5 @@ namespace SIGAD.Application.Services
 
             return articulosDto;
         }
-
     }
-}
+} 

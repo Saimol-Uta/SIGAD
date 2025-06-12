@@ -1,33 +1,29 @@
-﻿using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SIGAD.Infrastructure.Persistence;
 
 namespace SIGAD.Infrastructure.Repositories
 {
     public class EfArticuloRepository : IArticuloRepository
     {
-        public Task AddAsync(Articulo articulo)
+        private readonly SigadDbContext _context;
+
+        public EfArticuloRepository(SigadDbContext context)
         {
-            throw new NotImplementedException();
+            _context = context;
         }
 
-        public Task<IEnumerable<Articulo>> GetAllByDocenteAsync(string docenteCedula)
+        public async Task<object?> GetByIdAsync(string doi)
         {
-            throw new NotImplementedException();
+            // Implementación básica - se completará más adelante
+            await Task.CompletedTask;
+            return null;
         }
 
-        public Task<Articulo?> GetByDoiAsync(string doi)
+        public async Task<IEnumerable<object>> GetAllAsync()
         {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdateAsync(Articulo articulo)
-        {
-            throw new NotImplementedException();
+            // Implementación básica - se completará más adelante
+            await Task.CompletedTask;
+            return new List<object>();
         }
     }
-}
+} 

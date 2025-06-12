@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/*
+using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 
@@ -25,3 +26,4 @@ namespace SIGAD.WebAPI.Controllers
         }
     }
 }
+*/

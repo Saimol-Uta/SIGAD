@@ -1,20 +1,29 @@
-﻿using SIGAD.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using SIGAD.Domain.Enums;
 
 namespace SIGAD.Domain.Entities
 {
+    [Table("Cuentas")]
     public class Cuenta
     {
-        public string Correo { get; set; } // Mapea a: Correo VARCHAR(100) PRIMARY KEY
-        public string ClaveHash { get; set; } // Mapea a: ClaveHash VARCHAR(255) NOT NULL
-        public string DocenteCedula { get; set; } // Mapea a: DocenteCedula VARCHAR(10) NOT NULL UNIQUE
-        public Rol Rol { get; set; } // Mapea a: Rol VARCHAR(20) NOT NULL
+        [Key]
+        [StringLength(100)]
+        public string Correo { get; set; } = string.Empty;
 
-        // Propiedad de navegación para la relación uno a uno
-        public virtual Docente Docente { get; set; }
+        [Required]
+        [StringLength(255)]
+        public string ClaveHash { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(10)]
+        public string DocenteCedula { get; set; } = string.Empty;
+
+        [Required]
+        public Rol Rol { get; set; }
+
+        // Propiedades de navegación
+        [ForeignKey("DocenteCedula")]
+        public virtual Docente? Docente { get; set; }
     }
-}
+} 

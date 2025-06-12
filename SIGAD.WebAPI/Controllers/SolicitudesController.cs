@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/*
+using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 
@@ -15,35 +16,38 @@ namespace SIGAD.WebAPI.Controllers
             _solicitudesService = solicitudesService;
         }
 
+        // GET /api/solicitudes
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<VerSolicitudDto>>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            // Llama al servicio (que por ahora devuelve datos vacíos)
             var solicitudes = await _solicitudesService.GetAllSolicitudesAsync();
             return Ok(solicitudes);
         }
 
+        // POST /api/solicitudes
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CrearSolicitudDto dto)
         {
-            // Asumimos que obtenemos la cédula del usuario logueado. Por ahora, la ponemos fija.
-            var docenteCedula = "1234567890";
+            var docenteCedula = "1234567890"; // Temporal
             var id = await _solicitudesService.CrearSolicitudAsync(dto, docenteCedula);
-            return CreatedAtAction(nameof(GetAll), new { id }, id); // Temporal
+            return Ok(new { Id = id });
         }
 
+        // PUT /api/solicitudes/{id}/aprobar
         [HttpPut("{id}/aprobar")]
         public async Task<IActionResult> Aprobar(Guid id)
         {
             await _solicitudesService.AprobarSolicitudAsync(id);
-            return NoContent(); // 204 No Content
+            return Ok();
         }
 
+        // PUT /api/solicitudes/{id}/rechazar
         [HttpPut("{id}/rechazar")]
-        public async Task<IActionResult> Rechazar(Guid id)
+        public async Task<IActionResult> Rechazar(Guid id, [FromBody] string observaciones)
         {
-            await _solicitudesService.RechazarSolicitudAsync(id);
-            return NoContent(); // 204 No Content
+            await _solicitudesService.RechazarSolicitudAsync(id, observaciones);
+            return Ok();
         }
     }
 }
+*/

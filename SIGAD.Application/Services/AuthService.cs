@@ -42,7 +42,7 @@ namespace SIGAD.Application.Services
                     registerRequest.Correo, registerRequest.Cedula);
 
                 // Verificar si ya existe el correo
-                var correoExists = await _cuentaRepository.ExistsByCorreoAsync(registerRequest.Correo);
+                var correoExists = await _cuentaRepository.ExistsByEmailAsync(registerRequest.Correo);
                 _logger.LogInformation("¿Correo {Correo} ya existe? {Exists}", registerRequest.Correo, correoExists);
 
                 if (correoExists)
@@ -124,7 +124,7 @@ namespace SIGAD.Application.Services
                 _logger.LogInformation("Iniciando login para correo: {Correo}", loginRequest.Correo);
 
                 // Buscar cuenta con información del docente
-                var cuenta = await _cuentaRepository.GetByCorreoWithDocenteAsync(loginRequest.Correo);
+                var cuenta = await _cuentaRepository.GetByEmailAsync(loginRequest.Correo);
                 if (cuenta == null)
                 {
                     _logger.LogWarning("Login fallido: No se encontró cuenta para el correo {Correo}", loginRequest.Correo);

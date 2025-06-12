@@ -11,7 +11,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- SECCIÓN DE CONFIGURACIÓN DE SERVICIOS ---
+// --- SECCIï¿½N DE CONFIGURACIï¿½N DE SERVICIOS ---
 
 // 1. Configurar DbContext para Entity Framework Core
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -42,7 +42,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 3. Registrar servicios para Inyección de Dependencias (DI)
+// 3. Registrar servicios para Inyecciï¿½n de Dependencias (DI)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
 builder.Services.AddScoped<ICuentaRepository, EfCuentaRepository>();
@@ -50,15 +50,17 @@ builder.Services.AddScoped<IDocenteRepository, EfDocenteRepository>();
 builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>();
 builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
+builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
 
-// Servicios de aplicación
+// Servicios de aplicaciï¿½n
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<GestionArticulosAppService>();
-builder.Services.AddScoped<GestionInvestigacionesAppService>();
-builder.Services.AddScoped<ConsultaRangoAppService>();
-builder.Services.AddScoped<GestionRangoAppService>();
-builder.Services.AddScoped<ActualizarRangoService>();
-builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
+// builder.Services.AddScoped<GestionArticulosAppService>();
+// builder.Services.AddScoped<GestionInvestigacionesAppService>();
+// builder.Services.AddScoped<ConsultaRangoAppService>();
+// builder.Services.AddScoped<GestionRangoAppService>();
+// builder.Services.AddScoped<ActualizarRangoService>();
+// builder.Services.AddScoped<GestionSolicitudesAppService>();
 
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();
@@ -71,10 +73,10 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "SIGAD API",
         Version = "v1",
-        Description = "API para el Sistema de Gestión Académica Docente (SIGAD)"
+        Description = "API para el Sistema de Gestiï¿½n Acadï¿½mica Docente (SIGAD)"
     });
 
-    // Configurar autenticación JWT en Swagger
+    // Configurar autenticaciï¿½n JWT en Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header usando el esquema Bearer. Ejemplo: \"Authorization: Bearer {token}\"",
@@ -103,28 +105,27 @@ builder.Services.AddSwaggerGen(c =>
 // 6. Configurar CORS
 builder.Services.AddCors();
 
-// --- CONSTRUCCIÓN DE LA APLICACIÓN Y PIPELINE ---
+// --- CONSTRUCCIï¿½N DE LA APLICACIï¿½N Y PIPELINE ---
 
 var app = builder.Build();
 
 // Configurar el pipeline de solicitudes HTTP
-if (app.Environment.IsDevelopment())
+// Habilitar Swagger en todos los ambientes para desarrollo
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGAD API v1");
-        c.DocumentTitle = "SIGAD API - Documentación";
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGAD API v1");
+    c.DocumentTitle = "SIGAD API - Documentaciï¿½n";
+});
 
 app.UseHttpsRedirection();
 
-// Usar la política de CORS (recuerda ajustar los puertos si son diferentes)
+// Usar la polï¿½tica de CORS (recuerda ajustar los puertos si son diferentes)
 app.UseCors(policy =>
-    policy.WithOrigins("https://localhost:7087", "http://localhost:5250")
+    policy.WithOrigins("https://localhost:7087", "http://localhost:5000", "http://localhost:5250")
     .AllowAnyMethod()
-    .AllowAnyHeader());
+    .AllowAnyHeader()
+    .AllowCredentials());
 
 // IMPORTANTE: El orden de estos middlewares es crucial
 app.UseAuthentication(); // Debe ir antes de UseAuthorization

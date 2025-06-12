@@ -1,12 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -19,35 +14,47 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task AddAsync(SolicitudAscenso solicitud)
+        public async Task<SolicitudAscenso?> GetByIdAsync(Guid id)
         {
-            await _context.SolicitudesAscenso.AddAsync(solicitud);
+            return await _context.SolicitudesAscenso.FindAsync(id);
         }
 
         public async Task<IEnumerable<SolicitudAscenso>> GetAllAsync()
         {
-            return await _context.SolicitudesAscenso.AsNoTracking().ToListAsync();
+            return await _context.SolicitudesAscenso.ToListAsync();
         }
 
         public async Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync()
         {
             return await _context.SolicitudesAscenso
-                .AsNoTracking() 
-                .Include(s => s.Docente)          
-                .Include(s => s.RangoActual)      
-                .Include(s => s.RangoSolicitado)  
+                .Include(s => s.Docente)
+                .Include(s => s.RangoActual)
+                .Include(s => s.RangoSolicitado)
                 .ToListAsync();
         }
-        public async Task<SolicitudAscenso?> GetByIdAsync(Guid id)
+
+        public async Task AddAsync(SolicitudAscenso solicitud)
         {
-            return await _context.SolicitudesAscenso.FindAsync(id);
+            await _context.SolicitudesAscenso.AddAsync(solicitud);
         }
-        public Task UpdateAsync(SolicitudAscenso solicitud)
+
+        public async Task UpdateAsync(SolicitudAscenso solicitud)
         {
-            // No es un método asíncrono porque solo cambia el estado del objeto en memoria.
-            // La operación de guardado real (I/O) la hará el UnitOfWork.
-            _context.Entry(solicitud).State = EntityState.Modified;
-            return Task.CompletedTask;
+            await Task.Run(() => _context.SolicitudesAscenso.Update(solicitud));
+        }
+
+        public async Task DeleteAsync(Guid id)
+        {
+            var solicitud = await GetByIdAsync(id);
+            if (solicitud != null)
+            {
+                _context.SolicitudesAscenso.Remove(solicitud);
+            }
+        }
+
+        public async Task<bool> ExistsAsync(Guid id)
+        {
+            return await _context.SolicitudesAscenso.AnyAsync(s => s.Id == id);
         }
     }
-}
+} 

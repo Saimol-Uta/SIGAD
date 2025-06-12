@@ -1,3 +1,4 @@
+
 ﻿using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
@@ -7,10 +8,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace SIGAD.Application.Services
 {
     public class GestionInvestigacionesAppService
     {
+
+        public GestionInvestigacionesAppService()
+        {
+
         private readonly IInvestigacionRepository _investigacionRepository;
         private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -75,4 +81,4 @@ namespace SIGAD.Application.Services
             return investigacionesDto;
         }
     }
-}
+} 

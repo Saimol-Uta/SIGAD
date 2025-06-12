@@ -14,23 +14,17 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<Cuenta?> GetByCorreoAsync(string correo)
-        {
-            return await _context.Cuentas
-                .FirstOrDefaultAsync(c => c.Correo == correo);
-        }
-
-        public async Task<Cuenta?> GetByCorreoWithDocenteAsync(string correo)
+        public async Task<Cuenta?> GetByEmailAsync(string email)
         {
             return await _context.Cuentas
                 .Include(c => c.Docente)
-                .FirstOrDefaultAsync(c => c.Correo == correo);
+                .FirstOrDefaultAsync(c => c.Correo == email);
         }
 
-        public async Task<bool> ExistsByCorreoAsync(string correo)
+        public async Task<bool> ExistsByEmailAsync(string email)
         {
             return await _context.Cuentas
-                .AnyAsync(c => c.Correo == correo);
+                .AnyAsync(c => c.Correo == email);
         }
 
         public async Task<bool> ExistsByDocenteCedulaAsync(string docenteCedula)
