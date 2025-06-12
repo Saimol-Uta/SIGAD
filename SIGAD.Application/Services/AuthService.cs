@@ -207,7 +207,8 @@ namespace SIGAD.Application.Services
                 new Claim(ClaimTypes.Role, rol),
                 new Claim("cedula", cedula),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                new Claim(ClaimTypes.Name, correo)
             };
 
             var token = new JwtSecurityToken(

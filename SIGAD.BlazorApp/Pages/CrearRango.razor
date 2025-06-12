@@ -1,4 +1,6 @@
 ﻿@page "/Crear-rangos"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "ADMINISTRADOR")] 
 @using SIGAD.BlazorApp.Models
 @inject HttpClient Http
 

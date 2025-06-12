@@ -1,4 +1,8 @@
 ﻿@page "/admin-dashboard"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "ADMINISTRADOR")]
 
 <h1>Panel de Administración</h1>
 

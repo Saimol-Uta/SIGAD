@@ -1,7 +1,8 @@
 ﻿@page "/ver-rangos"
 @using SIGAD.BlazorApp.Models // Para acceder a RangoDto
 @inject HttpClient Http
-
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 <PageTitle>Lista de Rangos Académicos</PageTitle>
 
 <h3>Rangos Académicos</h3>
