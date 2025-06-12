@@ -1,0 +1,78 @@
+﻿@page "/empezar-proceso-promocion"
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@using BlazorApp.Models
+
+<h3>Proceso de Promoción Docente</h3>
+
+@if (docente == null)
+{
+    <p>Cargando datos del docente...</p>
+}
+else
+{
+    <div class="card p-4 shadow rounded bg-light" style="max-width: 600px;">
+        <p><strong>Nombre del docente:</strong> @docente.NombreCompleto</p>
+        <p><strong>Rango actual:</strong> @rangoActual</p>
+        <p><strong>Próximo rango deseado:</strong> @proximoRango</p>
+
+        <h5>Requisitos para la promoción:</h5>
+        <ul>
+            @if (requisitos.Count == 0)
+            {
+                <li>Cargando requisitos...</li>
+            }
+            else
+            {
+                @foreach (var requisito in requisitos)
+                {
+                    <li>@requisito</li>
+                }
+            }
+        </ul>
+
+        <button class="btn btn-primary mt-3" @onclick="ComenzarProceso">
+            Comenzar
+        </button>
+    </div>
+}
+
+@code {
+    DocenteInfoDto? docente;
+    string rangoActual = "Auxiliar";
+    string proximoRango = "Asistente";
+
+    List<string> requisitos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Obtener la info del docente autenticado
+            docente = await Http.GetFromJsonAsync<DocenteInfoDto>("api/docentes/info");
+
+            // 2. Obtener los requisitos del próximo rango
+            var rango = await Http.GetFromJsonAsync<Rangos>($"api/rangos/{proximoRango}");
+            if (rango != null)
+            {
+                requisitos = new List<string>
+                {
+                    $"Contar con al menos {rango.AniosExperienciaRequeridos} años en el rango actual.",
+                    $"Haber publicado al menos {rango.ArticulosRequeridos} artículos científicos.",
+                    $"Contar con evaluación docente promedio de {rango.PuntajePromedioEvaluacionesRequerido}.",
+                    $"Tener al menos {rango.MesesInvestigacionRequeridos} meses de participación en investigación.",
+                    $"Haber completado {rango.HorasCursoRequeridas} horas de cursos de formación."
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            requisitos.Add("Error al obtener los requisitos del rango o los datos del docente.");
+        }
+    }
+
+    void ComenzarProceso()
+    {
+        NavigationManager.NavigateTo("/gestionar-documentacion");
+    }
+}
