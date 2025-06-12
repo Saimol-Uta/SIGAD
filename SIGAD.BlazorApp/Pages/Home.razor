@@ -1,25 +1,381 @@
 ﻿@page "/"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <PageTitle>Inicio - SIGAD</PageTitle>
 
-<h1>Bienvenido al Sistema de Gestión de Ascensos Docentes</h1>
-<p>Desde esta plataforma podrá gestionar sus solicitudes de ascenso de manera eficiente.</p>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-<hr />
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+    }
 
-@* Aquí está la estructura correcta. Todo dentro de AuthorizeView *@
-<AuthorizeView>
-    <Authorized>
-        @* Este bloque solo se mostrará si el usuario ha iniciado sesión *@
-        <div class="alert alert-success">
-            ¡Has iniciado sesión! Ya puedes navegar a tu panel.
-            <p>Usuario: <strong>@context.User.Identity?.Name</strong></p>
+    .home-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        overflow: hidden;
+    }
+
+    .background-pattern {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image:
+            radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 50px 50px;
+        z-index: 1;
+    }
+
+    .header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        position: relative;
+        z-index: 10;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .branding img {
+        height: 60px;
+        width: auto;
+    }
+
+    .branding h1 {
+        color: #0a1d44;
+        font-size: 2rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .main-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        position: relative;
+        z-index: 5;
+    }
+
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        padding: 3rem;
+        max-width: 800px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .welcome-title {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #0a1d44;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #0a1d44 0%, #667eea 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-subtitle {
+        font-size: 1.3rem;
+        color: #666;
+        margin-bottom: 2.5rem;
+        line-height: 1.6;
+    }
+
+    .alert {
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1.5rem 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        color: #155724;
+    }
+
+    .alert-info {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        border: 1px solid rgba(23, 162, 184, 0.3);
+        color: #0c5460;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .login-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #0a1d44 0%, #667eea 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(10, 29, 68, 0.3);
+        border: none;
+        cursor: pointer;
+    }
+
+    .login-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(10, 29, 68, 0.4);
+        text-decoration: none;
+        color: white;
+    }
+
+    .dashboard-button {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        margin-right: 1rem;
+    }
+
+    .dashboard-button:hover {
+        box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .feature-card {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s ease;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .floating-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 2;
+    }
+
+    .shape {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+        width: 80px;
+        height: 80px;
+        top: 20%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+        width: 120px;
+        height: 120px;
+        top: 60%;
+        right: 10%;
+        animation-delay: 2s;
+    }
+
+    .shape:nth-child(3) {
+        width: 60px;
+        height: 60px;
+        bottom: 20%;
+        left: 20%;
+        animation-delay: 4s;
+    }
+
+    @@keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .welcome-title {
+            font-size: 2rem;
+        }
+
+        .welcome-card {
+            padding: 2rem;
+            margin: 1rem;
+        }
+
+        .feature-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="home-container">
+    <div class="background-pattern"></div>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo SIGAD" />
+            <h1>SIGAD</h1>
         </div>
-    </Authorized>
-    <NotAuthorized>
-        @* Este bloque solo se mostrará si el usuario NO ha iniciado sesión *@
-        <div class="alert alert-info">
-            Para comenzar, por favor <a href="/login">inicia sesión</a>.
+    </div>
+
+    <div class="main-content">
+        <div class="welcome-card">
+            <h1 class="welcome-title">Bienvenido a SIGAD</h1>
+            <p class="welcome-subtitle">
+                Sistema de Gestión de Ascensos Docentes - Una plataforma integral para gestionar
+                sus solicitudes de ascenso de manera eficiente y transparente.
+            </p>
+
+            <AuthorizeView>
+                <Authorized>
+                    <div class="alert alert-success">
+                        <h3>🎉 ¡Bienvenido de vuelta!</h3>
+                        <p>Tu sesión está activa y puedes acceder a todas las funcionalidades del sistema.</p>
+
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                @((context.User.Identity?.Name?.Substring(0, 1) ?? "U").ToUpper())
+                            </div>
+                            <div>
+                                <strong>@(context.User.Identity?.Name ?? "Usuario")</strong>
+                                <br />
+                                <small>Sesión activa</small>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <button class="login-button dashboard-button" @onclick="GoToDashboard">
+                                🏠 Ir al Dashboard
+                            </button>
+                            <button class="login-button" @onclick="Logout">
+                                🚪 Cerrar Sesión
+                            </button>
+                        </div>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="alert alert-info">
+                        <h3>🔐 Acceso al Sistema</h3>
+                        <p>Para comenzar a utilizar SIGAD, necesitas iniciar sesión con tus credenciales.</p>
+
+                        <div style="margin-top: 1.5rem;">
+                            <a href="/login" class="login-button">
+                                🔑 Iniciar Sesión
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">📋</div>
+                            <h4>Gestión de Documentos</h4>
+                            <p>Administra y envía todos tus documentos de ascenso de forma digital.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <h4>Seguimiento en Tiempo Real</h4>
+                            <p>Monitorea el progreso de tu solicitud de ascenso paso a paso.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🔔</div>
+                            <h4>Notificaciones</h4>
+                            <p>Recibe alertas importantes sobre el estado de tu proceso.</p>
+                        </div>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    </div>
+</div>
+
+
+@code {
+    private async Task GoToDashboard()
+    {
+        // Aquí puedes agregar lógica para determinar a qué dashboard ir según el rol
+        Navigation.NavigateTo("/Dashboard");
+    }
+
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        Navigation.NavigateTo("/", true);
+    }
+}

@@ -1,6 +1,11 @@
 ﻿@page "/Dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
 
 @code {
     string NombreUsuarioLogueado = "Carlos Ramos";
@@ -9,6 +14,36 @@
     int CantidadNotificaciones = 2;
     string FechaInicioProceso = "31/03/2024";
     int PorcentajeAvance = 85;
+
+    private async Task Logout()
+    {
+        try
+        {
+            // Llamar al endpoint de logout del servidor
+            var response = await Http.PostAsync("api/auth/logout", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Eliminar el token del localStorage
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+
+                // Redireccionar al login
+                Navigation.NavigateTo("/login", true);
+            }
+            else
+            {
+                // Si falla el logout del servidor, al menos eliminar el token local
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+                Navigation.NavigateTo("/login", true);
+            }
+        }
+        catch (Exception)
+        {
+            // En caso de error, eliminar el token local y redireccionar
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
 }
 <style>
     * {
@@ -52,13 +87,29 @@
         color: #444;
     }
 
-        .user-profile img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid #0a1d44;
-            object-fit: cover;
-        }
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
 
     .main-content {
         display: flex;
@@ -74,22 +125,23 @@
         flex-direction: column;
         justify-content: center;
         gap: 1.5rem;
-        padding-left: 60px; /* espacio hacia la izquierda */
+        padding-left: 60px;
+        /* espacio hacia la izquierda */
         margin-top: 100px;
     }
 
-        .left h1 {
-            font-size: 6.5rem;
-            font-weight: 500;
-            line-height: 1.2;
-            color: #0a1d44;
-        }
+    .left h1 {
+        font-size: 6.5rem;
+        font-weight: 500;
+        line-height: 1.2;
+        color: #0a1d44;
+    }
 
-        .left p {
-            font-size: 1.2rem;
-            font-weight: 400;
-            color: #3a3a3a;
-        }
+    .left p {
+        font-size: 1.2rem;
+        font-weight: 400;
+        color: #3a3a3a;
+    }
 
     .notifications {
         display: flex;
@@ -98,9 +150,9 @@
         margin-top: 0.5rem;
     }
 
-        .notifications img {
-            width: 24px;
-        }
+    .notifications img {
+        width: 24px;
+    }
 
     .badge {
         background-color: #dc3545;
@@ -119,13 +171,13 @@
         margin-top: 0.5rem;
     }
 
-        .buttons button {
-            font-size: 1rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.2rem;
-            cursor: pointer;
-            transition: 0.5s ease;
-        }
+    .buttons button {
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.2rem;
+        cursor: pointer;
+        transition: 0.5s ease;
+    }
 
     .primary-btn {
         background-color: #0a1d44;
@@ -133,11 +185,11 @@
         border: none;
     }
 
-        .primary-btn:hover {
-            background-color: #f1f1f1;
-            color: #09203f;
-            border: 1px solid #09203f;
-        }
+    .primary-btn:hover {
+        background-color: #f1f1f1;
+        color: #09203f;
+        border: 1px solid #09203f;
+    }
 
     .secondary-btn {
         background-color: white;
@@ -145,11 +197,11 @@
         color: #333;
     }
 
-        .secondary-btn:hover {
-            background-color: #09203f;
-            color: #fff;
-            border: 1px solid #09203f;
-        }
+    .secondary-btn:hover {
+        background-color: #09203f;
+        color: #fff;
+        border: 1px solid #09203f;
+    }
 
     .promotion-card {
         align-self: flex-start;
@@ -165,56 +217,59 @@
         transition: transform 0.3s ease;
     }
 
-        .promotion-card:hover {
-            transform: translateY(-4px);
-        }
+    .promotion-card:hover {
+        transform: translateY(-4px);
+    }
 
-        .promotion-card h3 {
-            font-size: 1.3rem;
-        }
+    .promotion-card h3 {
+        font-size: 1.3rem;
+    }
 
-        .promotion-card small {
-            font-size: 0.85rem;
-            color: #888;
-        }
+    .promotion-card small {
+        font-size: 0.85rem;
+        color: #888;
+    }
 
-        .promotion-card .advance {
-            margin-top: 1rem;
-            text-align: right;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #0a1d44;
-        }
+    .promotion-card .advance {
+        margin-top: 1rem;
+        text-align: right;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #0a1d44;
+    }
 
-        .promotion-card button {
-            margin-top: 1.5rem;
-            width: 100%;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 6px;
-            background-color: #0a1d44;
-            color: white;
-            font-size: 1rem;
-            cursor: pointer;
-        }
+    .promotion-card button {
+        margin-top: 1.5rem;
+        width: 100%;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 6px;
+        background-color: #0a1d44;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+    }
 
-            .promotion-card button:hover {
-                background-color: #09203f;
-            }
+    .promotion-card button:hover {
+        background-color: #09203f;
+    }
 
     .triangle-bg {
-        position: fixed; /* detrás del contenido */
-        top: 115px; /* debajo del header */
+        position: fixed;
+        /* detrás del contenido */
+        top: 115px;
+        /* debajo del header */
         right: -75px;
         height: auto;
         max-height: 90vh;
         max-width: 40vw;
-        z-index: 0; /* detrás del contenido */
+        z-index: 0;
+        /* detrás del contenido */
         object-fit: contain;
         pointer-events: none;
     }
-
 </style>
+
 <body>
 
     <div class="header">
@@ -225,6 +280,7 @@
         <div class="user-profile">
             <span>@NombreUsuarioLogueado</span>
             <img src="@UrlFotoPerfil" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
         </div>
     </div>
 
@@ -262,3 +318,4 @@
 
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
 </body>
+
