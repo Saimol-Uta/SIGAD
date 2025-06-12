@@ -1,5 +1,9 @@
+using Microsoft.EntityFrameworkCore;
+using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -12,18 +16,14 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<object?> GetByIdAsync(int id)
+        public async Task<IEnumerable<Rango>> GetAllAsync()
         {
-            // Implementación básica - se completará más adelante
-            await Task.CompletedTask;
-            return null;
+            return await _context.Rangos.AsNoTracking().ToListAsync();
         }
 
-        public async Task<IEnumerable<object>> GetAllAsync()
+        public async Task<Rango?> GetByIdAsync(int id)
         {
-            // Implementación básica - se completará más adelante
-            await Task.CompletedTask;
-            return new List<object>();
+            return await _context.Rangos.FindAsync(id);
         }
     }
-} 
+}

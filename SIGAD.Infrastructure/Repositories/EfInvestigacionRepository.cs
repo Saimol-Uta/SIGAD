@@ -1,5 +1,10 @@
+using Microsoft.EntityFrameworkCore;
+using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -12,18 +17,28 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<object?> GetByIdAsync(int id)
+        public async Task<IEnumerable<Investigacion>> GetAllAsync()
         {
-            // Implementación básica - se completará más adelante
-            await Task.CompletedTask;
-            return null;
+            return await _context.Investigaciones.AsNoTracking().ToListAsync();
         }
 
-        public async Task<IEnumerable<object>> GetAllAsync()
+        public async Task<Investigacion?> GetByIdAsync(int id)
         {
-            // Implementación básica - se completará más adelante
-            await Task.CompletedTask;
-            return new List<object>();
+            return await _context.Investigaciones.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<Investigacion>> GetByDocenteAsync(string cedula)
+        {
+            return await _context.Investigaciones
+                .AsNoTracking()
+                .Where(i => i.DocenteCedula == cedula)
+                .ToListAsync();
+        }
+
+        // --- MÉTODO AÑADIDO ---
+        public async Task AddAsync(Investigacion investigacion)
+        {
+            await _context.Investigaciones.AddAsync(investigacion);
         }
     }
-} 
+}
