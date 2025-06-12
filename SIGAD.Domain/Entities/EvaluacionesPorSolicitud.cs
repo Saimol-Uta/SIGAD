@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SIGAD.Domain.Entities
 {
     [Table("EvaluacionesPorSolicitud")]
-    public class EvaluacionPorSolicitud
+    public class EvaluacionesPorSolicitud
     {
         [Required]
         public Guid SolicitudId { get; set; }

@@ -6,16 +6,14 @@ namespace SIGAD.Infrastructure.Persistence
 {
     public class SigadDbContext : DbContext
     {
-        public SigadDbContext(DbContextOptions<SigadDbContext> options) : base(options)
-        {
-        }
+        public SigadDbContext(DbContextOptions<SigadDbContext> options) : base(options)  { }
 
         // DbSets para las entidades
         public DbSet<Docente> Docentes { get; set; }
         public DbSet<Cuenta> Cuentas { get; set; }
         public DbSet<EvaluacionDocente> EvaluacionesDocentes { get; set; }
         public DbSet<SolicitudAscenso> SolicitudesAscenso { get; set; }
-        public DbSet<EvaluacionPorSolicitud> EvaluacionesPorSolicitud { get; set; }
+        public DbSet<EvaluacionesPorSolicitud> EvaluacionesPorSolicitud { get; set; }
         public DbSet<Rango> Rangos { get; set; }
         public DbSet<Articulo> Articulos { get; set; }
         public DbSet<Curso> Cursos { get; set; }
@@ -109,8 +107,8 @@ namespace SIGAD.Infrastructure.Persistence
                     "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
             });
 
-            // Configuración de la tabla intermedia EvaluacionPorSolicitud
-            modelBuilder.Entity<EvaluacionPorSolicitud>(entity =>
+            // Configuración de la tabla intermedia EvaluacionesPorSolicitud
+            modelBuilder.Entity<EvaluacionesPorSolicitud>(entity =>
             {
                 entity.HasKey(e => new { e.SolicitudId, e.EvaluacionId });
 
