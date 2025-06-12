@@ -49,10 +49,10 @@ else
         </tbody>
     </table>
 }
+
 @code {
     private List<VerSolicitudDTO>? solicitudes;
 
-    // Solo mostrar las opciones que puedes ejecutar desde la UI
     private readonly List<string> estadosDisponibles = new()
     {
         "Aprobada", "Rechazada"
@@ -60,44 +60,37 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        // Simulación de datos de ejemplo
+        await Task.Delay(500); // Simula una carga asíncrona
+        solicitudes = new List<VerSolicitudDTO>
         {
-            solicitudes = await Http.GetFromJsonAsync<List<VerSolicitudDTO>>("/api/solicitudes");
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Error al cargar solicitudes: {ex.Message}");
-        }
+            new VerSolicitudDTO
+            {
+                Id = Guid.NewGuid(),
+                NombreDocente = "Ana Pérez",
+                RangoActual = "Asistente",
+                RangoSolicitado = "Asociado",
+                Estado = "Aprobada",
+                FechaCreacion = DateTime.Now.AddDays(-3)
+            },
+            new VerSolicitudDTO
+            {
+                Id = Guid.NewGuid(),
+                NombreDocente = "Luis Gómez",
+                RangoActual = "Asociado",
+                RangoSolicitado = "Titular",
+                Estado = "Rechazada",
+                FechaCreacion = DateTime.Now.AddDays(-7)
+            }
+        };
     }
 
-    private async Task CambiarEstado(Guid id, string nuevoEstado)
+    private void CambiarEstado(Guid id, string nuevoEstado)
     {
-        string endpoint = nuevoEstado switch
+        var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
+        if (solicitud != null)
         {
-            "Aprobada" => $"/api/solicitudes/{id}/aprobar",
-            "Rechazada" => $"/api/solicitudes/{id}/rechazar",
-            _ => string.Empty
-        };
-
-        if (string.IsNullOrWhiteSpace(endpoint))
-        {
-            Console.Error.WriteLine($"Estado no válido: {nuevoEstado}");
-            return;
-        }
-
-        var response = await Http.PutAsync(endpoint, null);
-
-        if (response.IsSuccessStatusCode)
-        {
-            var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
-            if (solicitud != null)
-            {
-                solicitud.Estado = nuevoEstado;
-            }
-        }
-        else
-        {
-            Console.Error.WriteLine($"Error al cambiar el estado de la solicitud con ID {id}");
+            solicitud.Estado = nuevoEstado;
         }
     }
 }

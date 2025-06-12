@@ -1,9 +1,17 @@
 ﻿@page "/login"
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
 
 <style>
-    body, html {
+    body,
+    html {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -19,7 +27,8 @@
         overflow: hidden;
     }
 
-    .decor-top-right, .decor-bottom-left {
+    .decor-top-right,
+    .decor-bottom-left {
         position: absolute;
         width: 500px;
         height: 500px;
@@ -34,7 +43,6 @@
         top: 0;
         right: 0;
         transform: rotate(360deg);
-
     }
 
     .decor-bottom-left {
@@ -97,6 +105,38 @@
         text-decoration: underline;
         cursor: pointer;
     }
+
+    .spinner-border {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        vertical-align: text-bottom;
+        border: 0.15em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border 0.75s linear infinite;
+    }
+
+    .spinner-border-sm {
+        width: 0.875rem;
+        height: 0.875rem;
+        border-width: 0.1em;
+    }
+
+
+
+    .alert {
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
 </style>
 
 <div class="login-background">
@@ -109,10 +149,124 @@
         <img src="/images/IconoUser.png" alt="User Icon" />
         <h2>ACADEMIC MANAGEMENT EVENTS</h2>
 
-        <input type="text" placeholder="Username" class="login-input" />
-        <input type="password" placeholder="Password" class="login-input" />
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+            <DataAnnotationsValidator />
 
-        <button class="login-button">LOGIN</button>
-        <a class="forgot-password">Forgot your Password</a>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Correo Electrónico" />
+                <ValidationMessage For="@(() => loginModel.Correo)" />
+            </div>
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Clave" type="password" class="login-input"
+                    placeholder="Contraseña" />
+                <ValidationMessage For="@(() => loginModel.Clave)" />
+            </div>
+
+            <button type="submit" class="login-button" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Ingresando...</span>
+                }
+                else
+                {
+                    <span>LOGIN</span>
+                }
+            </button>
+            <a class="forgot-password">Olvidé mi contraseña</a>
+        </EditForm>
     </div>
 </div>
+
+@code {
+    // 1. Objeto para enlazar los datos del formulario.
+    private LoginRequestDto loginModel = new();
+
+    // 2. Variables para mostrar mensajes al usuario.
+    private string? errorMessage;
+    private bool isLoading = false; // Para saber si estamos esperando respuesta de la API
+
+    // 3. Método que se ejecutará al enviar el formulario.
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthService.Login(loginModel);
+
+            Console.WriteLine($"Login result: {result}");
+
+            if (result != null)
+            {
+                // Guardar el token en localStorage
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+
+                Console.WriteLine($"Token guardado: {result.Token}");
+                Console.WriteLine($"Rol del usuario: '{result.Rol}'");
+                Console.WriteLine($"Tipo del rol: {result.Rol.GetType()}");
+
+                // Limpiar espacios y normalizar el rol
+                var rolLimpio = result.Rol.ToString().ToUpper();
+                Console.WriteLine($"Rol limpio: '{rolLimpio}'");
+
+                // Redireccionar según el rol
+                if (rolLimpio == "ADMINISTRADOR")
+                {
+                    NavigationManager.NavigateTo("/admin-dashboard", true);
+                }
+                else if (rolLimpio == "DOCENTE")
+                {
+                    NavigationManager.NavigateTo("/Dashboard", true);
+                }
+                else
+                {
+                    errorMessage = $"Rol de usuario no válido: '{result.Rol}' (limpio: '{rolLimpio}')";
+                    await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+                }
+            }
+            else
+            {
+                errorMessage = "Correo o contraseña incorrectos.";
+            }
+
+            isLoading = false;
+
+        }
+        catch (HttpRequestException httpEx)
+        {
+            // Error HTTP específico
+            if (httpEx.Message.Contains("401"))
+            {
+                errorMessage = "Credenciales incorrectas. Verifique su correo y contraseña.";
+            }
+            else if (httpEx.Message.Contains("400"))
+            {
+                errorMessage = "Datos de entrada inválidos. Verifique los campos.";
+            }
+            else
+            {
+                errorMessage = "Error de conexión. Verifique su conexión a internet.";
+            }
+            Console.WriteLine($"Error HTTP en login: {httpEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "No se pudo conectar con el servidor. Por favor, intente más tarde.";
+            Console.WriteLine($"Error en el login: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

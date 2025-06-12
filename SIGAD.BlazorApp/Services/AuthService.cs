@@ -1,0 +1,61 @@
+﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
+using SIGAD.BlazorApp.Models;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace SIGAD.BlazorApp.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly AuthenticationStateProvider _authenticationStateProvider;
+        private readonly ILocalStorageService _localStorage;
+
+        public AuthService(HttpClient httpClient,
+                           AuthenticationStateProvider authenticationStateProvider,
+                           ILocalStorageService localStorage)
+        {
+            _httpClient = httpClient;
+            _authenticationStateProvider = authenticationStateProvider;
+            _localStorage = localStorage;
+        }
+
+        public async Task<LoginResponseDto?> Login(LoginRequestDto loginRequest)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Auth/login", loginRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null; // O manejar el error específico
+            }
+
+            var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
+            if (loginResponse == null || string.IsNullOrEmpty(loginResponse.Token))
+            {
+                return null;
+            }
+
+            await _localStorage.SetItemAsync("authToken", loginResponse.Token);
+            ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsAuthenticated(loginResponse.Token);
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", loginResponse.Token);
+
+            return loginResponse;
+        }
+
+        public async Task Logout()
+        {
+            await _localStorage.RemoveItemAsync("authToken");
+            ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+        }
+    }
+
+    public interface IAuthService
+    {
+        Task<LoginResponseDto?> Login(LoginRequestDto loginRequest);
+        Task Logout();
+    }
+}
