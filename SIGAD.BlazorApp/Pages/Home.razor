@@ -1,7 +1,25 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Inicio - SIGAD</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Bienvenido al Sistema de Gestión de Ascensos Docentes</h1>
+<p>Desde esta plataforma podrá gestionar sus solicitudes de ascenso de manera eficiente.</p>
 
-Welcome to your new app.
+<hr />
+
+@* Aquí está la estructura correcta. Todo dentro de AuthorizeView *@
+<AuthorizeView>
+    <Authorized>
+        @* Este bloque solo se mostrará si el usuario ha iniciado sesión *@
+        <div class="alert alert-success">
+            ¡Has iniciado sesión! Ya puedes navegar a tu panel.
+            <p>Usuario: <strong>@context.User.Identity?.Name</strong></p>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        @* Este bloque solo se mostrará si el usuario NO ha iniciado sesión *@
+        <div class="alert alert-info">
+            Para comenzar, por favor <a href="/login">inicia sesión</a>.
+        </div>
+    </NotAuthorized>
+</AuthorizeView>

@@ -1,6 +1,13 @@
 ﻿@page "/login"
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
 
 <style>
     body, html {
@@ -109,10 +116,104 @@
         <img src="/images/IconoUser.png" alt="User Icon" />
         <h2>ACADEMIC MANAGEMENT EVENTS</h2>
 
-        <input type="text" placeholder="Username" class="login-input" />
-        <input type="password" placeholder="Password" class="login-input" />
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+            <DataAnnotationsValidator />
 
-        <button class="login-button">LOGIN</button>
-        <a class="forgot-password">Forgot your Password</a>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Correo Electrónico" />
+                <ValidationMessage For="@(() => loginModel.Correo)" />
+            </div>
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Clave" type="password" class="login-input" placeholder="Contraseña" />
+                <ValidationMessage For="@(() => loginModel.Clave)" />
+            </div>
+
+            <button type="submit" class="login-button" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Ingresando...</span>
+                }
+                else
+                {
+                    <span>LOGIN</span>
+                }
+            </button>
+            <a class="forgot-password">Olvidé mi contraseña</a>
+        </EditForm>
     </div>
 </div>
+@code {
+    // 1. Objeto para enlazar los datos del formulario.
+    private LoginRequestDto loginModel = new();
+
+    // 2. Variables para mostrar mensajes al usuario.
+    private string? errorMessage;
+    private bool isLoading = false; // Para saber si estamos esperando respuesta de la API
+
+    // 3. Método que se ejecutará al enviar el formulario.
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthService.Login(loginModel);
+
+            Console.WriteLine($"Token guardado: {result}");
+
+            if (result != null)
+            {
+                // Quitamos el forceLoad: true.
+                // Esto usa el enrutador de Blazor para cambiar de página sin recargar todo el sitio,
+                // permitiendo que el estado de autenticación se mantenga.
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+
+                Console.WriteLine($"Token guardado: {result.Token}");
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = "Correo o contraseña incorrectos.";
+            }
+
+            isLoading = false;
+
+        }
+        catch (HttpRequestException httpEx)
+        {
+            // Error HTTP específico
+            if (httpEx.Message.Contains("401"))
+            {
+                errorMessage = "Credenciales incorrectas. Verifique su correo y contraseña.";
+            }
+            else if (httpEx.Message.Contains("400"))
+            {
+                errorMessage = "Datos de entrada inválidos. Verifique los campos.";
+            }
+            else
+            {
+                errorMessage = "Error de conexión. Verifique su conexión a internet.";
+            }
+            Console.WriteLine($"Error HTTP en login: {httpEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "No se pudo conectar con el servidor. Por favor, intente más tarde.";
+            Console.WriteLine($"Error en el login: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
