@@ -75,7 +75,7 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task AddToSolicitudAsync(Guid solicitudId, int evaluacionId)
         {
-            var evaluacionPorSolicitud = new EvaluacionPorSolicitud
+            var evaluacionPorSolicitud = new EvaluacionesPorSolicitud
             {
                 SolicitudId = solicitudId,
                 EvaluacionId = evaluacionId

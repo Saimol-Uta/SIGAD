@@ -18,6 +18,6 @@ namespace SIGAD.Domain.Entities
 
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = null!;
-        public virtual ICollection<EvaluacionPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionPorSolicitud>();
+        public virtual ICollection<EvaluacionesPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionesPorSolicitud>();
     }
 }
