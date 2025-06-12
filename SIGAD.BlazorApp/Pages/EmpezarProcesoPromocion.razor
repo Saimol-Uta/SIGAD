@@ -1,7 +1,7 @@
 ﻿@page "/empezar-proceso-promocion"
 @inject NavigationManager NavigationManager
-@inject HttpClient Http
-@using BlazorApp.Models
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
 
 <h3>Proceso de Promoción Docente</h3>
 
@@ -18,16 +18,9 @@ else
 
         <h5>Requisitos para la promoción:</h5>
         <ul>
-            @if (requisitos.Count == 0)
+            @foreach (var requisito in requisitos)
             {
-                <li>Cargando requisitos...</li>
-            }
-            else
-            {
-                @foreach (var requisito in requisitos)
-                {
-                    <li>@requisito</li>
-                }
+                <li>@requisito</li>
             }
         </ul>
 
@@ -38,37 +31,30 @@ else
 }
 
 @code {
+    class DocenteInfoDto
+    {
+        public string NombreCompleto { get; set; } = "María González";
+    }
+
     DocenteInfoDto? docente;
     string rangoActual = "Auxiliar";
     string proximoRango = "Asistente";
 
     List<string> requisitos = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        try
-        {
-            // 1. Obtener la info del docente autenticado
-            docente = await Http.GetFromJsonAsync<DocenteInfoDto>("api/docentes/info");
+        // Datos simulados
+        docente = new DocenteInfoDto { NombreCompleto = "María González" };
 
-            // 2. Obtener los requisitos del próximo rango
-            var rango = await Http.GetFromJsonAsync<Rangos>($"api/rangos/{proximoRango}");
-            if (rango != null)
-            {
-                requisitos = new List<string>
-                {
-                    $"Contar con al menos {rango.AniosExperienciaRequeridos} años en el rango actual.",
-                    $"Haber publicado al menos {rango.ArticulosRequeridos} artículos científicos.",
-                    $"Contar con evaluación docente promedio de {rango.PuntajePromedioEvaluacionesRequerido}.",
-                    $"Tener al menos {rango.MesesInvestigacionRequeridos} meses de participación en investigación.",
-                    $"Haber completado {rango.HorasCursoRequeridas} horas de cursos de formación."
-                };
-            }
-        }
-        catch (Exception ex)
+        requisitos = new List<string>
         {
-            requisitos.Add("Error al obtener los requisitos del rango o los datos del docente.");
-        }
+            "Contar con al menos 3 años en el rango actual.",
+            "Haber publicado al menos 2 artículos científicos.",
+            "Contar con evaluación docente promedio de 90.",
+            "Tener al menos 12 meses de participación en investigación.",
+            "Haber completado 80 horas de cursos de formación."
+        };
     }
 
     void ComenzarProceso()

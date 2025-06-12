@@ -44,6 +44,16 @@
             Navigation.NavigateTo("/login", true);
         }
     }
+            void IrAProcesoPromocion()
+        {
+            Navigation.NavigateTo("/empezar-proceso-promocion", true);
+        }
+
+        void IrAGestionDocumentos()
+        {
+            Navigation.NavigateTo("/gestionar-documentacion", true);
+        }
+    
 }
 <style>
     * {
@@ -299,8 +309,13 @@
             </div>
 
             <div class="buttons">
-                <button class="primary-btn">Start New Promotion Process</button>
-                <button class="secondary-btn">Manage Documents</button>
+                <button class="primary-btn" @onclick="IrAProcesoPromocion">
+                    Start New Promotion Process
+                </button>
+
+                <button class="secondary-btn" @onclick="IrAGestionDocumentos">
+                    Manage Documents
+                </button>
             </div>
         </div>
 
