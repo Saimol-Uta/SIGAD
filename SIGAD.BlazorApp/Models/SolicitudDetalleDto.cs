@@ -1,0 +1,53 @@
+namespace SIGAD.BlazorApp.Models
+{
+    public class SolicitudDetalleDto
+    {
+        public Guid Id { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+        public DateTime? FechaEnvio { get; set; }
+        public DateTime? FechaResolucion { get; set; }
+        public string? ObservacionesAdmin { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string DocenteNombreCompleto { get; set; } = string.Empty;
+        public string? RangoActualNombre { get; set; }
+        public string RangoSolicitadoNombre { get; set; } = string.Empty;
+
+        // La evidencia que se presentó en esta solicitud específica
+        public List<VerArticuloDto> ArticulosPresentados { get; set; } = new();
+        public List<VerInvestigacionDto> InvestigacionesPresentadas { get; set; } = new();
+        public List<VerCursoDto> CursosPresentados { get; set; } = new();
+    }
+
+    public class VerArticuloDto
+    {
+        public string DOI { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
+        public string Revista { get; set; } = string.Empty;
+        public int AnioPublicacion { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string DocenteNombreCompleto { get; set; } = string.Empty;
+    }
+
+    public class VerInvestigacionDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = string.Empty;
+        public string RolEnInvestigacion { get; set; } = string.Empty;
+        public int MesesDeInvestigacion { get; set; }
+        public string NombreDocente { get; set; } = string.Empty;
+        public DateTime FechaFinalizacion { get; set; }
+    }
+
+    public class VerCursoDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string NombreOrganizacion { get; set; } = string.Empty;
+        public int NumeroHoras { get; set; }
+        public DateTime FechaFinalizacion { get; set; }
+        public string NombreDocente { get; set; } = string.Empty;
+        public string DocenteCedula { get; set; } = string.Empty;
+        public bool TieneCertificado { get; set; }
+    }
+}

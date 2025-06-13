@@ -9,6 +9,9 @@ namespace SIGAD.BlazorApp.Services
     {
         Task<List<SolicitudDto>> GetAllSolicitudesAsync();
         Task<SolicitudDto?> GetSolicitudByIdAsync(Guid id);
+        Task<SolicitudDetalleDto?> GetSolicitudDetalleAsync(Guid id);
+        Task<bool> AprobarSolicitudAsync(Guid id, string observaciones);
+        Task<bool> RechazarSolicitudAsync(Guid id, string observaciones);
     }
 
     public class SolicitudesService : ISolicitudesService
@@ -52,7 +55,6 @@ namespace SIGAD.BlazorApp.Services
                 return new List<SolicitudDto>();
             }
         }
-
         public async Task<SolicitudDto?> GetSolicitudByIdAsync(Guid id)
         {
             try
@@ -69,6 +71,65 @@ namespace SIGAD.BlazorApp.Services
             {
                 Console.WriteLine($"Error inesperado: {ex.Message}");
                 return null;
+            }
+        }
+
+        public async Task<SolicitudDetalleDto?> GetSolicitudDetalleAsync(Guid id)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                return await _httpClient.GetFromJsonAsync<SolicitudDetalleDto>($"api/solicitudes/{id}");
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al obtener detalle de solicitud {id}: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<bool> AprobarSolicitudAsync(Guid id, string observaciones)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/aprobar", observaciones);
+                return response.IsSuccessStatusCode;
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al aprobar solicitud {id}: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> RechazarSolicitudAsync(Guid id, string observaciones)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/rechazar", observaciones);
+                return response.IsSuccessStatusCode;
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al rechazar solicitud {id}: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return false;
             }
         }
     }

@@ -5,6 +5,7 @@
 @using SIGAD.BlazorApp.Models
 @using SIGAD.BlazorApp.Services
 @inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
 
 <div class="page-wrapper">
     <Encabezado />
@@ -86,7 +87,7 @@
                                     <td style="padding: 10px 20px;">@solicitud.RangoSolicitadoNombre</td>
                                     <td style="padding: 10px 20px;">@(solicitud.FechaEnvio?.ToString("dd/MM/yyyy") ?? "N/A")</td>
                                     <td style="padding: 10px 20px;"><span style="color: @ObtenerColorEstado(solicitud.Estado); font-weight: bold;">●</span> @solicitud.Estado</td>
-                                    <td style="padding: 10px 20px;"><button style="background: none; border: none; color: #0a1d44; cursor: pointer;">Ver Detalles</button></td>
+                                    <td style="padding: 10px 20px;"><button @onclick="() => VerDetalles(solicitud.Id)" style="background: none; border: none; color: #0a1d44; cursor: pointer;">Ver Detalles</button></td>
                                 </tr>
                             }
                         }
@@ -293,12 +294,15 @@
         }
     }
 
-    private void CambiarPagina(int nueva) => paginaActual = nueva;
-
-    private void FiltrarPor(string estadoGrupo)
+    private void CambiarPagina(int nueva) => paginaActual = nueva;    private void FiltrarPor(string estadoGrupo)
     {
         estadoSeleccionado = estadoGrupo;
         paginaActual = 1;
+    }
+
+    private void VerDetalles(Guid solicitudId)
+    {
+        Navigation.NavigateTo($"/admin/solicitud/{solicitudId}");
     }
 
     private string ObtenerColorEstado(string estado) =>
