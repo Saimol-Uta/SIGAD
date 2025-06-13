@@ -62,20 +62,43 @@ namespace SIGAD.Application.Services
             return cursos.Select(MapToDto);
         }
 
-        public async Task<CursoDto> CreateAsync(CrearCursoDto crearCursoDto, IFormFile certificado)
+        public async Task<CursoDto> CreateAsync(CrearCursoDto crearCursoDto, IFormFile? certificado)
         {
-            // Validar archivo
-            if (certificado == null || certificado.Length == 0)
-                throw new ArgumentException("El certificado es requerido");
-
-            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-            var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
+            // Validar archivo (opcional)
+            string? filePath = null;
+            string? contentHash = null;
             
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
+            if (certificado != null && certificado.Length > 0)
+            {
+                var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+                var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
+                
+                if (!allowedExtensions.Contains(extension))
+                    throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
 
-            if (certificado.Length > 10 * 1024 * 1024) // 10MB
-                throw new ArgumentException("El archivo no puede exceder los 10MB");
+                if (certificado.Length > 10 * 1024 * 1024) // 10MB
+                    throw new ArgumentException("El archivo no puede exceder los 10MB");
+
+                // Generar hash del contenido
+                using (var stream = certificado.OpenReadStream())
+                {
+                    using (var sha256 = SHA256.Create())
+                    {
+                        var hashBytes = sha256.ComputeHash(stream);
+                        contentHash = Convert.ToHexString(hashBytes);
+                    }
+                }
+
+                // Generar nombre único para el archivo
+                var fileName = $"{Guid.NewGuid()}{extension}";
+                filePath = Path.Combine(_fileStoragePath, fileName);
+
+                // Guardar archivo
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await certificado.CopyToAsync(stream);
+                }
+            }
 
             // Verificar que la solicitud existe
             if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
@@ -95,27 +118,6 @@ namespace SIGAD.Application.Services
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            // Generar hash del contenido
-            string contentHash;
-            using (var stream = certificado.OpenReadStream())
-            {
-                using (var sha256 = SHA256.Create())
-                {
-                    var hashBytes = sha256.ComputeHash(stream);
-                    contentHash = Convert.ToHexString(hashBytes);
-                }
-            }
-
-            // Generar nombre único para el archivo
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_fileStoragePath, fileName);
-
-            // Guardar archivo
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await certificado.CopyToAsync(stream);
-            }
-
             // Crear entidad
             var curso = new Curso
             {
@@ -124,8 +126,8 @@ namespace SIGAD.Application.Services
                 NumeroHoras = crearCursoDto.NumeroHoras,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
-                CertificadoRuta = filePath,
-                ContenidoHash = contentHash
+                CertificadoRuta = filePath ?? string.Empty,
+                ContenidoHash = contentHash ?? string.Empty
             };
 
             await _cursoRepository.AddAsync(curso);

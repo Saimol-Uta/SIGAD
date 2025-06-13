@@ -105,10 +105,10 @@ namespace SIGAD.WebAPI.Controllers
         /// Crea un nuevo curso con certificado y lo asocia automáticamente a una solicitud
         /// </summary>
         /// <param name="crearCursoDto">Datos del curso (incluye SolicitudId para asociación automática)</param>
-        /// <param name="certificado">Archivo del certificado</param>
+        /// <param name="certificado">Archivo del certificado (opcional)</param>
         /// <returns>Curso creado y asociado a la solicitud</returns>
         [HttpPost]
-        public async Task<ActionResult<CursoDto>> Create([FromForm] CrearCursoDto crearCursoDto, IFormFile certificado)
+        public async Task<ActionResult<CursoDto>> Create([FromForm] CrearCursoDto crearCursoDto, IFormFile? certificado)
         {
             try
             {

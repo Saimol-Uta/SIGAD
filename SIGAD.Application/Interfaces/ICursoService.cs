@@ -10,7 +10,7 @@ namespace SIGAD.Application.Interfaces
         Task<CursoDto?> GetByIdAsync(int id);
         Task<IEnumerable<CursoDto>> GetByDocenteCedulaAsync(string docenteCedula);
         Task<IEnumerable<CursoDto>> GetBySolicitudIdAsync(Guid solicitudId);
-        Task<CursoDto> CreateAsync(CrearCursoDto crearCursoDto, IFormFile certificado);
+        Task<CursoDto> CreateAsync(CrearCursoDto crearCursoDto, IFormFile? certificado);
         Task<CursoDto> UpdateAsync(ActualizarCursoDto actualizarCursoDto, IFormFile? certificado = null);
         Task<bool> DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
