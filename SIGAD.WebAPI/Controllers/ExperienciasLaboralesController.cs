@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
@@ -11,42 +11,42 @@ namespace SIGAD.WebAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    public class ArticulosController : ControllerBase
+    public class ExperienciasLaboralesController : ControllerBase
     {
-        private readonly IArticuloService _articuloService;
-        private readonly ILogger<ArticulosController> _logger;
+        private readonly IExperienciaLaboralService _experienciaService;
+        private readonly ILogger<ExperienciasLaboralesController> _logger;
 
-        public ArticulosController(
-            IArticuloService articuloService,
-            ILogger<ArticulosController> logger)
+        public ExperienciasLaboralesController(
+            IExperienciaLaboralService experienciaService,
+            ILogger<ExperienciasLaboralesController> logger)
         {
-            _articuloService = articuloService;
+            _experienciaService = experienciaService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtiene todos los artículos
+        /// Obtiene todas las experiencias laborales
         /// </summary>
-        /// <returns>Lista de artículos</returns>
+        /// <returns>Lista de experiencias laborales</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<ArticuloDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ExperienciaLaboralDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAllArticulos()
+        public async Task<IActionResult> GetAllExperiencias()
         {
             try
             {
-                var articulos = await _articuloService.GetAllArticulosAsync();
+                var experiencias = await _experienciaService.GetAllExperienciasAsync();
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículos obtenidos exitosamente",
-                    data = articulos,
-                    count = articulos.Count()
+                    message = "Experiencias laborales obtenidas exitosamente",
+                    data = experiencias,
+                    count = experiencias.Count()
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener todos los artículos");
+                _logger.LogError(ex, "Error al obtener todas las experiencias laborales");
                 return StatusCode(500, new
                 {
                     success = false,
@@ -57,38 +57,38 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Obtiene un artículo específico por DOI
+        /// Obtiene una experiencia laboral específica por ID
         /// </summary>
-        /// <param name="doi">DOI del artículo</param>
-        /// <returns>Datos del artículo</returns>
-        [HttpGet("{doi}")]
-        [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
+        /// <param name="id">ID de la experiencia laboral</param>
+        /// <returns>Datos de la experiencia laboral</returns>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ExperienciaLaboralDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetArticuloById(string doi)
+        public async Task<IActionResult> GetExperienciaById(int id)
         {
             try
             {
-                var articulo = await _articuloService.GetArticuloByIdAsync(doi);
-                if (articulo == null)
+                var experiencia = await _experienciaService.GetExperienciaByIdAsync(id);
+                if (experiencia == null)
                 {
                     return NotFound(new
                     {
                         success = false,
-                        message = "Artículo no encontrado"
+                        message = "Experiencia laboral no encontrada"
                     });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículo obtenido exitosamente",
-                    data = articulo
+                    message = "Experiencia laboral obtenida exitosamente",
+                    data = experiencia
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener el artículo con DOI {DOI}", doi);
+                _logger.LogError(ex, "Error al obtener la experiencia laboral con ID {Id}", id);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -99,30 +99,30 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Obtiene los artículos de un docente específico
+        /// Obtiene las experiencias laborales de un docente específico
         /// </summary>
         /// <param name="docenteCedula">Cédula del docente</param>
-        /// <returns>Lista de artículos del docente</returns>
+        /// <returns>Lista de experiencias laborales del docente</returns>
         [HttpGet("docente/{docenteCedula}")]
-        [ProducesResponseType(typeof(IEnumerable<ArticuloDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ExperienciaLaboralDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetArticulosByDocente(string docenteCedula)
+        public async Task<IActionResult> GetExperienciasByDocente(string docenteCedula)
         {
             try
             {
-                var articulos = await _articuloService.GetArticulosByDocenteAsync(docenteCedula);
+                var experiencias = await _experienciaService.GetExperienciasByDocenteAsync(docenteCedula);
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículos del docente obtenidos exitosamente",
-                    data = articulos,
-                    count = articulos.Count(),
+                    message = "Experiencias laborales del docente obtenidas exitosamente",
+                    data = experiencias,
+                    count = experiencias.Count(),
                     docenteCedula = docenteCedula
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener artículos del docente {DocenteCedula}", docenteCedula);
+                _logger.LogError(ex, "Error al obtener experiencias laborales del docente {DocenteCedula}", docenteCedula);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -133,30 +133,30 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Obtiene los artículos asociados a una solicitud específica
+        /// Obtiene las experiencias laborales asociadas a una solicitud específica
         /// </summary>
         /// <param name="solicitudId">ID de la solicitud</param>
-        /// <returns>Lista de artículos de la solicitud</returns>
+        /// <returns>Lista de experiencias laborales de la solicitud</returns>
         [HttpGet("solicitud/{solicitudId}")]
-        [ProducesResponseType(typeof(IEnumerable<ArticuloDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ExperienciaLaboralDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetArticulosBySolicitud(Guid solicitudId)
+        public async Task<IActionResult> GetExperienciasBySolicitud(Guid solicitudId)
         {
             try
             {
-                var articulos = await _articuloService.GetArticulosBySolicitudAsync(solicitudId);
+                var experiencias = await _experienciaService.GetExperienciasBySolicitudAsync(solicitudId);
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículos de la solicitud obtenidos exitosamente",
-                    data = articulos,
-                    count = articulos.Count(),
+                    message = "Experiencias laborales de la solicitud obtenidas exitosamente",
+                    data = experiencias,
+                    count = experiencias.Count(),
                     solicitudId = solicitudId
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener artículos de la solicitud {SolicitudId}", solicitudId);
+                _logger.LogError(ex, "Error al obtener experiencias laborales de la solicitud {SolicitudId}", solicitudId);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -167,16 +167,16 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Crea un nuevo artículo
+        /// Crea una nueva experiencia laboral
         /// </summary>
-        /// <param name="createDto">Datos del artículo</param>
-        /// <param name="archivo">Archivo del artículo (opcional)</param>
-        /// <returns>Artículo creado</returns>
+        /// <param name="createDto">Datos de la experiencia laboral</param>
+        /// <param name="archivo">Archivo del certificado (opcional)</param>
+        /// <returns>Experiencia laboral creada</returns>
         [HttpPost]
-        [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ExperienciaLaboralDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateArticulo([FromForm] CrearArticuloDto createDto, IFormFile? archivo)
+        public async Task<IActionResult> CreateExperiencia([FromForm] CreateExperienciaLaboralDto createDto, IFormFile? archivo)
         {
             try
             {
@@ -196,12 +196,12 @@ namespace SIGAD.WebAPI.Controllers
                     });
                 }
 
-                var articulo = await _articuloService.CreateArticuloAsync(createDto, archivo);
+                var experiencia = await _experienciaService.CreateExperienciaAsync(createDto, archivo);
                 return StatusCode(StatusCodes.Status201Created, new
                 {
                     success = true,
-                    message = "Artículo creado exitosamente",
-                    data = articulo
+                    message = "Experiencia laboral creada exitosamente",
+                    data = experiencia
                 });
             }
             catch (ArgumentException ex)
@@ -214,7 +214,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al crear artículo");
+                _logger.LogError(ex, "Error al crear experiencia laboral");
                 return StatusCode(500, new
                 {
                     success = false,
@@ -225,18 +225,18 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Actualiza un artículo existente
+        /// Actualiza una experiencia laboral existente
         /// </summary>
-        /// <param name="doi">DOI del artículo</param>
+        /// <param name="id">ID de la experiencia laboral</param>
         /// <param name="updateDto">Datos actualizados</param>
         /// <param name="archivo">Nuevo archivo (opcional)</param>
-        /// <returns>Artículo actualizado</returns>
-        [HttpPut("{doi}")]
-        [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
+        /// <returns>Experiencia laboral actualizada</returns>
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(ExperienciaLaboralDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateArticulo(string doi, [FromForm] ActualizarArticuloDto updateDto, IFormFile? archivo)
+        public async Task<IActionResult> UpdateExperiencia(int id, [FromForm] UpdateExperienciaLaboralDto updateDto, IFormFile? archivo)
         {
             try
             {
@@ -256,12 +256,12 @@ namespace SIGAD.WebAPI.Controllers
                     });
                 }
 
-                var articulo = await _articuloService.UpdateArticuloAsync(doi, updateDto, archivo);
+                var experiencia = await _experienciaService.UpdateExperienciaAsync(id, updateDto, archivo);
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículo actualizado exitosamente",
-                    data = articulo
+                    message = "Experiencia laboral actualizada exitosamente",
+                    data = experiencia
                 });
             }
             catch (ArgumentException ex)
@@ -274,7 +274,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al actualizar artículo con DOI {DOI}", doi);
+                _logger.LogError(ex, "Error al actualizar experiencia laboral con ID {Id}", id);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -285,37 +285,37 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Elimina un artículo
+        /// Elimina una experiencia laboral
         /// </summary>
-        /// <param name="doi">DOI del artículo</param>
+        /// <param name="id">ID de la experiencia laboral</param>
         /// <returns>Resultado de la eliminación</returns>
-        [HttpDelete("{doi}")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteArticulo(string doi)
+        public async Task<IActionResult> DeleteExperiencia(int id)
         {
             try
             {
-                var result = await _articuloService.DeleteArticuloAsync(doi);
+                var result = await _experienciaService.DeleteExperienciaAsync(id);
                 if (!result)
                 {
                     return NotFound(new
                     {
                         success = false,
-                        message = "Artículo no encontrado"
+                        message = "Experiencia laboral no encontrada"
                     });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículo eliminado exitosamente"
+                    message = "Experiencia laboral eliminada exitosamente"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al eliminar artículo con DOI {DOI}", doi);
+                _logger.LogError(ex, "Error al eliminar experiencia laboral con ID {Id}", id);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -326,7 +326,7 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Asocia un artículo a una solicitud
+        /// Asocia una experiencia laboral a una solicitud
         /// </summary>
         /// <param name="asociarDto">Datos de la asociación</param>
         /// <returns>Resultado de la asociación</returns>
@@ -334,7 +334,7 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AsociarArticuloASolicitud([FromBody] AsociarArticuloSolicitudDto asociarDto)
+        public async Task<IActionResult> AsociarExperienciaASolicitud([FromBody] AsociarExperienciaSolicitudDto asociarDto)
         {
             try
             {
@@ -354,26 +354,26 @@ namespace SIGAD.WebAPI.Controllers
                     });
                 }
 
-                var result = await _articuloService.AsociarArticuloASolicitudAsync(asociarDto);
+                var result = await _experienciaService.AsociarExperienciaASolicitudAsync(asociarDto);
                 if (!result)
                 {
                     return BadRequest(new
                     {
                         success = false,
-                        message = "No se pudo asociar el artículo a la solicitud. Verifique que ambos existan."
+                        message = "No se pudo asociar la experiencia laboral a la solicitud. Verifique que ambos existan."
                     });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículo asociado a la solicitud exitosamente"
+                    message = "Experiencia laboral asociada a la solicitud exitosamente"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al asociar artículo {ArticuloDOI} a solicitud {SolicitudId}", 
-                    asociarDto.ArticuloDOI, asociarDto.SolicitudId);
+                _logger.LogError(ex, "Error al asociar experiencia laboral {ExperienciaId} a solicitud {SolicitudId}", 
+                    asociarDto.ExperienciaId, asociarDto.SolicitudId);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -384,29 +384,29 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Desasocia un artículo de una solicitud
+        /// Desasocia una experiencia laboral de una solicitud
         /// </summary>
         /// <param name="solicitudId">ID de la solicitud</param>
-        /// <param name="articuloDoi">DOI del artículo</param>
+        /// <param name="experienciaId">ID de la experiencia laboral</param>
         /// <returns>Resultado de la desasociación</returns>
-        [HttpDelete("desasociar-solicitud/{solicitudId}/{articuloDoi}")]
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{experienciaId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DesasociarArticuloDeSolicitud(Guid solicitudId, string articuloDoi)
+        public async Task<IActionResult> DesasociarExperienciaDeSolicitud(Guid solicitudId, int experienciaId)
         {
             try
             {
-                await _articuloService.DesasociarArticuloDeSolicitudAsync(solicitudId, articuloDoi);
+                await _experienciaService.DesasociarExperienciaDeSolicitudAsync(solicitudId, experienciaId);
                 return Ok(new
                 {
                     success = true,
-                    message = "Artículo desasociado de la solicitud exitosamente"
+                    message = "Experiencia laboral desasociada de la solicitud exitosamente"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}", 
-                    articuloDoi, solicitudId);
+                _logger.LogError(ex, "Error al desasociar experiencia laboral {ExperienciaId} de solicitud {SolicitudId}", 
+                    experienciaId, solicitudId);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -417,19 +417,19 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Descarga el archivo de un artículo
+        /// Descarga el archivo de una experiencia laboral
         /// </summary>
-        /// <param name="doi">DOI del artículo</param>
-        /// <returns>Archivo del artículo</returns>
-        [HttpGet("{doi}/archivo")]
+        /// <param name="id">ID de la experiencia laboral</param>
+        /// <returns>Archivo de la experiencia laboral</returns>
+        [HttpGet("{id}/archivo")]
         [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DescargarArchivo(string doi)
+        public async Task<IActionResult> DescargarArchivo(int id)
         {
             try
             {
-                var archivo = await _articuloService.GetArchivoArticuloAsync(doi);
+                var archivo = await _experienciaService.GetArchivoExperienciaAsync(id);
                 if (archivo == null)
                 {
                     return NotFound(new
@@ -439,8 +439,8 @@ namespace SIGAD.WebAPI.Controllers
                     });
                 }
 
-                var nombreArchivo = await _articuloService.GetNombreArchivoAsync(doi);
-                var fileName = nombreArchivo ?? $"articulo_{doi}.pdf";
+                var nombreArchivo = await _experienciaService.GetNombreArchivoAsync(id);
+                var fileName = nombreArchivo ?? $"experiencia_{id}.pdf";
                 
                 // Determinar el Content-Type basado en la extensión del archivo
                 var contentType = GetContentType(fileName);
@@ -449,7 +449,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al descargar archivo de artículo {DOI}", doi);
+                _logger.LogError(ex, "Error al descargar archivo de experiencia laboral {Id}", id);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -460,35 +460,35 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Exporta todos los artículos a un formato específico
+        /// Exporta todas las experiencias laborales a un formato específico
         /// </summary>
-        /// <param name="formato">Formato de exportación (json, csv, excel)</param>
+        /// <param name="formato">Formato de exportación (json, csv)</param>
         /// <returns>Archivo con los datos exportados</returns>
         [HttpGet("exportar")]
         [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ExportarArticulos([FromQuery] string formato = "json")
+        public async Task<IActionResult> ExportarExperiencias([FromQuery] string formato = "json")
         {
             try
             {
-                var articulos = await _articuloService.GetAllArticulosAsync();
+                var experiencias = await _experienciaService.GetAllExperienciasAsync();
                 
                 switch (formato.ToLower())
                 {
                     case "json":
-                        var jsonData = System.Text.Json.JsonSerializer.Serialize(articulos, new JsonSerializerOptions 
+                        var jsonData = System.Text.Json.JsonSerializer.Serialize(experiencias, new JsonSerializerOptions 
                         { 
                             WriteIndented = true,
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         });
                         var jsonBytes = System.Text.Encoding.UTF8.GetBytes(jsonData);
-                        return File(jsonBytes, "application/json", $"articulos_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                        return File(jsonBytes, "application/json", $"experiencias_{DateTime.Now:yyyyMMdd_HHmmss}.json");
 
                     case "csv":
-                        var csvContent = GenerarCSV(articulos);
+                        var csvContent = GenerarCSV(experiencias);
                         var csvBytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
-                        return File(csvBytes, "text/csv", $"articulos_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+                        return File(csvBytes, "text/csv", $"experiencias_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
 
                     default:
                         return BadRequest(new
@@ -500,7 +500,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al exportar artículos en formato {Formato}", formato);
+                _logger.LogError(ex, "Error al exportar experiencias laborales en formato {Formato}", formato);
                 return StatusCode(500, new
                 {
                     success = false,
@@ -510,19 +510,21 @@ namespace SIGAD.WebAPI.Controllers
             }
         }
 
-        private static string GenerarCSV(IEnumerable<ArticuloDto> articulos)
+        private static string GenerarCSV(IEnumerable<ExperienciaLaboralDto> experiencias)
         {
             var csv = new StringBuilder();
-            csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,DocenteCedula,DocenteNombreCompleto");
+            csv.AppendLine("Id,OrganizacionId,OrganizacionNombre,OrganizacionTipo,DocenteCedula,DocenteNombreCompleto,Cargo,FechaInicio,FechaFin");
             
-            foreach (var articulo in articulos)
+            foreach (var experiencia in experiencias)
             {
-                csv.AppendLine($"\"{articulo.DOI}\"," +
-                              $"\"{articulo.Titulo}\"," +
-                              $"\"{articulo.Revista}\"," +
-                              $"{articulo.AnioPublicacion}," +
-                              $"\"{articulo.DocenteCedula}\"," +
-                              $"\"{articulo.DocenteNombreCompleto}\"");
+                csv.AppendLine($"{experiencia.Id}," +
+                              $"{experiencia.OrganizacionId}," +
+                              $"\"{experiencia.OrganizacionNombre}\"," +
+                              $"\"{experiencia.OrganizacionTipo}\"," +
+                              $"\"{experiencia.DocenteCedula}\"," +
+                              $"\"{experiencia.Cargo}\"," +
+                              $"{experiencia.FechaInicio:yyyy-MM-dd}," +
+                              $"{(experiencia.FechaFin.HasValue ? experiencia.FechaFin.Value.ToString("yyyy-MM-dd") : "")}");
             }
             
             return csv.ToString();
@@ -536,14 +538,10 @@ namespace SIGAD.WebAPI.Controllers
                 ".pdf" => "application/pdf",
                 ".doc" => "application/msword",
                 ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                ".xls" => "application/vnd.ms-excel",
-                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ".txt" => "text/plain",
                 ".jpg" or ".jpeg" => "image/jpeg",
                 ".png" => "image/png",
-                ".gif" => "image/gif",
                 _ => "application/octet-stream"
             };
         }
     }
-}
+} 
