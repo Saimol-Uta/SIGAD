@@ -515,6 +515,119 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// TEMPORAL: Crea una solicitud de ascenso con lógica de rango automático (SOLO DESARROLLO)
+        /// </summary>
+        /// <param name="cedula">Cédula del docente</param>
+        /// <param name="rangoSolicitadoId">ID del rango solicitado</param>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-solicitud-con-logica/{cedula}/{rangoSolicitadoId}")]
+        public async Task<IActionResult> CreateSolicitudConLogica(string cedula, int rangoSolicitadoId)
+        {
+            try
+            {
+                _logger.LogInformation("Creando solicitud con lógica automática para docente {Cedula} al rango {RangoId}", cedula, rangoSolicitadoId);
+
+                // Verificar que el docente existe
+                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedula);
+                if (docente == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Docente con cédula {cedula} no encontrado"
+                    });
+                }
+
+                // Verificar que el rango solicitado existe
+                var rangoSolicitado = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoSolicitadoId);
+                if (rangoSolicitado == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Rango solicitado con ID {rangoSolicitadoId} no encontrado"
+                    });
+                }
+
+                // AQUÍ ESTÁ LA LÓGICA QUE PEDISTE:
+                // Buscar el rango actual del docente
+                var solicitudesAprobadas = await _context.SolicitudesAscenso
+                    .Where(s => s.DocenteCedula == cedula && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Aprobada)
+                    .OrderByDescending(s => s.FechaResolucion)
+                    .FirstOrDefaultAsync();
+
+                int? rangoActualId = null;
+                string rangoActualNombre = "Sin rango previo";
+
+                if (solicitudesAprobadas != null)
+                {
+                    // Tiene rango actual de solicitudes previas
+                    rangoActualId = solicitudesAprobadas.RangoSolicitadoId;
+                    var rangoActual = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoActualId);
+                    rangoActualNombre = rangoActual?.Nombre ?? "Rango desconocido";
+                }
+                else
+                {
+                    // NO TIENE RANGO ACTUAL (null) - ASIGNAR AUTOMÁTICAMENTE RANGO NIVEL 1
+                    var rangoNivel1 = await _context.Rangos.OrderBy(r => r.Id).FirstOrDefaultAsync();
+                    if (rangoNivel1 != null)
+                    {
+                        rangoActualId = rangoNivel1.Id;
+                        rangoActualNombre = rangoNivel1.Nombre + " (asignado automáticamente)";
+                        _logger.LogInformation("Docente {Cedula} sin rango previo - Asignando automáticamente rango nivel 1: {RangoNombre}", 
+                            cedula, rangoNivel1.Nombre);
+                    }
+                }
+
+                // Crear la solicitud con el rango actual (ya sea real o asignado automáticamente)
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso
+                {
+                    Id = Guid.NewGuid(),
+                    DocenteCedula = cedula,
+                    RangoActualId = rangoActualId,
+                    RangoSolicitadoId = rangoSolicitadoId,
+                    FechaCreacion = DateTime.UtcNow,
+                    FechaEnvio = null, // En borrador
+                    FechaResolucion = null,
+                    Estado = SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
+                    ObservacionesAdmin = rangoActualId != solicitudesAprobadas?.RangoSolicitadoId 
+                        ? "Rango actual asignado automáticamente (nivel 1) - Docente sin ascensos previos"
+                        : null
+                };
+
+                _context.SolicitudesAscenso.Add(solicitud);
+                var savedRecords = await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud creada exitosamente. ID: {SolicitudId}", solicitud.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud de ascenso creada exitosamente con lógica automática",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        docenteCedula = cedula,
+                        rangoActual = new { id = rangoActualId, nombre = rangoActualNombre },
+                        rangoSolicitado = new { id = rangoSolicitadoId, nombre = rangoSolicitado.Nombre },
+                        estado = solicitud.Estado.ToString(),
+                        observaciones = solicitud.ObservacionesAdmin
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear solicitud con lógica automática");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear solicitud con lógica automática",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// TEMPORAL: Crea usuarios de prueba con hashes correctos (SOLO DESARROLLO)
         /// </summary>
         /// <returns>Resultado de la creación</returns>

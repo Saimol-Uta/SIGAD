@@ -210,6 +210,8 @@ namespace SIGAD.Application.Services
             }
         }
 
+
+
         private async Task<Rango?> GetRangoActualDocenteAsync(string docenteCedula)
         {
             try
@@ -233,9 +235,18 @@ namespace SIGAD.Application.Services
                 }
                 else
                 {
-                    // Si no tiene solicitudes aprobadas, no tiene rango asignado o es docente inicial
-                    _logger.LogInformation("No se encontró rango actual para {Cedula} - Docente sin ascensos aprobados", docenteCedula);
-                    return null;
+                    // Si no tiene solicitudes aprobadas, asumir rango nivel 1 por defecto (sin crear solicitud)
+                    _logger.LogInformation("Docente {Cedula} sin rango actual - Asumiendo rango nivel 1 por defecto", docenteCedula);
+                    var todosLosRangos = await _rangoRepository.GetAllAsync();
+                    var rangoNivel1 = todosLosRangos.OrderBy(r => r.Id).FirstOrDefault();
+                    
+                    if (rangoNivel1 != null)
+                    {
+                        _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                            docenteCedula, rangoNivel1.Nombre, rangoNivel1.Id);
+                    }
+                    
+                    return rangoNivel1;
                 }
             }
             catch (Exception ex)
@@ -244,6 +255,8 @@ namespace SIGAD.Application.Services
                 return null;
             }
         }
+
+
 
         public string GenerateJwtToken(string correo, string rol, string cedula, string nombre1, string? nombre2, string apellido1, string apellido2, int? rangoId, string? rangoNombre)
         {
