@@ -12,16 +12,22 @@ namespace SIGAD.Application.Services
     {
         private readonly ICursoRepository _cursoRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
+        private readonly IOrganizacionRepository _organizacionRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly string _fileStoragePath;
 
         public CursoService(
             ICursoRepository cursoRepository,
             ISolicitudAscensoRepository solicitudRepository,
+            IOrganizacionRepository organizacionRepository,
+            IUnitOfWork unitOfWork,
             IConfiguration configuration)
         {
             _cursoRepository = cursoRepository;
             _solicitudRepository = solicitudRepository;
+            _organizacionRepository = organizacionRepository;
+            _unitOfWork = unitOfWork;
             _configuration = configuration;
             _fileStoragePath = _configuration["FileStorage:CursosPath"] ?? "Files/Cursos";
 
@@ -75,6 +81,20 @@ namespace SIGAD.Application.Services
             if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
                 throw new ArgumentException("La solicitud especificada no existe");
 
+            // Buscar o crear la organización
+            var organizacion = await _organizacionRepository.GetByNombreAsync(crearCursoDto.OrganizacionNombre);
+            if (organizacion == null)
+            {
+                // Crear nueva organización
+                organizacion = new Organizacion
+                {
+                    Nombre = crearCursoDto.OrganizacionNombre,
+                    TipoOrganizacion = "Institución Educativa" // Tipo por defecto para cursos
+                };
+                await _organizacionRepository.AddAsync(organizacion);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
             // Generar hash del contenido
             string contentHash;
             using (var stream = certificado.OpenReadStream())
@@ -100,7 +120,7 @@ namespace SIGAD.Application.Services
             var curso = new Curso
             {
                 Nombre = crearCursoDto.Nombre,
-                OrganizacionId = crearCursoDto.OrganizacionId,
+                OrganizacionId = organizacion.Id,
                 NumeroHoras = crearCursoDto.NumeroHoras,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,

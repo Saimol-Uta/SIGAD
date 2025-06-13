@@ -10,8 +10,9 @@ namespace SIGAD.Application.DTOs
         public string Nombre { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La organización es requerida")]
-        [Display(Name = "ID de la Organización")]
-        public int OrganizacionId { get; set; }
+        [StringLength(100, ErrorMessage = "El nombre de la organización no puede exceder los 100 caracteres")]
+        [Display(Name = "Nombre de la Organización")]
+        public string OrganizacionNombre { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El número de horas es requerido")]
         [Range(1, 1000, ErrorMessage = "El número de horas debe estar entre 1 y 1000")]

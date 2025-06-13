@@ -484,12 +484,11 @@
             
             // Campos requeridos por CrearCursoDto
             content.Add(new StringContent(cursoModel.Nombre), "Nombre");
-            content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+            content.Add(new StringContent(cursoModel.OrganizacionNombre), "OrganizacionNombre");
+            content.Add(new StringContent(cursoModel.HorasAcademicas.ToString()), "NumeroHoras");
             content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
-            content.Add(new StringContent(cursoModel.HorasAcademicas.ToString()), "HorasAcademicas");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
-            content.Add(new StringContent(cursoModel.OrganizacionNombre), "OrganizacionNombre");
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
