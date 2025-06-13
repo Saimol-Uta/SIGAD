@@ -733,6 +733,50 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// Verifica si el docente autenticado tiene una solicitud activa en borrador
+        /// </summary>
+        /// <returns>Estado de la solicitud activa</returns>
+        [HttpGet("verificar-solicitud-activa")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> VerificarSolicitudActiva()
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Verificar que no tiene una solicitud en borrador activa
+                var solicitudActiva = await _context.SolicitudesAscenso
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+                
+                if (solicitudActiva != null)
+                {
+                    return Ok(new { 
+                        success = true, 
+                        tieneSolicitudActiva = true, 
+                        solicitudId = solicitudActiva.Id,
+                        fechaCreacion = solicitudActiva.FechaCreacion 
+                    });
+                }
+
+                return Ok(new { 
+                    success = true, 
+                    tieneSolicitudActiva = false, 
+                    solicitudId = (string?)null 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar solicitud activa");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Crea una nueva solicitud de ascenso para el docente autenticado
         /// </summary>
         /// <param name="request">Datos de la solicitud</param>

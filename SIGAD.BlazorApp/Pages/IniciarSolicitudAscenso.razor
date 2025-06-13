@@ -299,9 +299,44 @@
             }
             else if (!string.IsNullOrEmpty(errorMessage))
             {
-                <div class="alert alert-danger">
-                    @errorMessage
-                </div>
+                @if (solicitudExistente != null)
+                {
+                    <div class="alert alert-warning">
+                        <h4>⚠️ Proceso de Ascenso en Curso</h4>
+                        <p>Ya tiene una solicitud de ascenso activa. Puede continuar donde lo dejó o cancelar la solicitud actual para crear una nueva.</p>
+                        <div class="btn-group mt-3">
+                            <button class="btn btn-success" @onclick="ReanudarProceso" disabled="@isSubmitting">
+                                🔄 Continuar Proceso Existente
+                            </button>
+                            <button class="btn btn-outline-danger" @onclick="MostrarConfirmacionCancelar" disabled="@isSubmitting">
+                                🗑️ Cancelar Solicitud Actual
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (mostrarConfirmacionCancelar)
+                    {
+                        <div class="alert alert-danger">
+                            <h5>⚠️ Confirmar Cancelación</h5>
+                            <p><strong>¿Está seguro que desea cancelar su solicitud actual?</strong></p>
+                            <p>Esta acción eliminará todos los documentos y progreso asociados a su solicitud actual.</p>
+                            <div class="btn-group">
+                                <button class="btn btn-danger" @onclick="CancelarSolicitudExistente" disabled="@isSubmitting">
+                                    ✅ Sí, Cancelar Solicitud
+                                </button>
+                                <button class="btn btn-secondary" @onclick="OcultarConfirmacionCancelar" disabled="@isSubmitting">
+                                    ❌ No, Mantener Solicitud
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-danger">
+                        @errorMessage
+                    </div>
+                }
             }
             else
             {
@@ -432,6 +467,8 @@
     private bool isSubmitting = false;
     private bool solicitudCreada = false;
     private string? errorMessage;
+    private SolicitudExistenteInfo? solicitudExistente;
+    private bool mostrarConfirmacionCancelar = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -576,11 +613,26 @@
                 var errorContent = await response.Content.ReadAsStringAsync();
                 try
                 {
-                    var errorResult = System.Text.Json.JsonSerializer.Deserialize<CreateSolicitudResponse>(errorContent, new JsonSerializerOptions
+                    var errorResult = System.Text.Json.JsonSerializer.Deserialize<ErrorResponse>(errorContent, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
-                    errorMessage = errorResult?.Message ?? "Error al crear la solicitud";
+                    
+                    // Verificar si es un error por solicitud existente
+                    if (errorResult?.Message?.Contains("Ya tiene una solicitud en proceso") == true && 
+                        !string.IsNullOrEmpty(errorResult.SolicitudId))
+                    {
+                        solicitudExistente = new SolicitudExistenteInfo
+                        {
+                            SolicitudId = errorResult.SolicitudId,
+                            Message = errorResult.Message
+                        };
+                        errorMessage = ""; // No mostrar como error normal
+                    }
+                    else
+                    {
+                        errorMessage = errorResult?.Message ?? "Error al crear la solicitud";
+                    }
                 }
                 catch
                 {
@@ -666,5 +718,87 @@
         public object? RangoSolicitado { get; set; }
         public string Estado { get; set; } = "";
         public string? Observaciones { get; set; }
+    }
+
+    public class ErrorResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public string? SolicitudId { get; set; }
+    }
+
+    public class SolicitudExistenteInfo
+    {
+        public string SolicitudId { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+
+    private async Task ReanudarProceso()
+    {
+        if (solicitudExistente?.SolicitudId == null) return;
+
+        try
+        {
+            // Guardar el ID de la solicitud existente
+            await SolicitudService.SetSolicitudActualAsync(solicitudExistente.SolicitudId);
+            
+            // Redirigir a gestión de documentos
+            Navigation.NavigateTo("/gestion-documentos");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al reanudar el proceso: " + ex.Message;
+        }
+    }
+
+    private void MostrarConfirmacionCancelar()
+    {
+        mostrarConfirmacionCancelar = true;
+    }
+
+    private void OcultarConfirmacionCancelar()
+    {
+        mostrarConfirmacionCancelar = false;
+    }
+
+    private async Task CancelarSolicitudExistente()
+    {
+        if (solicitudExistente?.SolicitudId == null) return;
+
+        isSubmitting = true;
+        try
+        {
+            // Llamar al endpoint para cancelar/eliminar la solicitud existente
+            var response = await Http.DeleteAsync($"api/solicitudesAscenso/{solicitudExistente.SolicitudId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Limpiar estado
+                solicitudExistente = null;
+                mostrarConfirmacionCancelar = false;
+                errorMessage = null;
+                
+                // Limpiar servicio de solicitud
+                await SolicitudService.ClearSolicitudActualAsync();
+                
+                // Mostrar mensaje de éxito
+                await JSRuntime.InvokeVoidAsync("alert", "Solicitud cancelada exitosamente. Ahora puede crear una nueva solicitud.");
+                
+                // Permitir crear nueva solicitud
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "Error al cancelar la solicitud. Intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cancelar la solicitud: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 } 

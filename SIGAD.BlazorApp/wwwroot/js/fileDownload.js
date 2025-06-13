@@ -67,3 +67,11 @@ window.showNotification = (message, type = 'info') => {
         }
     }, 5000);
 }; 
+
+// Función para hacer clic en un elemento por ID
+window.clickElement = (elementId) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.click();
+    }
+};

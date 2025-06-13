@@ -342,8 +342,8 @@
                         <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("articulos"))" disabled="@operacionEnProceso">
                             📥 Importar
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("articulos"))" disabled="@operacionEnProceso">
-                            📤 Exportar
+                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-articulo"))" disabled="@operacionEnProceso">
+                            📤 Agregar
                         </button>
                     </div>
                 </div>
@@ -362,8 +362,8 @@
                         <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
                             📥 Importar
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
-                            📤 Exportar
+                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-experiencia-laboral"))" disabled="@operacionEnProceso">
+                            📤 Agregar
                         </button>
                     </div>
                 </div>
@@ -382,8 +382,8 @@
                         <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
                             📥 Importar
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
-                            📤 Exportar
+                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-evaluacion"))" disabled="@operacionEnProceso">
+                            📤 Agregar
                         </button>
                     </div>
                 </div>
@@ -402,8 +402,8 @@
                         <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("cursos"))" disabled="@operacionEnProceso">
                             📥 Importar
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("cursos"))" disabled="@operacionEnProceso">
-                            📤 Exportar
+                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-curso"))" disabled="@operacionEnProceso">
+                            📤 Agregar
                         </button>
                     </div>
                 </div>

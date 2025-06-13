@@ -1,0 +1,614 @@
+@page "/agregar-experiencia-laboral"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISolicitudService SolicitudService
+
+<PageTitle>Agregar Experiencia Laboral - SIGAD</PageTitle>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .back-btn, .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn {
+        background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    .main-content {
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .form-container {
+        background: white;
+        padding: 2rem;
+        max-width: 800px;
+        width: 100%;
+        border: 1px solid #0a1d44;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .form-container h1 {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .form-container .subtitle {
+        font-size: 1.1rem;
+        color: #666;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: bold;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0a1d44;
+        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .file-upload {
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        padding: 2rem;
+        text-align: center;
+        transition: border-color 0.3s ease;
+        cursor: pointer;
+    }
+
+    .file-upload:hover {
+        border-color: #0a1d44;
+    }
+
+    .file-upload.has-file {
+        border-color: #28a745;
+        background-color: #f8fff9;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #081527;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
+    }
+
+    .alert-success {
+        background-color: #d1e7dd;
+        border: 1px solid #a3cfbb;
+        color: #0f5132;
+    }
+
+    .triangle-bg {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.1;
+    }
+
+    .required {
+        color: #dc3545;
+    }
+</style>
+
+<body>
+    <header class="header">
+        <div class="branding">
+            <img src="/images/Sena_Colombia_logo.png" alt="SENA Logo" class="logo" />
+        </div>
+        <div class="user-profile">
+            <img src="/images/IconoUser.png" alt="User Avatar" />
+            <span>@nombreUsuario</span>
+            <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                Volver
+            </button>
+            <button class="logout-btn" @onclick="Logout">
+                Cerrar Sesión
+            </button>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="form-container">
+            <h1>💼 Agregar Experiencia Laboral</h1>
+            <p class="subtitle">Complete la información de su experiencia laboral para incluirla en su solicitud de ascenso</p>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+            }
+
+            @if (experienciaCreada)
+            {
+                <div class="alert alert-success">
+                    ✅ Experiencia laboral agregada exitosamente. Redirigiendo...
+                </div>
+            }
+            else
+            {
+                <EditForm Model="@experienciaModel" OnValidSubmit="@HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            Empresa/Institución <span class="required">*</span>
+                        </label>
+                        <InputText @bind-Value="experienciaModel.Empresa" class="form-control" 
+                                 placeholder="Ej: SENA, Universidad Nacional, Microsoft" />
+                        <ValidationMessage For="@(() => experienciaModel.Empresa)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            Cargo <span class="required">*</span>
+                        </label>
+                        <InputText @bind-Value="experienciaModel.Cargo" class="form-control" 
+                                 placeholder="Ej: Desarrollador Senior, Instructor, Coordinador" />
+                        <ValidationMessage For="@(() => experienciaModel.Cargo)" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Fecha de Inicio <span class="required">*</span>
+                            </label>
+                            <InputDate @bind-Value="experienciaModel.FechaInicio" class="form-control" />
+                            <ValidationMessage For="@(() => experienciaModel.FechaInicio)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                Fecha de Finalización <span class="required">*</span>
+                            </label>
+                            <InputDate @bind-Value="experienciaModel.FechaFinalizacion" class="form-control" />
+                            <ValidationMessage For="@(() => experienciaModel.FechaFinalizacion)" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Tipo de Contrato <span class="required">*</span>
+                            </label>
+                            <InputSelect @bind-Value="experienciaModel.TipoContrato" class="form-control">
+                                <option value="">Seleccione el tipo</option>
+                                <option value="Tiempo Completo">Tiempo Completo</option>
+                                <option value="Medio Tiempo">Medio Tiempo</option>
+                                <option value="Por Horas">Por Horas</option>
+                                <option value="Contrato">Contrato</option>
+                                <option value="Freelance">Freelance</option>
+                                <option value="Prácticas">Prácticas</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => experienciaModel.TipoContrato)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                Meses de Experiencia <span class="required">*</span>
+                            </label>
+                            <InputNumber @bind-Value="experienciaModel.MesesExperiencia" class="form-control" 
+                                       placeholder="Ej: 24" min="1" max="600" />
+                            <ValidationMessage For="@(() => experienciaModel.MesesExperiencia)" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            Descripción de Responsabilidades
+                        </label>
+                        <InputTextArea @bind-Value="experienciaModel.Descripcion" class="form-control" 
+                                     placeholder="Describa las principales responsabilidades y logros en este cargo"
+                                     rows="4" />
+                    </div>
+
+                                        <div class="form-group">
+                        <label class="form-label">Certificado Laboral <span class="required">*</span></label>
+                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                        @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                        {
+                            <p>Archivo: @archivoSeleccionado</p>
+                        }
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" 
+                                @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                            @if (enviandoFormulario)
+                            {
+                                <span>Guardando experiencia...</span>
+                            }
+                            else
+                            {
+                                <span>Guardar Experiencia</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>
+
+@code {
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+
+    // Variables para el formulario
+    private ExperienciaLaboralModel experienciaModel = new();
+    private IBrowserFile? archivoFormulario;
+    private string archivoSeleccionado = "";
+
+    // Variables de estado
+    private bool enviandoFormulario = false;
+    private bool experienciaCreada = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionUsuario();
+        await VerificarSolicitudActiva();
+    }
+
+    private async Task VerificarSolicitudActiva()
+    {
+        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+        if (string.IsNullOrEmpty(solicitudId))
+        {
+            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+        }
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar información del usuario: " + ex.Message;
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        archivoFormulario = e.File;
+        archivoSeleccionado = e.File.Name;
+        
+        // Validar tamaño del archivo (25MB)
+        if (archivoFormulario.Size > 25 * 1024 * 1024)
+        {
+            errorMessage = "El archivo es demasiado grande. Máximo permitido: 25MB";
+            archivoFormulario = null;
+            archivoSeleccionado = "";
+            return;
+        }
+
+        // Validar extensión
+        var extension = Path.GetExtension(archivoFormulario.Name).ToLower();
+        var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+        
+        if (!extensionesPermitidas.Contains(extension))
+        {
+            errorMessage = "Formato de archivo no permitido. Use: PDF, DOC, DOCX, JPG o PNG";
+            archivoFormulario = null;
+            archivoSeleccionado = "";
+            return;
+        }
+
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (enviandoFormulario || archivoFormulario == null) return;
+
+        enviandoFormulario = true;
+        errorMessage = null;
+
+        try
+        {
+            // Obtener cédula del usuario actual
+            var cedula = await ObtenerCedulaUsuario();
+            if (string.IsNullOrEmpty(cedula))
+            {
+                errorMessage = "No se pudo obtener la información del usuario";
+                return;
+            }
+
+            // Obtener el ID real de la solicitud activa
+            var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
+            if (string.IsNullOrEmpty(solicitudIdString))
+            {
+                errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+                return;
+            }
+
+            // Crear el formulario multipart
+            using var content = new MultipartFormDataContent();
+            
+            // Campos requeridos por CrearExperienciaLaboralDto
+            content.Add(new StringContent(experienciaModel.Empresa), "Empresa");
+            content.Add(new StringContent(experienciaModel.Cargo), "Cargo");
+            content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+            content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+            content.Add(new StringContent(experienciaModel.TipoContrato), "TipoContrato");
+            content.Add(new StringContent(experienciaModel.MesesExperiencia.ToString()), "MesesExperiencia");
+            content.Add(new StringContent(experienciaModel.Descripcion ?? ""), "Descripcion");
+            content.Add(new StringContent(cedula), "DocenteCedula");
+            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+
+            // Agregar el archivo
+            var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
+            content.Add(fileContent, "certificado", archivoFormulario.Name);
+
+            // Enviar la solicitud
+            var response = await Http.PostAsync("api/experienciasLaborales", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                experienciaCreada = true;
+                
+                // Redirigir después de 3 segundos
+                await Task.Delay(3000);
+                Navigation.NavigateTo("/gestion-documentos");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error al guardar la experiencia laboral: {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al procesar la solicitud: {ex.Message}";
+        }
+        finally
+        {
+            enviandoFormulario = false;
+        }
+    }
+
+    private async Task<string?> ObtenerCedulaUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    return result?.Data?.Cedula;
+                }
+            }
+        }
+        catch
+        {
+            // Silenciar errores
+        }
+        return null;
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    // Modelos
+    public class ExperienciaLaboralModel
+    {
+        public string Empresa { get; set; } = "";
+        public string Cargo { get; set; } = "";
+        public DateTime FechaInicio { get; set; } = DateTime.Today.AddYears(-1);
+        public DateTime FechaFinalizacion { get; set; } = DateTime.Today;
+        public string TipoContrato { get; set; } = "";
+        public int MesesExperiencia { get; set; } = 1;
+        public string? Descripcion { get; set; }
+    }
+
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Nombre1 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Cedula { get; set; }
+    }
+}
