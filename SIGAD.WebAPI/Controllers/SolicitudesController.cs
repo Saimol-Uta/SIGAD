@@ -4,6 +4,7 @@ using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims; // Agregar esta línea al inicio del archivo
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -11,81 +12,91 @@ namespace SIGAD.WebAPI.Controllers
     [Route("api/[controller]")]
     public class SolicitudesController : ControllerBase
     {
-        // El servicio para la lógica que estará comentada
         private readonly GestionSolicitudesAppService _solicitudesService;
+        private readonly ILogger<SolicitudesController> _logger;
 
-        // El nuevo servicio para la lógica de validación que SÍ estará activa
-        private readonly IValidacionRequisitosService _validacionService;
-
-        // El constructor ahora inyecta ambos servicios
-        public SolicitudesController(
-            GestionSolicitudesAppService solicitudesService,
-            IValidacionRequisitosService validacionService)
+        public SolicitudesController(GestionSolicitudesAppService solicitudesService, ILogger<SolicitudesController> logger)
         {
             _solicitudesService = solicitudesService;
-            _validacionService = validacionService;
+            _logger = logger;
         }
 
-        /* --- LÓGICA ANTERIOR (COMENTADA POR AHORA) ---
-
-        // GET /api/solicitudes
+        // GET: api/solicitudes
         [HttpGet]
+
         public async Task<IActionResult> GetAll()
         {
-            var solicitudes = await _solicitudesService.GetAllSolicitudesAsync();
+            var solicitudes = await _solicitudesService.GetAllParaAdminAsync();
             return Ok(solicitudes);
         }
 
-        // POST /api/solicitudes
+        // GET: api/solicitudes/{id}
+        [HttpGet("{id}")]
+
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+            return solicitud != null ? Ok(solicitud) : NotFound();
+        }
+
+        // POST: api/solicitudes
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CrearSolicitudDto dto)
+        public async Task<IActionResult> EnviarSolicitud([FromBody] EnviarSolicitudDto dto)
         {
-            var docenteCedula = "1234567890"; // Temporal
-            var id = await _solicitudesService.CrearSolicitudAsync(dto, docenteCedula);
-            return Ok(new { Id = id });
+            var docenteCedula = User.FindFirst("cedula")?.Value;
+            if (string.IsNullOrEmpty(docenteCedula))
+            {
+                return Unauthorized("La cédula del docente no se encontró en el token.");
+            }
+
+            try
+            {
+                var id = await _solicitudesService.EnviarSolicitudConEvidenciaAsync(dto, docenteCedula);
+                return CreatedAtAction(nameof(GetById), new { id }, new { SolicitudId = id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear la solicitud para el docente {Cedula}", docenteCedula);
+                return StatusCode(500, "Ocurrió un error al procesar la solicitud.");
+            }
         }
 
-        // PUT /api/solicitudes/{id}/aprobar
+        // PUT: api/solicitudes/{id}/aprobar
         [HttpPut("{id}/aprobar")]
-        public async Task<IActionResult> Aprobar(Guid id)
+        public async Task<IActionResult> Aprobar(Guid id, [FromBody] string observaciones)
         {
-            await _solicitudesService.AprobarSolicitudAsync(id);
-            return Ok();
+            await _solicitudesService.AprobarSolicitudAsync(id, observaciones);
+            return NoContent();
         }
 
-        // PUT /api/solicitudes/{id}/rechazar
+        // PUT: api/solicitudes/{id}/rechazar
         [HttpPut("{id}/rechazar")]
         public async Task<IActionResult> Rechazar(Guid id, [FromBody] string observaciones)
         {
             await _solicitudesService.RechazarSolicitudAsync(id, observaciones);
-            return Ok();
+            return NoContent();
         }
-        
-        */
 
-        // --- PASO 5: NUEVO ENDPOINT (ACTIVO) ---
-        [HttpGet("verificar-progreso/{rangoId}")]
-        [Authorize] // Asegurarse de que solo usuarios autenticados puedan llamarlo
-        public async Task<IActionResult> VerificarProgreso(int rangoId)
+        // Endpoint de prueba sin autorización
+        [HttpGet("test")]
+        public IActionResult Test()
         {
-            try
-            {
-                // Obtener la cédula del usuario logueado desde el token
-                var docenteCedula = User.FindFirst("cedula")?.Value;
-                if (string.IsNullOrEmpty(docenteCedula))
-                {
-                    return Unauthorized("No se pudo identificar la cédula del usuario en el token.");
-                }
+            return Ok(new { message = "API funcionando correctamente", timestamp = DateTime.Now });
+        }
 
-                var resultado = await _validacionService.VerificarProgresoAsync(docenteCedula, rangoId);
-                return Ok(resultado);
-            }
-            catch (Exception ex)
+        // Endpoint de prueba con autorización básica
+        [HttpGet("test-auth")]
+        public IActionResult TestAuth()
+        {
+            var userInfo = new
             {
-                // Puedes añadir un logger aquí si quieres registrar el error
-                // _logger.LogError(ex, "Error al verificar progreso para rango {RangoId}", rangoId);
-                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-            }
+                IsAuthenticated = User.Identity.IsAuthenticated,
+                Name = User.Identity.Name,
+                Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
+                Roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
+            };
+
+            return Ok(userInfo);
         }
     }
 }

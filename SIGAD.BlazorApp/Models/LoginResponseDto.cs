@@ -3,8 +3,8 @@
     // Necesitamos un enum para el Rol, igual que en el backend
     public enum Rol
     {
-        DOCENTE = 1,
-        ADMINISTRADOR = 2
+        ADMINISTRADOR = 0,
+        DOCENTE = 1
     }
 
     public class LoginResponseDto

@@ -1,23 +1,313 @@
 ﻿@page "/admin-dashboard"
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "ADMINISTRADOR")]
+@using SIGAD.BlazorApp.Components
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
 
-<h1>Panel de Administración</h1>
+<div class="page-wrapper">
+    <Encabezado />
 
-<div class="dashboard-container">
-    <p>Bienvenido al panel de administrador.</p>
+    <div class="admin-dashboard">
+        <!-- BARRA LATERAL -->
+        <div class="sidebar">
+            <h3>SIGAD</h3>
+            <div class="nav-item active">Dashboard</div>
+            <div class="nav-item">Gestión Docentes</div>
+        </div>
 
-    <button class="btn btn-primary" @onclick="RedirigirAVerSolicitude">Ver Solicitudes</button>
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="main-content">
+            <!-- TARJETAS DE ESTADÍSTICA -->
+            <div class="cards">
+                <div class="card @(estadoSeleccionado == "NUEVOS" ? "selected" : "")" @onclick='() => FiltrarPor("NUEVOS")'>
+                    <h4>Nuevas Solicitudes</h4>
+                    <div class="cantidad">@NuevasSolicitudes</div>
+                    <p>Solicitudes recibidas en la última semana</p>
+                </div>
+                <div class="card @(estadoSeleccionado == "EN_PROCESO" ? "selected" : "")" @onclick='() => FiltrarPor("EN_PROCESO")'>
+                    <h4>Solicitudes En Proceso</h4>
+                    <div class="cantidad">@SolicitudesEnProceso</div>
+                    <p>Solicitudes que están siendo evaluadas actualmente.</p>
+                </div>
+                <div class="card @(estadoSeleccionado == "FINALIZADOS" ? "selected" : "")" @onclick='() => FiltrarPor("FINALIZADOS")'>
+                    <h4>Solicitudes Finalizadas</h4>
+                    <div class="cantidad">@SolicitudesFinalizadas</div>
+                    <p>Procesos completados en los últimos 30 días.</p>
+                </div>
+            </div>
+
+            <!-- FILTRO CON ÍCONO -->
+            <div style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 20px;">
+                <img src="/images/search.png" alt="Buscar" style="width: 20px; height: 20px; margin-right: 10px;" />
+                <input type="text" @bind="filtroNombre" placeholder="Filtrar por nombre..." style="padding: 8px; width: 280px; border: 1px solid #ccc; border-radius: 6px;" />
+            </div>
+
+            <!-- TABLA DE SOLICITUDES -->
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                    <strong>Error:</strong> @mensajeError
+                    <button @onclick="CargarSolicitudes" style="margin-left: 10px; padding: 5px 10px; background-color: #0a1d44; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        Reintentar
+                    </button>
+                </div>
+            }
+
+            @if (cargando)
+            {
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="margin-bottom: 15px;">Cargando solicitudes...</div>
+                    <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0a1d44; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                </div>
+            }
+            else
+            {
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+                    <thead style="background-color: #0a1d44; color: white;">
+                        <tr style="text-align: left;">
+                            <th style="padding: 12px 20px;">ID Solicitud</th>
+                            <th style="padding: 12px 20px;">Nombre del docente</th>
+                            <th style="padding: 12px 20px;">Categoría Aspirada</th>
+                            <th style="padding: 12px 20px;">Fecha de Solicitud</th>
+                            <th style="padding: 12px 20px;">Estado del Proceso</th>
+                            <th style="padding: 12px 20px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Filtradas.Any())
+                        {                            foreach (var solicitud in Filtradas)
+                            {
+                                <tr style="border-bottom: 1px solid #eee; text-align: left;">
+                                    <td style="padding: 10px 20px;">@solicitud.Id</td>
+                                    <td style="padding: 10px 20px;">@solicitud.DocenteNombreCompleto</td>
+                                    <td style="padding: 10px 20px;">@solicitud.RangoSolicitadoNombre</td>
+                                    <td style="padding: 10px 20px;">@(solicitud.FechaEnvio?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                    <td style="padding: 10px 20px;"><span style="color: @ObtenerColorEstado(solicitud.Estado); font-weight: bold;">●</span> @solicitud.Estado</td>
+                                    <td style="padding: 10px 20px;"><button @onclick="() => VerDetalles(solicitud.Id)" style="background: none; border: none; color: #0a1d44; cursor: pointer;">Ver Detalles</button></td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron resultados.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>            </div>
+
+            <!-- PAGINACIÓN -->
+            <div style="margin-top: 20px; display: flex; justify-content: center;">
+                @for (int i = 1; i <= PaginasTotales; i++)
+                {
+                    <button @onclick="() => CambiarPagina(i)"
+                            style="margin: 0 4px; padding: 6px 14px; border-radius: 6px; border: none; background: @(paginaActual == i ? "#0a1d44" : "#e0e0e0"); color: @(paginaActual == i ? "white" : "#333"); font-weight: bold; cursor: pointer;">
+                        @i
+                    </button>
+                }
+            </div>
+            }
+        </div>
+    </div>
 </div>
 
-@code {
-    private void RedirigirAVerSolicitude()
-    {
-        NavigationManager.NavigateTo("/ver-solicitudes");
+<style>
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f9f9f9;
     }
 
-    [Inject]
-    private NavigationManager NavigationManager { get; set; } = default!;
+    .admin-dashboard {
+        display: flex;
+        flex-grow: 1;
+        min-height: calc(100vh - 90px); /* espacio para header */
+    }
+
+    .sidebar {
+        width: 220px;
+        background-color: #0a1d44;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        padding-top: 20px;
+    }
+
+        .sidebar h3 {
+            margin-left: 20px;
+            margin-bottom: 30px;
+        }
+
+    .nav-item {
+        padding: 15px 20px;
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: #112855;
+        }
+
+    .main-content {
+        flex: 1;
+        padding: 30px 40px;
+        background-color: #f9f9f9;
+    }
+
+    .cards {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 0.2rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        width: 350px;
+        position: relative;
+        cursor: pointer;
+    }
+
+        .card.selected::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #00bcd4;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .card h4 {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .card .cantidad {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }        .card p {
+            font-size: 14px;
+            color: #444;
+        }
+
+
+</style>
+
+@code {
+    int NuevasSolicitudes = 0;
+    int SolicitudesEnProceso = 0;
+    int SolicitudesFinalizadas = 0;
+
+    private string filtroNombre = "";
+    private int paginaActual = 1;
+    private int porPagina = 10;
+    private bool cargando = true;
+    private string? mensajeError = null;
+
+    private List<SolicitudDto> TodasSolicitudes = new();
+
+    private string estadoSeleccionado = "";
+
+    private readonly string[] ESTADOS_NUEVOS = new[] { "Enviada", "Pendiente" };
+    private readonly string[] ESTADOS_EN_PROCESO = new[] { "EnRevision", "En Revisión" };
+    private readonly string[] ESTADOS_FINALIZADOS = new[] { "Aprobada", "Rechazada" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarSolicitudes();
+    }
+
+    private async Task CargarSolicitudes()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            StateHasChanged();
+
+            var solicitudesApi = await SolicitudesService.GetAllSolicitudesAsync();
+            
+            TodasSolicitudes = solicitudesApi;
+            ActualizarContadores();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar las solicitudes: {ex.Message}";
+            Console.WriteLine($"Error en CargarSolicitudes: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ActualizarContadores()
+    {
+        NuevasSolicitudes = TodasSolicitudes.Count(s => ESTADOS_NUEVOS.Contains(s.Estado));
+        SolicitudesEnProceso = TodasSolicitudes.Count(s => ESTADOS_EN_PROCESO.Contains(s.Estado));
+        SolicitudesFinalizadas = TodasSolicitudes.Count(s => ESTADOS_FINALIZADOS.Contains(s.Estado));
+    }
+
+    private IEnumerable<SolicitudDto> Filtradas =>
+        TodasSolicitudes
+            .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
+            .Where(s => estadoSeleccionado switch
+            {
+                "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
+                "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
+                "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
+                _ => true
+            })
+            .Skip((paginaActual - 1) * porPagina)
+            .Take(porPagina);
+
+    private int PaginasTotales
+    {
+        get
+        {
+            var totalFiltradas = TodasSolicitudes
+                .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
+                .Where(s => estadoSeleccionado switch
+                {
+                    "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
+                    "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
+                    "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
+                    _ => true
+                })
+                .Count();
+            
+            return (int)Math.Ceiling(totalFiltradas / (double)porPagina);
+        }
+    }
+
+    private void CambiarPagina(int nueva) => paginaActual = nueva;    private void FiltrarPor(string estadoGrupo)
+    {
+        estadoSeleccionado = estadoGrupo;
+        paginaActual = 1;
+    }
+
+    private void VerDetalles(Guid solicitudId)
+    {
+        Navigation.NavigateTo($"/admin/solicitud/{solicitudId}");
+    }
+
+    private string ObtenerColorEstado(string estado) =>
+        estado.Contains("Aprobad") ? "green" :
+        estado.Contains("Revision") || estado.Contains("Revisión") ? "orange" :
+        estado.Contains("Rechazad") ? "red" :
+        "blue";
 }

@@ -302,6 +302,13 @@ namespace SIGAD.WebAPI.Controllers
             var correo = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var cedula = User.FindFirst("cedula")?.Value;
+            var nombre1 = User.FindFirst("nombre1")?.Value;
+            var nombre2 = User.FindFirst("nombre2")?.Value;
+            var apellido1 = User.FindFirst("apellido1")?.Value;
+            var apellido2 = User.FindFirst("apellido2")?.Value;
+            var nombreCompleto = User.FindFirst("nombreCompleto")?.Value;
+            var rangoId = User.FindFirst("rangoId")?.Value;
+            var rangoNombre = User.FindFirst("rangoNombre")?.Value;
 
             return Ok(new
             {
@@ -312,6 +319,13 @@ namespace SIGAD.WebAPI.Controllers
                     correo = correo,
                     rol = rol,
                     cedula = cedula,
+                    nombre1 = nombre1,
+                    nombre2 = nombre2,
+                    apellido1 = apellido1,
+                    apellido2 = apellido2,
+                    nombreCompleto = nombreCompleto,
+                    rangoId = rangoId,
+                    rangoNombre = rangoNombre,
                     isAuthenticated = true
                 }
             });
@@ -330,6 +344,276 @@ namespace SIGAD.WebAPI.Controllers
                 success = true,
                 message = "Logout exitoso. Elimine el token del almacenamiento local."
             });
+        }
+
+        /// <summary>
+        /// TEMPORAL: Crea rangos de prueba (SOLO DESARROLLO)
+        /// </summary>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-test-rangos")]
+        public async Task<IActionResult> CreateTestRangos()
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando creación de rangos de prueba...");
+
+                // Limpiar rangos existentes si existen
+                var existingRangos = await _context.Rangos.ToListAsync();
+                if (existingRangos.Any())
+                {
+                    _context.Rangos.RemoveRange(existingRangos);
+                    _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Crear rangos de prueba (sin IDs específicos - dejar que la DB los genere)
+                var testRangos = new[]
+                {
+                    new { Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0.0m },
+                    new { Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70.0m },
+                    new { Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75.0m },
+                    new { Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80.0m }
+                };
+
+                var rangosCreados = new List<object>();
+
+                foreach (var rango in testRangos)
+                {
+                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre);
+
+                    var newRango = new SIGAD.Domain.Entities.Rango
+                    {
+                        // No establecemos Id - dejar que Entity Framework lo genere automáticamente
+                        Nombre = rango.Nombre,
+                        ArticulosRequeridos = rango.ArticulosRequeridos,
+                        AniosExperienciaRequeridos = rango.AniosExperienciaRequeridos,
+                        HorasCursoRequeridas = rango.HorasCursoRequeridas,
+                        MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
+                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
+                    };
+
+                    _context.Rangos.Add(newRango);
+                }
+
+                var savedRecords = await _context.SaveChangesAsync();
+
+                // Obtener los rangos creados con sus IDs generados
+                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync();
+                rangosCreados = rangosEnDb.Select(r => new
+                {
+                    id = r.Id,
+                    nombre = r.Nombre,
+                    articulosRequeridos = r.ArticulosRequeridos,
+                    aniosExperiencia = r.AniosExperienciaRequeridos,
+                    horasCurso = r.HorasCursoRequeridas,
+                    mesesInvestigacion = r.MesesInvestigacionRequeridos,
+                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
+                }).ToList<object>();
+                _logger.LogInformation("Rangos creados exitosamente. Registros guardados: {Count}", savedRecords);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Rangos de prueba creados exitosamente",
+                    data = new
+                    {
+                        rangosCreados = savedRecords,
+                        rangos = rangosCreados
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear rangos de prueba");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear rangos de prueba",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// TEMPORAL: Crea una solicitud de ascenso aprobada para un docente (SOLO DESARROLLO)
+        /// </summary>
+        /// <param name="cedula">Cédula del docente</param>
+        /// <param name="rangoId">ID del rango a asignar</param>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-test-ascenso/{cedula}/{rangoId}")]
+        public async Task<IActionResult> CreateTestAscenso(string cedula, int rangoId)
+        {
+            try
+            {
+                _logger.LogInformation("Creando solicitud de ascenso de prueba para docente {Cedula} al rango {RangoId}", cedula, rangoId);
+
+                // Verificar que el docente existe
+                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedula);
+                if (docente == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Docente con cédula {cedula} no encontrado"
+                    });
+                }
+
+                // Verificar que el rango existe
+                var rango = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoId);
+                if (rango == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Rango con ID {rangoId} no encontrado"
+                    });
+                }
+
+                // Crear solicitud de ascenso aprobada
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+     cedula,
+     null, // Primer rango
+     rangoId,
+     DateTime.UtcNow.AddDays(-30), // Hace 30 días
+     DateTime.UtcNow.AddDays(-25),   // Hace 25 días
+     DateTime.UtcNow.AddDays(-1), // Hace 1 día
+     SIGAD.Domain.Enums.EstadoSolicitud.Aprobada,
+     "Solicitud de prueba - Aprobada automáticamente"
+ );
+
+                _context.SolicitudesAscenso.Add(solicitud);
+                var savedRecords = await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud de ascenso creada exitosamente. ID: {SolicitudId}", solicitud.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud de ascenso de prueba creada exitosamente",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        docenteCedula = cedula,
+                        rangoAsignado = rango.Nombre,
+                        rangoId = rangoId,
+                        fechaAprobacion = solicitud.FechaResolucion
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear solicitud de ascenso de prueba");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear solicitud de ascenso de prueba",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// TEMPORAL: Crea una solicitud de ascenso con lógica de rango automático (SOLO DESARROLLO)
+        /// </summary>
+        /// <param name="cedula">Cédula del docente</param>
+        /// <param name="rangoSolicitadoId">ID del rango solicitado</param>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-solicitud-con-logica/{cedula}/{rangoSolicitadoId}")]
+        public async Task<IActionResult> CreateSolicitudConLogica(string cedula, int rangoSolicitadoId)
+        {
+            try
+            {
+                _logger.LogInformation("Creando solicitud con lógica automática para docente {Cedula} al rango {RangoId}", cedula, rangoSolicitadoId);
+
+                // Verificar que el docente existe
+                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedula);
+                if (docente == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Docente con cédula {cedula} no encontrado"
+                    });
+                }
+
+                // Verificar que el rango solicitado existe
+                var rangoSolicitado = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoSolicitadoId);
+                if (rangoSolicitado == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Rango solicitado con ID {rangoSolicitadoId} no encontrado"
+                    });
+                }
+
+                // AQUÍ ESTÁ LA LÓGICA QUE PEDISTE:
+                // Buscar el rango actual del docente
+                var solicitudesAprobadas = await _context.SolicitudesAscenso
+                    .Where(s => s.DocenteCedula == cedula && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Aprobada)
+                    .OrderByDescending(s => s.FechaResolucion)
+                    .FirstOrDefaultAsync();
+
+                int? rangoActualId = null;
+                string rangoActualNombre = "Sin rango previo";
+
+                if (solicitudesAprobadas != null)
+                {
+                    // Tiene rango actual de solicitudes previas
+                    rangoActualId = solicitudesAprobadas.RangoSolicitadoId;
+                    var rangoActual = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoActualId);
+                    rangoActualNombre = rangoActual?.Nombre ?? "Rango desconocido";
+                }
+                else
+                {
+                    // NO TIENE RANGO ACTUAL (null) - ASIGNAR AUTOMÁTICAMENTE RANGO NIVEL 1
+                    var rangoNivel1 = await _context.Rangos.OrderBy(r => r.Id).FirstOrDefaultAsync();
+                    if (rangoNivel1 != null)
+                    {
+                        rangoActualId = rangoNivel1.Id;
+                        rangoActualNombre = rangoNivel1.Nombre + " (asignado automáticamente)";
+                        _logger.LogInformation("Docente {Cedula} sin rango previo - Asignando automáticamente rango nivel 1: {RangoNombre}",
+                            cedula, rangoNivel1.Nombre);
+                    }
+                }
+
+                // Crear la solicitud con el rango actual (ya sea real o asignado automáticamente)
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+                    cedula,
+                    rangoActualId ?? 1, // Use 1 as default if null
+                    rangoSolicitadoId
+                );
+
+                _context.SolicitudesAscenso.Add(solicitud);
+                var savedRecords = await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud creada exitosamente. ID: {SolicitudId}", solicitud.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud de ascenso creada exitosamente con lógica automática",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        docenteCedula = cedula,
+                        rangoActual = new { id = rangoActualId, nombre = rangoActualNombre },
+                        rangoSolicitado = new { id = rangoSolicitadoId, nombre = rangoSolicitado.Nombre },
+                        estado = solicitud.Estado.ToString(),
+                        observaciones = solicitud.ObservacionesAdmin
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear solicitud con lógica automática");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear solicitud con lógica automática",
+                    error = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -434,6 +718,366 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error al crear usuarios de prueba",
                     error = ex.Message
                 });
+            }
+        }
+
+        /// <summary>
+        /// Verifica si el docente autenticado tiene una solicitud activa en borrador
+        /// </summary>
+        /// <returns>Estado de la solicitud activa</returns>
+        [HttpGet("verificar-solicitud-activa")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> VerificarSolicitudActiva()
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Verificar que no tiene una solicitud en borrador activa
+                var solicitudActiva = await _context.SolicitudesAscenso
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+
+                if (solicitudActiva != null)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        tieneSolicitudActiva = true,
+                        solicitudId = solicitudActiva.Id,
+                        fechaCreacion = solicitudActiva.FechaCreacion
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    tieneSolicitudActiva = false,
+                    solicitudId = (string?)null
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar solicitud activa");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Crea una nueva solicitud de ascenso para el docente autenticado
+        /// </summary>
+        /// <param name="request">Datos de la solicitud</param>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("crear-solicitud")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> CrearSolicitudAscenso([FromBody] CrearSolicitudRequestDto request)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Verificar que el docente existe
+                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedulaClaim);
+                if (docente == null)
+                {
+                    return NotFound(new { success = false, message = "Docente no encontrado" });
+                }
+
+                // Verificar que el rango solicitado existe
+                var rangoSolicitado = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == request.RangoSolicitadoId);
+                if (rangoSolicitado == null)
+                {
+                    return NotFound(new { success = false, message = "Rango solicitado no encontrado" });
+                }
+
+                // Verificar que no tiene una solicitud en borrador activa
+                var solicitudActiva = await _context.SolicitudesAscenso
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+
+                if (solicitudActiva != null)
+                {
+                    return BadRequest(new { success = false, message = "Ya tiene una solicitud en proceso", solicitudId = solicitudActiva.Id });
+                }
+
+                // Determinar rango actual
+                var rangoActual = await GetRangoActualInfoAsync(cedulaClaim);
+
+                // Crear nueva solicitud
+                var nuevaSolicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+             cedulaClaim,
+             rangoActual.rangoId ?? 1,
+             request.RangoSolicitadoId,
+             rangoActual.rangoId != null ? null : "Rango actual asignado automáticamente (nivel 1) - Docente sin ascensos previos"
+            );
+
+                _context.SolicitudesAscenso.Add(nuevaSolicitud);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud de ascenso creada. ID: {SolicitudId}, Docente: {Cedula}", nuevaSolicitud.Id, cedulaClaim);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud de ascenso creada exitosamente",
+                    data = new
+                    {
+                        solicitudId = nuevaSolicitud.Id,
+                        docenteCedula = cedulaClaim,
+                        rangoActual = new { id = rangoActual.rangoId, nombre = rangoActual.rangoNombre },
+                        rangoSolicitado = new { id = request.RangoSolicitadoId, nombre = rangoSolicitado.Nombre },
+                        estado = nuevaSolicitud.Estado.ToString(),
+                        fechaCreacion = nuevaSolicitud.FechaCreacion
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Envía la solicitud de ascenso cambiando su estado de Borrador a Enviada
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud a enviar</param>
+        /// <returns>Resultado del envío</returns>
+        [HttpPost("enviar-solicitud/{solicitudId}")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> EnviarSolicitudAscenso(Guid solicitudId)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Buscar la solicitud
+                var solicitud = await _context.SolicitudesAscenso
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.Id == solicitudId && s.DocenteCedula == cedulaClaim);
+
+                if (solicitud == null)
+                {
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+
+                // Verificar que la solicitud está en estado Borrador
+                if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"La solicitud no puede ser enviada. Estado actual: {solicitud.Estado}"
+                    });
+                }
+
+                // Verificar que la solicitud tiene documentos asociados
+                var tieneDocumentos = await VerificarDocumentosAsync(solicitudId);
+                if (!tieneDocumentos.tieneDocumentos)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "La solicitud debe tener al menos un documento de cada tipo requerido antes de ser enviada",
+                        documentosFaltantes = tieneDocumentos.documentosFaltantes
+                    });
+                }
+
+                // Cambiar estado a Enviada y establecer fecha de envío
+                solicitud.Estado = SIGAD.Domain.Enums.EstadoSolicitud.Enviada;
+                solicitud.FechaEnvio = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud enviada exitosamente. ID: {SolicitudId}, Docente: {Cedula}", solicitudId, cedulaClaim);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud enviada exitosamente",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        estado = solicitud.Estado.ToString(),
+                        fechaEnvio = solicitud.FechaEnvio,
+                        rangoSolicitado = solicitud.RangoSolicitado.Nombre
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al enviar solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Cancela una solicitud en estado Borrador
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud a cancelar</param>
+        /// <returns>Resultado de la cancelación</returns>
+        [HttpDelete("cancelar-solicitud/{solicitudId}")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> CancelarSolicitudAscenso(Guid solicitudId)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Buscar la solicitud
+                var solicitud = await _context.SolicitudesAscenso
+                    .FirstOrDefaultAsync(s => s.Id == solicitudId && s.DocenteCedula == cedulaClaim);
+
+                if (solicitud == null)
+                {
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+
+                // Solo permitir cancelar solicitudes en estado Borrador
+                if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Solo se pueden cancelar solicitudes en borrador. Estado actual: {solicitud.Estado}"
+                    });
+                }
+
+                // Eliminar la solicitud y sus asociaciones
+                _context.SolicitudesAscenso.Remove(solicitud);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud cancelada exitosamente. ID: {SolicitudId}, Docente: {Cedula}", solicitudId, cedulaClaim);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud cancelada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cancelar solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Verifica que la solicitud tenga documentos requeridos antes de enviarla
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud</param>
+        /// <returns>Estado de verificación de documentos</returns>
+        private async Task<(bool tieneDocumentos, List<string> documentosFaltantes)> VerificarDocumentosAsync(Guid solicitudId)
+        {
+            var documentosFaltantes = new List<string>();
+
+            // Verificar artículos
+            var tieneArticulos = await _context.ArticulosPorSolicitud
+                .AnyAsync(aps => aps.SolicitudId == solicitudId);
+            if (!tieneArticulos)
+            {
+                documentosFaltantes.Add("Artículos");
+            }
+
+            // Verificar cursos
+            var tieneCursos = await _context.CursosPorSolicitud
+                .AnyAsync(cps => cps.SolicitudId == solicitudId);
+            if (!tieneCursos)
+            {
+                documentosFaltantes.Add("Cursos");
+            }
+
+            // Verificar investigaciones
+            var tieneInvestigaciones = await _context.InvestigacionesPorSolicitud
+                .AnyAsync(ips => ips.SolicitudId == solicitudId);
+            if (!tieneInvestigaciones)
+            {
+                documentosFaltantes.Add("Investigaciones");
+            }
+
+            // Verificar experiencias laborales
+            var tieneExperiencias = await _context.ExperienciasPorSolicitud
+                .AnyAsync(eps => eps.SolicitudId == solicitudId);
+            if (!tieneExperiencias)
+            {
+                documentosFaltantes.Add("Experiencias Laborales");
+            }
+
+            // Verificar evaluaciones
+            var tieneEvaluaciones = await _context.EvaluacionesPorSolicitud
+                .AnyAsync(evps => evps.SolicitudId == solicitudId);
+            if (!tieneEvaluaciones)
+            {
+                documentosFaltantes.Add("Evaluaciones");
+            }
+
+            return (documentosFaltantes.Count == 0, documentosFaltantes);
+        }
+
+        /// <summary>
+        /// Obtiene información del rango actual del docente
+        /// </summary>
+        /// <param name="docenteCedula">Cédula del docente</param>
+        /// <returns>Información del rango actual</returns>
+        private async Task<(int? rangoId, string rangoNombre)> GetRangoActualInfoAsync(string docenteCedula)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo rango actual para docente {Cedula}", docenteCedula);
+
+                // Buscar la última solicitud aprobada del docente
+                var ultimaSolicitudAprobada = await _context.SolicitudesAscenso
+                    .Where(s => s.DocenteCedula == docenteCedula && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Aprobada)
+                    .OrderByDescending(s => s.FechaResolucion)
+                    .FirstOrDefaultAsync();
+
+                if (ultimaSolicitudAprobada != null)
+                {
+                    // Si tiene solicitudes aprobadas, el rango actual es el último rango solicitado aprobado
+                    var rango = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == ultimaSolicitudAprobada.RangoSolicitadoId);
+                    if (rango != null)
+                    {
+                        _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})",
+                            docenteCedula, rango.Nombre, rango.Id);
+                        return (rango.Id, rango.Nombre);
+                    }
+                }
+
+                // Si no tiene solicitudes aprobadas, asumir rango nivel 1 por defecto (sin crear solicitud)
+                _logger.LogInformation("Docente {Cedula} sin rango actual - Asumiendo rango nivel 1 por defecto", docenteCedula);
+                var rangoNivel1 = await _context.Rangos.OrderBy(r => r.Id).FirstOrDefaultAsync();
+
+                if (rangoNivel1 != null)
+                {
+                    _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})",
+                        docenteCedula, rangoNivel1.Nombre, rangoNivel1.Id);
+                    return (rangoNivel1.Id, rangoNivel1.Nombre);
+                }
+
+                return (null, "Sin rango asignado");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener rango actual para docente {Cedula}", docenteCedula);
+                return (null, "Error al obtener rango");
             }
         }
     }

@@ -5,7 +5,7 @@ using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
-using ISolicitudAscensoRepository = SIGAD.Domain.Interfaces.ISolicitudAscensoRepository;
+
 
 namespace SIGAD.Application.Services
 {
@@ -261,6 +261,7 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = evaluacion.FechaEvaluacion,
                 PuntajePorcentual = evaluacion.PuntajePorcentual,
                 InformeRuta = evaluacion.InformeRuta,
+                ContenidoHash = evaluacion.ContenidoHash,
                 DocenteCedula = evaluacion.DocenteCedula,
                 DocenteNombreCompleto = nombreCompleto
             };

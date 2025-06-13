@@ -13,9 +13,10 @@ builder.Services.AddBlazoredLocalStorage(); // Registrar el servicio de local st
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddScoped<ISolicitudService, SolicitudService>();
+// Agregar el servicio ISolicitudesService que también se necesita
+builder.Services.AddScoped<ISolicitudesService, SolicitudesService>();
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7072") });
-
 
 await builder.Build().RunAsync();
