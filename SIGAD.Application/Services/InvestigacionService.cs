@@ -56,20 +56,43 @@ namespace SIGAD.Application.Services
             return investigaciones.Select(MapToDto);
         }
 
-        public async Task<InvestigacionDto> CreateAsync(CrearInvestigacionDto crearInvestigacionDto, IFormFile informe)
+        public async Task<InvestigacionDto> CreateAsync(CrearInvestigacionDto crearInvestigacionDto, IFormFile? informe)
         {
-            // Validar archivo
-            if (informe == null || informe.Length == 0)
-                throw new ArgumentException("El informe es requerido");
+            // Validar archivo (opcional)
+            string? filePath = null;
+            string? contentHash = null;
+            
+            if (informe != null && informe.Length > 0)
+            {
+                var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+                var extension = Path.GetExtension(informe.FileName).ToLowerInvariant();
 
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
-            var extension = Path.GetExtension(informe.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                    throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX");
 
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX");
+                if (informe.Length > 25 * 1024 * 1024) // 25MB para informes
+                    throw new ArgumentException("El archivo no puede exceder los 25MB");
 
-            if (informe.Length > 25 * 1024 * 1024) // 25MB para informes
-                throw new ArgumentException("El archivo no puede exceder los 25MB");
+                // Generar hash del contenido
+                using (var stream = informe.OpenReadStream())
+                {
+                    using (var sha256 = SHA256.Create())
+                    {
+                        var hashBytes = sha256.ComputeHash(stream);
+                        contentHash = Convert.ToHexString(hashBytes);
+                    }
+                }
+
+                // Generar nombre único para el archivo
+                var fileName = $"{Guid.NewGuid()}{extension}";
+                filePath = Path.Combine(_fileStoragePath, fileName);
+
+                // Guardar archivo
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await informe.CopyToAsync(stream);
+                }
+            }
 
             // Verificar que la solicitud existe
             if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
@@ -78,27 +101,6 @@ namespace SIGAD.Application.Services
             // Validar fechas
             if (crearInvestigacionDto.FechaFinalizacion <= crearInvestigacionDto.FechaInicio)
                 throw new ArgumentException("La fecha de finalización debe ser posterior a la fecha de inicio");
-
-            // Generar hash del contenido
-            string contentHash;
-            using (var stream = informe.OpenReadStream())
-            {
-                using (var sha256 = SHA256.Create())
-                {
-                    var hashBytes = sha256.ComputeHash(stream);
-                    contentHash = Convert.ToHexString(hashBytes);
-                }
-            }
-
-            // Generar nombre único para el archivo
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_fileStoragePath, fileName);
-
-            // Guardar archivo
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await informe.CopyToAsync(stream);
-            }
 
             // Crear entidad
             var investigacion = new Investigacion
@@ -109,8 +111,8 @@ namespace SIGAD.Application.Services
                 RolEnInvestigacion = crearInvestigacionDto.RolEnInvestigacion,
                 MesesDeInvestigacion = crearInvestigacionDto.MesesDeInvestigacion,
                 DocenteCedula = crearInvestigacionDto.DocenteCedula,
-                InformeRuta = filePath,
-                ContenidoHash = contentHash
+                InformeRuta = filePath ?? string.Empty,
+                ContenidoHash = contentHash ?? string.Empty
             };
 
             await _investigacionRepository.AddAsync(investigacion);
