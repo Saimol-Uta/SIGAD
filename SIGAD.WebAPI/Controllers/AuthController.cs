@@ -302,6 +302,13 @@ namespace SIGAD.WebAPI.Controllers
             var correo = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var cedula = User.FindFirst("cedula")?.Value;
+            var nombre1 = User.FindFirst("nombre1")?.Value;
+            var nombre2 = User.FindFirst("nombre2")?.Value;
+            var apellido1 = User.FindFirst("apellido1")?.Value;
+            var apellido2 = User.FindFirst("apellido2")?.Value;
+            var nombreCompleto = User.FindFirst("nombreCompleto")?.Value;
+            var rangoId = User.FindFirst("rangoId")?.Value;
+            var rangoNombre = User.FindFirst("rangoNombre")?.Value;
 
             return Ok(new
             {
@@ -312,6 +319,13 @@ namespace SIGAD.WebAPI.Controllers
                     correo = correo,
                     rol = rol,
                     cedula = cedula,
+                    nombre1 = nombre1,
+                    nombre2 = nombre2,
+                    apellido1 = apellido1,
+                    apellido2 = apellido2,
+                    nombreCompleto = nombreCompleto,
+                    rangoId = rangoId,
+                    rangoNombre = rangoNombre,
                     isAuthenticated = true
                 }
             });

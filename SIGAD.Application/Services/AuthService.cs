@@ -16,6 +16,8 @@ namespace SIGAD.Application.Services
     {
         private readonly ICuentaRepository _cuentaRepository;
         private readonly IDocenteRepository _docenteRepository;
+        private readonly ISolicitudAscensoRepository _solicitudRepository;
+        private readonly IRangoRepository _rangoRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
@@ -23,12 +25,16 @@ namespace SIGAD.Application.Services
         public AuthService(
             ICuentaRepository cuentaRepository,
             IDocenteRepository docenteRepository,
+            ISolicitudAscensoRepository solicitudRepository,
+            IRangoRepository rangoRepository,
             IUnitOfWork unitOfWork,
             IConfiguration configuration,
             ILogger<AuthService> logger)
         {
             _cuentaRepository = cuentaRepository;
             _docenteRepository = docenteRepository;
+            _solicitudRepository = solicitudRepository;
+            _rangoRepository = rangoRepository;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _logger = logger;
@@ -160,9 +166,22 @@ namespace SIGAD.Application.Services
                 _logger.LogInformation("Docente vinculado encontrado: {Nombre} {Apellido} (Cedula: {Cedula})",
                     cuenta.Docente.Nombre1, cuenta.Docente.Apellido1, cuenta.Docente.Cedula);
 
+                // Obtener rango actual del docente
+                var rangoActual = await GetRangoActualDocenteAsync(cuenta.DocenteCedula);
+                
                 // Generar token JWT
                 _logger.LogInformation("Generando token JWT para {Correo}...", loginRequest.Correo);
-                var token = GenerateJwtToken(cuenta.Correo, cuenta.Rol.ToString(), cuenta.DocenteCedula);
+                var token = GenerateJwtToken(
+                    cuenta.Correo, 
+                    cuenta.Rol.ToString(), 
+                    cuenta.DocenteCedula,
+                    cuenta.Docente.Nombre1,
+                    cuenta.Docente.Nombre2,
+                    cuenta.Docente.Apellido1,
+                    cuenta.Docente.Apellido2,
+                    rangoActual?.Id,
+                    rangoActual?.Nombre
+                );
                 var expiracion = DateTime.UtcNow.AddHours(24); // Token válido por 24 horas
 
                 var response = new LoginResponseDto
@@ -191,7 +210,42 @@ namespace SIGAD.Application.Services
             }
         }
 
-        public string GenerateJwtToken(string correo, string rol, string cedula)
+        private async Task<Rango?> GetRangoActualDocenteAsync(string docenteCedula)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo rango actual para docente {Cedula}", docenteCedula);
+                
+                // Buscar la última solicitud aprobada del docente
+                var todasLasSolicitudes = await _solicitudRepository.GetAllAsync();
+                var ultimaSolicitudAprobada = todasLasSolicitudes
+                    .Where(s => s.DocenteCedula == docenteCedula && s.Estado == EstadoSolicitud.Aprobada)
+                    .OrderByDescending(s => s.FechaResolucion)
+                    .FirstOrDefault();
+
+                if (ultimaSolicitudAprobada != null)
+                {
+                    // Si tiene solicitudes aprobadas, el rango actual es el último rango solicitado aprobado
+                    var rango = await _rangoRepository.GetByIdAsync(ultimaSolicitudAprobada.RangoSolicitadoId);
+                    _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                        docenteCedula, rango?.Nombre, rango?.Id);
+                    return rango;
+                }
+                else
+                {
+                    // Si no tiene solicitudes aprobadas, no tiene rango asignado o es docente inicial
+                    _logger.LogInformation("No se encontró rango actual para {Cedula} - Docente sin ascensos aprobados", docenteCedula);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener rango actual para docente {Cedula}", docenteCedula);
+                return null;
+            }
+        }
+
+        public string GenerateJwtToken(string correo, string rol, string cedula, string nombre1, string? nombre2, string apellido1, string apellido2, int? rangoId, string? rangoNombre)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurada");
@@ -201,14 +255,24 @@ namespace SIGAD.Application.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // Construir nombre completo
+            var nombreCompleto = $"{nombre1} {nombre2} {apellido1} {apellido2}".Replace("  ", " ").Trim();
+
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, correo),
                 new Claim(ClaimTypes.Role, rol),
                 new Claim("cedula", cedula),
+                new Claim("nombre1", nombre1),
+                new Claim("nombre2", nombre2 ?? ""),
+                new Claim("apellido1", apellido1),
+                new Claim("apellido2", apellido2),
+                new Claim("nombreCompleto", nombreCompleto),
+                new Claim("rangoId", rangoId?.ToString() ?? ""),
+                new Claim("rangoNombre", rangoNombre ?? "Sin rango asignado"),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
-                new Claim(ClaimTypes.Name, correo)
+                new Claim(ClaimTypes.Name, nombreCompleto)
             };
 
             var token = new JwtSecurityToken(
