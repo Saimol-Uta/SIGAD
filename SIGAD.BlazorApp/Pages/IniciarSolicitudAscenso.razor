@@ -301,20 +301,55 @@
             {
                 @if (solicitudExistente != null)
                 {
-                    <div class="alert alert-warning">
-                        <h4>⚠️ Proceso de Ascenso en Curso</h4>
-                        <p>Ya tiene una solicitud de ascenso activa. Puede continuar donde lo dejó o cancelar la solicitud actual para crear una nueva.</p>
+                    <div class="alert @(GetAlertClassFromEstado(solicitudExistente.Estado))">
+                        <h4>@GetIconFromEstado(solicitudExistente.Estado) @solicitudExistente.EstadoDescripcion</h4>
+                        <p><strong>@solicitudExistente.Mensaje</strong></p>
+                        
+                        <div class="info-grid mt-3">
+                            <div class="info-item">
+                                <span class="info-label">Estado Actual:</span>
+                                <span class="info-value">@solicitudExistente.Estado</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Rango Solicitado:</span>
+                                <span class="info-value">@solicitudExistente.RangoSolicitado</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Fecha de Creación:</span>
+                                <span class="info-value">@solicitudExistente.FechaCreacion?.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            @if (solicitudExistente.FechaEnvio.HasValue)
+                            {
+                                <div class="info-item">
+                                    <span class="info-label">Fecha de Envío:</span>
+                                    <span class="info-value">@solicitudExistente.FechaEnvio?.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                            }
+                        </div>
+
                         <div class="btn-group mt-3">
-                            <button class="btn btn-success" @onclick="ReanudarProceso" disabled="@isSubmitting">
-                                🔄 Continuar Proceso Existente
-                            </button>
-                            <button class="btn btn-outline-danger" @onclick="MostrarConfirmacionCancelar" disabled="@isSubmitting">
-                                🗑️ Cancelar Solicitud Actual
-                            </button>
+                            @if (solicitudExistente.Estado == "Borrador")
+                            {
+                                <button class="btn btn-success" @onclick="ReanudarProceso" disabled="@isSubmitting">
+                                    🔄 Continuar Proceso
+                                </button>
+                                <button class="btn btn-outline-danger" @onclick="MostrarConfirmacionCancelar" disabled="@isSubmitting">
+                                    🗑️ Cancelar Solicitud
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/Dashboard"))">
+                                    🏠 Volver al Dashboard
+                                </button>
+                                <button class="btn btn-info" @onclick="@(() => Navigation.NavigateTo("/mis-solicitudes"))" disabled="true">
+                                    📄 Ver Detalles (Próximamente)
+                                </button>
+                            }
                         </div>
                     </div>
 
-                    @if (mostrarConfirmacionCancelar)
+                    @if (mostrarConfirmacionCancelar && solicitudExistente.Estado == "Borrador")
                     {
                         <div class="alert alert-danger">
                             <h5>⚠️ Confirmar Cancelación</h5>
@@ -473,8 +508,43 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
+        await VerificarSolicitudActiva();
         await CargarRangosDisponibles();
         isLoading = false;
+    }
+
+    private async Task VerificarSolicitudActiva()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/auth/verificar-solicitud-activa");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<VerificarSolicitudResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (result?.Success == true && result.TieneSolicitudActiva)
+                {
+                    solicitudExistente = new SolicitudExistenteInfo
+                    {
+                        SolicitudId = result.SolicitudId ?? "",
+                        Estado = result.Estado ?? "Desconocido",
+                        EstadoDescripcion = result.EstadoDescripcion ?? GetEstadoDescripcionFrontend(result.Estado ?? ""),
+                        Mensaje = result.Mensaje ?? GetMensajeEstadoFrontend(result.Estado ?? ""),
+                        RangoSolicitado = result.RangoSolicitado ?? "No especificado",
+                        FechaCreacion = result.FechaCreacion,
+                        FechaEnvio = result.FechaEnvio
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar solicitud activa: {ex.Message}");
+        }
     }
 
     private async Task CargarInformacionUsuario()
@@ -619,13 +689,17 @@
                     });
                     
                     // Verificar si es un error por solicitud existente
-                    if (errorResult?.Message?.Contains("Ya tiene una solicitud en proceso") == true && 
+                    if (errorResult?.Message?.Contains("No puede crear una nueva solicitud") == true && 
                         !string.IsNullOrEmpty(errorResult.SolicitudId))
                     {
                         solicitudExistente = new SolicitudExistenteInfo
                         {
                             SolicitudId = errorResult.SolicitudId,
-                            Message = errorResult.Message
+                            Message = errorResult.Message,
+                            Estado = errorResult.Estado ?? "Desconocido",
+                            EstadoDescripcion = GetEstadoDescripcionFrontend(errorResult.Estado ?? ""),
+                            Mensaje = GetMensajeEstadoFrontend(errorResult.Estado ?? ""),
+                            RangoSolicitado = errorResult.RangoSolicitado ?? "No especificado"
                         };
                         errorMessage = ""; // No mostrar como error normal
                     }
@@ -725,12 +799,33 @@
         public bool Success { get; set; }
         public string Message { get; set; } = "";
         public string? SolicitudId { get; set; }
+        public string? Estado { get; set; }
+        public string? RangoSolicitado { get; set; }
+    }
+
+    public class VerificarSolicitudResponse
+    {
+        public bool Success { get; set; }
+        public bool TieneSolicitudActiva { get; set; }
+        public string? SolicitudId { get; set; }
+        public string? Estado { get; set; }
+        public string? EstadoDescripcion { get; set; }
+        public DateTime? FechaCreacion { get; set; }
+        public DateTime? FechaEnvio { get; set; }
+        public string? RangoSolicitado { get; set; }
+        public string? Mensaje { get; set; }
     }
 
     public class SolicitudExistenteInfo
     {
         public string SolicitudId { get; set; } = "";
         public string Message { get; set; } = "";
+        public string Estado { get; set; } = "";
+        public string EstadoDescripcion { get; set; } = "";
+        public string Mensaje { get; set; } = "";
+        public string RangoSolicitado { get; set; } = "";
+        public DateTime? FechaCreacion { get; set; }
+        public DateTime? FechaEnvio { get; set; }
     }
 
     private async Task ReanudarProceso()
@@ -800,5 +895,57 @@
         {
             isSubmitting = false;
         }
+    }
+
+    private string GetAlertClassFromEstado(string estado)
+    {
+        return estado switch
+        {
+            "Borrador" => "alert-warning",
+            "Enviada" => "alert-info",
+            "EnRevision" => "alert-primary",
+            "Aprobada" => "alert-success",
+            "Rechazada" => "alert-danger",
+            _ => "alert-secondary"
+        };
+    }
+
+    private string GetIconFromEstado(string estado)
+    {
+        return estado switch
+        {
+            "Borrador" => "⚠️",
+            "Enviada" => "📤",
+            "EnRevision" => "🔍",
+            "Aprobada" => "✅",
+            "Rechazada" => "❌",
+            _ => "📋"
+        };
+    }
+
+    private string GetEstadoDescripcionFrontend(string estado)
+    {
+        return estado switch
+        {
+            "Borrador" => "Solicitud en Preparación",
+            "Enviada" => "Solicitud Enviada para Revisión",
+            "EnRevision" => "Solicitud en Proceso de Evaluación",
+            "Aprobada" => "Solicitud Aprobada",
+            "Rechazada" => "Solicitud Rechazada",
+            _ => "Estado Desconocido"
+        };
+    }
+
+    private string GetMensajeEstadoFrontend(string estado)
+    {
+        return estado switch
+        {
+            "Borrador" => "Tiene una solicitud en preparación. Complete los documentos requeridos y envíela para revisión.",
+            "Enviada" => "Su solicitud ha sido enviada y está pendiente de revisión. No puede crear otra solicitud hasta recibir una respuesta.",
+            "EnRevision" => "Su solicitud está siendo evaluada por los administradores. No puede crear otra solicitud hasta recibir el resultado.",
+            "Aprobada" => "Su anterior solicitud fue aprobada. Puede crear una nueva solicitud para el siguiente nivel.",
+            "Rechazada" => "Su anterior solicitud fue rechazada. Puede crear una nueva solicitud después de revisar las observaciones.",
+            _ => "Tiene una solicitud activa en el sistema."
+        };
     }
 } 

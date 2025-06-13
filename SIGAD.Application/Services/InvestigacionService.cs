@@ -58,9 +58,9 @@ namespace SIGAD.Application.Services
 
         public async Task<InvestigacionDto> CreateAsync(CrearInvestigacionDto crearInvestigacionDto, IFormFile informe)
         {
-            // Validar archivo
+            // Validar archivo obligatorio
             if (informe == null || informe.Length == 0)
-                throw new ArgumentException("El informe es requerido");
+                throw new ArgumentException("El informe es obligatorio");
 
             var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
             var extension = Path.GetExtension(informe.FileName).ToLowerInvariant();
@@ -70,14 +70,6 @@ namespace SIGAD.Application.Services
 
             if (informe.Length > 25 * 1024 * 1024) // 25MB para informes
                 throw new ArgumentException("El archivo no puede exceder los 25MB");
-
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
-                throw new ArgumentException("La solicitud especificada no existe");
-
-            // Validar fechas
-            if (crearInvestigacionDto.FechaFinalizacion <= crearInvestigacionDto.FechaInicio)
-                throw new ArgumentException("La fecha de finalización debe ser posterior a la fecha de inicio");
 
             // Generar hash del contenido
             string contentHash;
@@ -99,6 +91,14 @@ namespace SIGAD.Application.Services
             {
                 await informe.CopyToAsync(stream);
             }
+
+            // Verificar que la solicitud existe
+            if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
+                throw new ArgumentException("La solicitud especificada no existe");
+
+            // Validar fechas
+            if (crearInvestigacionDto.FechaFinalizacion <= crearInvestigacionDto.FechaInicio)
+                throw new ArgumentException("La fecha de finalización debe ser posterior a la fecha de inicio");
 
             // Crear entidad
             var investigacion = new Investigacion

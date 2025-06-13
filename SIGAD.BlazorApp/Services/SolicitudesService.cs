@@ -10,8 +10,8 @@ namespace SIGAD.BlazorApp.Services
         Task<List<SolicitudDto>> GetAllSolicitudesAsync();
         Task<SolicitudDto?> GetSolicitudByIdAsync(Guid id);
         Task<SolicitudDetalleDto?> GetSolicitudDetalleAsync(Guid id);
-        Task<bool> AprobarSolicitudAsync(Guid id, string observaciones);
-        Task<bool> RechazarSolicitudAsync(Guid id, string observaciones);
+        Task<(bool success, string message)> AprobarSolicitudAsync(Guid id, string observaciones);
+        Task<(bool success, string message)> RechazarSolicitudAsync(Guid id, string observaciones);
     }
 
     public class SolicitudesService : ISolicitudesService
@@ -93,44 +93,72 @@ namespace SIGAD.BlazorApp.Services
             }
         }
 
-        public async Task<bool> AprobarSolicitudAsync(Guid id, string observaciones)
+        public async Task<(bool success, string message)> AprobarSolicitudAsync(Guid id, string observaciones)
         {
             try
             {
                 await EnsureAuthenticationHeaderAsync();
                 var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/aprobar", observaciones);
-                return response.IsSuccessStatusCode;
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Solicitud aprobada exitosamente");
+                }
+                else
+                {
+                    var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (false, errorResult?.Message ?? "Error al aprobar la solicitud");
+                }
             }
             catch (HttpRequestException ex)
             {
                 Console.WriteLine($"Error al aprobar solicitud {id}: {ex.Message}");
-                return false;
+                return (false, "Error de conexión al aprobar la solicitud");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error inesperado: {ex.Message}");
-                return false;
+                return (false, "Error inesperado al aprobar la solicitud");
             }
         }
 
-        public async Task<bool> RechazarSolicitudAsync(Guid id, string observaciones)
+        public async Task<(bool success, string message)> RechazarSolicitudAsync(Guid id, string observaciones)
         {
             try
             {
                 await EnsureAuthenticationHeaderAsync();
                 var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/rechazar", observaciones);
-                return response.IsSuccessStatusCode;
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Solicitud rechazada exitosamente");
+                }
+                else
+                {
+                    var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (false, errorResult?.Message ?? "Error al rechazar la solicitud");
+                }
             }
             catch (HttpRequestException ex)
             {
                 Console.WriteLine($"Error al rechazar solicitud {id}: {ex.Message}");
-                return false;
+                return (false, "Error de conexión al rechazar la solicitud");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error inesperado: {ex.Message}");
-                return false;
+                return (false, "Error inesperado al rechazar la solicitud");
             }
-        }
-    }
+                 }
+     }
+
+     // Clase para deserializar respuestas del API
+     public class ApiResponse
+     {
+         public bool Success { get; set; }
+         public string Message { get; set; } = string.Empty;
+         public string? Field { get; set; }
+     }
 }

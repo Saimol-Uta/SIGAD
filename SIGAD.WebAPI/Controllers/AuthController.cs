@@ -722,7 +722,8 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Verifica si el docente autenticado tiene una solicitud activa en borrador
+        /// Verifica si el docente autenticado tiene una solicitud de ascenso activa
+        /// Una solicitud está activa si está en estado: Borrador, Enviada o EnRevision
         /// </summary>
         /// <returns>Estado de la solicitud activa</returns>
         [HttpGet("verificar-solicitud-activa")]
@@ -738,9 +739,18 @@ namespace SIGAD.WebAPI.Controllers
                     return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
                 }
 
-                // Verificar que no tiene una solicitud en borrador activa
+                // Estados considerados como "activos" - el docente no puede crear otra solicitud
+                var estadosActivos = new[]
+                {
+                    SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
+                    SIGAD.Domain.Enums.EstadoSolicitud.Enviada,
+                    SIGAD.Domain.Enums.EstadoSolicitud.EnRevision
+                };
+
+                // Verificar que no tiene una solicitud activa
                 var solicitudActiva = await _context.SolicitudesAscenso
-                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && estadosActivos.Contains(s.Estado));
 
                 if (solicitudActiva != null)
                 {
@@ -749,7 +759,12 @@ namespace SIGAD.WebAPI.Controllers
                         success = true,
                         tieneSolicitudActiva = true,
                         solicitudId = solicitudActiva.Id,
-                        fechaCreacion = solicitudActiva.FechaCreacion
+                        estado = solicitudActiva.Estado.ToString(),
+                        estadoDescripcion = GetEstadoDescripcion(solicitudActiva.Estado),
+                        fechaCreacion = solicitudActiva.FechaCreacion,
+                        fechaEnvio = solicitudActiva.FechaEnvio,
+                        rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre,
+                        mensaje = GetMensajeEstadoSolicitud(solicitudActiva.Estado)
                     });
                 }
 
@@ -757,7 +772,8 @@ namespace SIGAD.WebAPI.Controllers
                 {
                     success = true,
                     tieneSolicitudActiva = false,
-                    solicitudId = (string?)null
+                    solicitudId = (string?)null,
+                    mensaje = "No tiene solicitudes activas. Puede iniciar una nueva solicitud de ascenso."
                 });
             }
             catch (Exception ex)
@@ -799,13 +815,30 @@ namespace SIGAD.WebAPI.Controllers
                     return NotFound(new { success = false, message = "Rango solicitado no encontrado" });
                 }
 
-                // Verificar que no tiene una solicitud en borrador activa
+                // Estados considerados como "activos" - el docente no puede crear otra solicitud
+                var estadosActivos = new[]
+                {
+                    SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
+                    SIGAD.Domain.Enums.EstadoSolicitud.Enviada,
+                    SIGAD.Domain.Enums.EstadoSolicitud.EnRevision
+                };
+
+                // Verificar que no tiene una solicitud activa
                 var solicitudActiva = await _context.SolicitudesAscenso
-                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && estadosActivos.Contains(s.Estado));
 
                 if (solicitudActiva != null)
                 {
-                    return BadRequest(new { success = false, message = "Ya tiene una solicitud en proceso", solicitudId = solicitudActiva.Id });
+                    var mensajeDetallado = GetMensajeEstadoSolicitud(solicitudActiva.Estado);
+                    return BadRequest(new 
+                    { 
+                        success = false, 
+                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}", 
+                        solicitudId = solicitudActiva.Id,
+                        estado = solicitudActiva.Estado.ToString(),
+                        rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre
+                    });
                 }
 
                 // Determinar rango actual
@@ -842,6 +875,54 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Verifica si una solicitud cumple con los requisitos del rango antes de enviarla
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud a verificar</param>
+        /// <returns>Estado de los requisitos</returns>
+        [HttpGet("verificar-requisitos/{solicitudId}")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> VerificarRequisitosSolicitud(Guid solicitudId)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Buscar la solicitud
+                var solicitud = await _context.SolicitudesAscenso
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.Id == solicitudId && s.DocenteCedula == cedulaClaim);
+
+                if (solicitud == null)
+                {
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+
+                // Verificar requisitos
+                var cumpleRequisitos = await VerificarRequisitosRangoAsync(solicitudId, solicitud.RangoSolicitado);
+
+                return Ok(new
+                {
+                    success = true,
+                    cumpleRequisitos = cumpleRequisitos.cumple,
+                    requisitosFaltantes = cumpleRequisitos.requisitosFaltantes,
+                    valoresActuales = cumpleRequisitos.valoresActuales,
+                    valoresRequeridos = cumpleRequisitos.valoresRequeridos,
+                    rangoSolicitado = solicitud.RangoSolicitado.Nombre
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar requisitos de solicitud");
                 return StatusCode(500, new { success = false, message = "Error interno del servidor" });
             }
         }
@@ -884,15 +965,17 @@ namespace SIGAD.WebAPI.Controllers
                     });
                 }
 
-                // Verificar que la solicitud tiene documentos asociados
-                var tieneDocumentos = await VerificarDocumentosAsync(solicitudId);
-                if (!tieneDocumentos.tieneDocumentos)
+                // Verificar que la solicitud cumple con los requisitos del rango
+                var cumpleRequisitos = await VerificarRequisitosRangoAsync(solicitudId, solicitud.RangoSolicitado);
+                if (!cumpleRequisitos.cumple)
                 {
                     return BadRequest(new
                     {
                         success = false,
-                        message = "La solicitud debe tener al menos un documento de cada tipo requerido antes de ser enviada",
-                        documentosFaltantes = tieneDocumentos.documentosFaltantes
+                        message = "No cumple con los requisitos mínimos para este rango",
+                        requirementsNotMet = cumpleRequisitos.requisitosFaltantes,
+                        currentValues = cumpleRequisitos.valoresActuales,
+                        requiredValues = cumpleRequisitos.valoresRequeridos
                     });
                 }
 
@@ -981,55 +1064,174 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Verifica que la solicitud tenga documentos requeridos antes de enviarla
+        /// Verifica que la solicitud cumpla con todos los requisitos específicos del rango solicitado
         /// </summary>
         /// <param name="solicitudId">ID de la solicitud</param>
-        /// <returns>Estado de verificación de documentos</returns>
-        private async Task<(bool tieneDocumentos, List<string> documentosFaltantes)> VerificarDocumentosAsync(Guid solicitudId)
+        /// <param name="rango">Rango solicitado con sus requisitos</param>
+        /// <returns>Estado de verificación de requisitos</returns>
+        private async Task<(bool cumple, List<string> requisitosFaltantes, object valoresActuales, object valoresRequeridos)> VerificarRequisitosRangoAsync(Guid solicitudId, SIGAD.Domain.Entities.Rango rango)
         {
-            var documentosFaltantes = new List<string>();
+            var requisitosFaltantes = new List<string>();
 
-            // Verificar artículos
-            var tieneArticulos = await _context.ArticulosPorSolicitud
-                .AnyAsync(aps => aps.SolicitudId == solicitudId);
-            if (!tieneArticulos)
+            // 1. VERIFICAR ARTÍCULOS
+            var articulosCount = await _context.ArticulosPorSolicitud
+                .CountAsync(aps => aps.SolicitudId == solicitudId);
+            
+            // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
+            var experienciasLaborales = await _context.ExperienciasPorSolicitud
+                .Where(eps => eps.SolicitudId == solicitudId)
+                .Include(eps => eps.ExperienciaLaboral)
+                .Select(eps => eps.ExperienciaLaboral)
+                .ToListAsync();
+
+            var totalAniosExperiencia = CalcularTotalAniosExperiencia(experienciasLaborales);
+
+            // 3. VERIFICAR HORAS DE CURSOS (suma total)
+            var cursos = await _context.CursosPorSolicitud
+                .Where(cps => cps.SolicitudId == solicitudId)
+                .Include(cps => cps.Curso)
+                .Select(cps => cps.Curso)
+                .ToListAsync();
+
+            var totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+
+            // 4. VERIFICAR MESES DE INVESTIGACIÓN (suma total)
+            var investigaciones = await _context.InvestigacionesPorSolicitud
+                .Where(ips => ips.SolicitudId == solicitudId)
+                .Include(ips => ips.Investigacion)
+                .Select(ips => ips.Investigacion)
+                .ToListAsync();
+
+            var totalMesesInvestigacion = CalcularTotalMesesInvestigacion(investigaciones);
+
+            // 5. VERIFICAR PROMEDIO DE EVALUACIONES (todas deben cumplir el mínimo)
+            var evaluaciones = await _context.EvaluacionesPorSolicitud
+                .Where(evps => evps.SolicitudId == solicitudId)
+                .Include(evps => evps.Evaluacion)
+                .Select(evps => evps.Evaluacion)
+                .ToListAsync();
+
+            var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e.PuntajePorcentual) : 0;
+            var todasEvaluacionesCumplen = evaluaciones.All(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido);
+
+            // VALIDAR CADA REQUISITO
+            if (articulosCount < rango.ArticulosRequeridos)
             {
-                documentosFaltantes.Add("Artículos");
+                requisitosFaltantes.Add($"Artículos: Tiene {articulosCount}, requiere {rango.ArticulosRequeridos}");
             }
 
-            // Verificar cursos
-            var tieneCursos = await _context.CursosPorSolicitud
-                .AnyAsync(cps => cps.SolicitudId == solicitudId);
-            if (!tieneCursos)
+            if (totalAniosExperiencia < rango.AniosExperienciaRequeridos)
             {
-                documentosFaltantes.Add("Cursos");
+                requisitosFaltantes.Add($"Años de experiencia: Tiene {totalAniosExperiencia:F1}, requiere {rango.AniosExperienciaRequeridos}");
             }
 
-            // Verificar investigaciones
-            var tieneInvestigaciones = await _context.InvestigacionesPorSolicitud
-                .AnyAsync(ips => ips.SolicitudId == solicitudId);
-            if (!tieneInvestigaciones)
+            if (totalHorasCursos < rango.HorasCursoRequeridas)
             {
-                documentosFaltantes.Add("Investigaciones");
+                requisitosFaltantes.Add($"Horas de cursos: Tiene {totalHorasCursos}, requiere {rango.HorasCursoRequeridas}");
             }
 
-            // Verificar experiencias laborales
-            var tieneExperiencias = await _context.ExperienciasPorSolicitud
-                .AnyAsync(eps => eps.SolicitudId == solicitudId);
-            if (!tieneExperiencias)
+            if (totalMesesInvestigacion < rango.MesesInvestigacionRequeridos)
             {
-                documentosFaltantes.Add("Experiencias Laborales");
+                requisitosFaltantes.Add($"Meses de investigación: Tiene {totalMesesInvestigacion:F1}, requiere {rango.MesesInvestigacionRequeridos}");
             }
 
-            // Verificar evaluaciones
-            var tieneEvaluaciones = await _context.EvaluacionesPorSolicitud
-                .AnyAsync(evps => evps.SolicitudId == solicitudId);
-            if (!tieneEvaluaciones)
+            if (!todasEvaluacionesCumplen || promedioEvaluaciones < rango.PuntajePromedioEvaluacionesRequerido)
             {
-                documentosFaltantes.Add("Evaluaciones");
+                var evaluacionesIncumplidas = evaluaciones.Where(e => e.PuntajePorcentual < rango.PuntajePromedioEvaluacionesRequerido).Count();
+                requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
             }
 
-            return (documentosFaltantes.Count == 0, documentosFaltantes);
+            // Valores actuales y requeridos para mostrar al usuario
+            var valoresActuales = new
+            {
+                articulos = articulosCount,
+                aniosExperiencia = Math.Round(totalAniosExperiencia, 1),
+                horasCursos = totalHorasCursos,
+                mesesInvestigacion = Math.Round(totalMesesInvestigacion, 1),
+                promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
+                totalEvaluaciones = evaluaciones.Count,
+                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido)
+            };
+
+            var valoresRequeridos = new
+            {
+                articulos = rango.ArticulosRequeridos,
+                aniosExperiencia = rango.AniosExperienciaRequeridos,
+                horasCursos = rango.HorasCursoRequeridas,
+                mesesInvestigacion = rango.MesesInvestigacionRequeridos,
+                promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
+                rangoNombre = rango.Nombre
+            };
+
+            return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
+        }
+
+        /// <summary>
+        /// Calcula el total de años de experiencia laboral
+        /// </summary>
+        private decimal CalcularTotalAniosExperiencia(List<SIGAD.Domain.Entities.ExperienciaLaboral> experiencias)
+        {
+            decimal totalAnios = 0;
+
+            foreach (var exp in experiencias)
+            {
+                var fechaFin = exp.FechaFin ?? DateTime.Now; // Si no tiene fecha fin, usar fecha actual
+                var diferencia = fechaFin - exp.FechaInicio;
+                var anios = (decimal)diferencia.TotalDays / 365.25m; // Considerar años bisiestos
+                totalAnios += anios;
+            }
+
+            return totalAnios;
+        }
+
+        /// <summary>
+        /// Calcula el total de meses de investigación
+        /// </summary>
+        private decimal CalcularTotalMesesInvestigacion(List<SIGAD.Domain.Entities.Investigacion> investigaciones)
+        {
+            decimal totalMeses = 0;
+
+            foreach (var inv in investigaciones)
+            {
+                // Usar MesesDeInvestigacion que ya está calculado en la entidad
+                totalMeses += inv.MesesDeInvestigacion;
+            }
+
+            return totalMeses;
+        }
+
+        /// <summary>
+        /// Obtiene una descripción amigable del estado de la solicitud
+        /// </summary>
+        /// <param name="estado">Estado de la solicitud</param>
+        /// <returns>Descripción del estado</returns>
+        private string GetEstadoDescripcion(SIGAD.Domain.Enums.EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                SIGAD.Domain.Enums.EstadoSolicitud.Borrador => "En preparación",
+                SIGAD.Domain.Enums.EstadoSolicitud.Enviada => "Enviada para revisión",
+                SIGAD.Domain.Enums.EstadoSolicitud.EnRevision => "En proceso de evaluación",
+                SIGAD.Domain.Enums.EstadoSolicitud.Aprobada => "Aprobada",
+                SIGAD.Domain.Enums.EstadoSolicitud.Rechazada => "Rechazada",
+                _ => "Estado desconocido"
+            };
+        }
+
+        /// <summary>
+        /// Obtiene un mensaje específico según el estado de la solicitud activa
+        /// </summary>
+        /// <param name="estado">Estado de la solicitud</param>
+        /// <returns>Mensaje para mostrar al usuario</returns>
+        private string GetMensajeEstadoSolicitud(SIGAD.Domain.Enums.EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                SIGAD.Domain.Enums.EstadoSolicitud.Borrador => "Tiene una solicitud en preparación. Complete los documentos requeridos para enviarla.",
+                SIGAD.Domain.Enums.EstadoSolicitud.Enviada => "Su solicitud ha sido enviada y está pendiente de revisión. No puede crear otra solicitud hasta obtener una respuesta.",
+                SIGAD.Domain.Enums.EstadoSolicitud.EnRevision => "Su solicitud está siendo evaluada por los administradores. No puede crear otra solicitud hasta obtener una respuesta.",
+                _ => "Tiene una solicitud activa en proceso."
+            };
         }
 
         /// <summary>

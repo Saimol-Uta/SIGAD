@@ -287,6 +287,10 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var (fileContent, contentType, fileName) = await _cursoService.DownloadCertificadoAsync(id);
+                
+                // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
+                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                
                 return File(fileContent, contentType, fileName);
             }
             catch (FileNotFoundException ex)

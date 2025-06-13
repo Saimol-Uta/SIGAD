@@ -445,6 +445,9 @@ namespace SIGAD.WebAPI.Controllers
                 // Determinar el Content-Type basado en la extensión del archivo
                 var contentType = GetContentType(fileName);
                 
+                // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
+                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                
                 return File(archivo, contentType, fileName);
             }
             catch (Exception ex)

@@ -365,6 +365,88 @@
         border: 1px solid #f1aeb5;
         color: #721c24;
     }
+
+    /* Estilos para verificación de requisitos */
+    .requirements-verification {
+        margin: 1rem 0;
+        text-align: center;
+    }
+
+    .requirements-details {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+    }
+
+    .requirements-details h4 {
+        color: #0a1d44;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .requirements-summary {
+        display: grid;
+        gap: 0.8rem;
+        margin: 1rem 0;
+    }
+
+    .requirement-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.8rem;
+        border-radius: 6px;
+        background-color: white;
+        border: 1px solid #dee2e6;
+    }
+
+    .requirement-item .label {
+        font-weight: 600;
+        color: #0a1d44;
+    }
+
+    .requirement-item .value {
+        font-weight: 500;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+    }
+
+    .requirement-item .value.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .requirement-item .value.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .missing-requirements {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 6px;
+    }
+
+    .missing-requirements h5 {
+        color: #721c24;
+        margin-bottom: 0.5rem;
+    }
+
+    .missing-requirements ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #721c24;
+    }
+
+    .missing-requirements li {
+        margin-bottom: 0.3rem;
+    }
 </style>
 
 <body>
@@ -529,20 +611,125 @@
                         @if (tieneDocumentosCompletos)
                         {
                             <div class="alert alert-success">
-                                ✅ Su solicitud tiene documentos en todas las categorías requeridas y está lista para envío.
+                                ✅ Su solicitud tiene documentos en todas las categorías requeridas.
                             </div>
-                            <div class="submission-actions">
-                                <button class="btn btn-success btn-large" @onclick="EnviarSolicitud" disabled="@enviandoSolicitud">
-                                    @if (enviandoSolicitud)
+
+                            <!-- Verificar requisitos antes de mostrar el botón -->
+                            <div class="requirements-verification">
+                                <button class="btn btn-info" @onclick="VerificarRequisitos" disabled="@enviandoSolicitud">
+                                    🔍 Verificar Requisitos del Rango
+                                </button>
+                            </div>
+
+                            @if (mostrarDetallesRequisitos && requisitosInfo != null)
+                            {
+                                <div class="requirements-details">
+                                    <h4>📋 Verificación de Requisitos para @requisitosInfo.RangoSolicitado</h4>
+                                    
+                                    @if (requisitosInfo.CumpleRequisitos)
                                     {
-                                        <span>🔄 Enviando solicitud...</span>
+                                        <div class="alert alert-success">
+                                            ✅ <strong>¡Cumple todos los requisitos!</strong> Su solicitud está lista para envío.
+                                        </div>
+                                        
+                                        <div class="requirements-summary">
+                                            <div class="requirement-item">
+                                                <span class="label">📄 Artículos:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales!.Articulos / @requisitosInfo.ValoresRequeridos!.Articulos ✅</span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">👨‍💼 Experiencia:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales.AniosExperiencia años / @requisitosInfo.ValoresRequeridos.AniosExperiencia años ✅</span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">🎓 Cursos:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales.HorasCursos h / @requisitosInfo.ValoresRequeridos.HorasCursos h ✅</span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">🔬 Investigación:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales.MesesInvestigacion meses / @requisitosInfo.ValoresRequeridos.MesesInvestigacion meses ✅</span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">📊 Evaluaciones:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% ✅</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="submission-actions">
+                                            <button class="btn btn-success btn-large" @onclick="EnviarSolicitud" disabled="@enviandoSolicitud">
+                                                @if (enviandoSolicitud)
+                                                {
+                                                    <span>🔄 Enviando solicitud...</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>📨 Enviar Solicitud de Ascenso</span>
+                                                }
+                                            </button>
+                                        </div>
                                     }
                                     else
                                     {
-                                        <span>📨 Enviar Solicitud de Ascenso</span>
+                                        <div class="alert alert-danger">
+                                            ❌ <strong>No cumple los requisitos mínimos</strong> para el rango solicitado.
+                                        </div>
+                                        
+                                        <div class="requirements-summary">
+                                            <div class="requirement-item">
+                                                <span class="label">📄 Artículos:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales!.Articulos >= requisitosInfo.ValoresRequeridos!.Articulos ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.Articulos / @requisitosInfo.ValoresRequeridos.Articulos 
+                                                    @(requisitosInfo.ValoresActuales.Articulos >= requisitosInfo.ValoresRequeridos.Articulos ? "✅" : "❌")
+                                                </span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">👨‍💼 Experiencia:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.AniosExperiencia años / @requisitosInfo.ValoresRequeridos.AniosExperiencia años 
+                                                    @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "✅" : "❌")
+                                                </span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">🎓 Cursos:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales.HorasCursos >= requisitosInfo.ValoresRequeridos.HorasCursos ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.HorasCursos h / @requisitosInfo.ValoresRequeridos.HorasCursos h 
+                                                    @(requisitosInfo.ValoresActuales.HorasCursos >= requisitosInfo.ValoresRequeridos.HorasCursos ? "✅" : "❌")
+                                                </span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">🔬 Investigación:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales.MesesInvestigacion >= requisitosInfo.ValoresRequeridos.MesesInvestigacion ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.MesesInvestigacion meses / @requisitosInfo.ValoresRequeridos.MesesInvestigacion meses 
+                                                    @(requisitosInfo.ValoresActuales.MesesInvestigacion >= requisitosInfo.ValoresRequeridos.MesesInvestigacion ? "✅" : "❌")
+                                                </span>
+                                            </div>
+                                            <div class="requirement-item">
+                                                <span class="label">📊 Evaluaciones:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% 
+                                                    @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "✅" : "❌")
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="missing-requirements">
+                                            <h5>Requisitos faltantes:</h5>
+                                            <ul>
+                                                @foreach (var requisito in requisitosInfo.RequisitosFaltantes ?? new List<string>())
+                                                {
+                                                    <li>@requisito</li>
+                                                }
+                                            </ul>
+                                        </div>
+
+                                        <div class="submission-actions">
+                                            <button class="btn btn-secondary btn-large" disabled>
+                                                📨 No se puede enviar (Requisitos faltantes)
+                                            </button>
+                                        </div>
                                     }
-                                </button>
-                            </div>
+                                </div>
+                            }
                         }
                         else
                         {
@@ -597,6 +784,10 @@
     private string? solicitudId;
     private bool tieneDocumentosCompletos = false;
     private bool enviandoSolicitud = false;
+    
+    // Variables para verificación de requisitos
+    private bool mostrarDetallesRequisitos = false;
+    private VerificacionRequisitosResponse? requisitosInfo;
 
     protected override async Task OnInitializedAsync()
     {
@@ -633,6 +824,44 @@
                                  conteoCursos > 0;
     }
 
+    private async Task VerificarRequisitos()
+    {
+        if (string.IsNullOrEmpty(solicitudId))
+            return;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/auth/verificar-requisitos/{solicitudId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
+                
+                if (result?.Success == true)
+                {
+                    requisitosInfo = result;
+                    mostrarDetallesRequisitos = true;
+                    StateHasChanged();
+                }
+                else
+                {
+                    mensajeOperacion = "❌ Error al verificar los requisitos. Intente nuevamente.";
+                    operacionExitosa = false;
+                }
+            }
+            else
+            {
+                mensajeOperacion = "❌ Error al verificar los requisitos. Intente nuevamente.";
+                operacionExitosa = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"❌ Error al verificar requisitos: {ex.Message}";
+            operacionExitosa = false;
+        }
+    }
+
     private async Task EnviarSolicitud()
     {
         if (enviandoSolicitud || string.IsNullOrEmpty(solicitudId))
@@ -642,6 +871,44 @@
 
         try
         {
+            // PASO 1: Verificar requisitos antes de enviar
+            var verificacionResponse = await Http.GetAsync($"api/auth/verificar-requisitos/{solicitudId}");
+            
+            if (verificacionResponse.IsSuccessStatusCode)
+            {
+                var verificacionResult = await verificacionResponse.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
+                
+                if (verificacionResult?.Success == true)
+                {
+                    if (!verificacionResult.CumpleRequisitos)
+                    {
+                        // No cumple los requisitos, mostrar detalles
+                        var requisitosFaltantes = string.Join("; ", verificacionResult.RequisitosFaltantes ?? new List<string>());
+                        mensajeOperacion = $"❌ No se puede enviar la solicitud. Requisitos faltantes: {requisitosFaltantes}";
+                        operacionExitosa = false;
+                        mostrarDetallesRequisitos = true;
+                        requisitosInfo = verificacionResult;
+                        enviandoSolicitud = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    mensajeOperacion = "❌ Error al verificar requisitos. Intente nuevamente.";
+                    operacionExitosa = false;
+                    enviandoSolicitud = false;
+                    return;
+                }
+            }
+            else
+            {
+                mensajeOperacion = "❌ Error al verificar requisitos. Intente nuevamente.";
+                operacionExitosa = false;
+                enviandoSolicitud = false;
+                return;
+            }
+
+            // PASO 2: Si cumple los requisitos, proceder con el envío
             var response = await Http.PostAsync($"api/auth/enviar-solicitud/{solicitudId}", null);
 
             if (response.IsSuccessStatusCode)
@@ -975,5 +1242,36 @@
         public bool Success { get; set; }
         public string Message { get; set; } = "";
         public object? Data { get; set; }
+    }
+
+    public class VerificacionRequisitosResponse
+    {
+        public bool Success { get; set; }
+        public bool CumpleRequisitos { get; set; }
+        public List<string>? RequisitosFaltantes { get; set; }
+        public ValoresActuales? ValoresActuales { get; set; }
+        public ValoresRequeridos? ValoresRequeridos { get; set; }
+        public string? RangoSolicitado { get; set; }
+    }
+
+    public class ValoresActuales
+    {
+        public int Articulos { get; set; }
+        public decimal AniosExperiencia { get; set; }
+        public int HorasCursos { get; set; }
+        public decimal MesesInvestigacion { get; set; }
+        public decimal PromedioEvaluaciones { get; set; }
+        public int TotalEvaluaciones { get; set; }
+        public int EvaluacionesCumplen { get; set; }
+    }
+
+    public class ValoresRequeridos
+    {
+        public int Articulos { get; set; }
+        public int AniosExperiencia { get; set; }
+        public int HorasCursos { get; set; }
+        public int MesesInvestigacion { get; set; }
+        public decimal PromedioEvaluaciones { get; set; }
+        public string? RangoNombre { get; set; }
     }
 } 

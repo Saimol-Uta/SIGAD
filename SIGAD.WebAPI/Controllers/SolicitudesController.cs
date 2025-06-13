@@ -65,16 +65,108 @@ namespace SIGAD.WebAPI.Controllers
         [HttpPut("{id}/aprobar")]
         public async Task<IActionResult> Aprobar(Guid id, [FromBody] string observaciones)
         {
-            await _solicitudesService.AprobarSolicitudAsync(id, observaciones);
-            return NoContent();
+            try
+            {
+                await _solicitudesService.AprobarSolicitudAsync(id, observaciones ?? "");
+                
+                return Ok(new 
+                { 
+                    success = true, 
+                    message = "Solicitud aprobada exitosamente" 
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning("Error de validación al aprobar solicitud {SolicitudId}: {Message}", id, ex.Message);
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message 
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Operación inválida al aprobar solicitud {SolicitudId}: {Message}", id, ex.Message);
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado al aprobar solicitud {SolicitudId}", id);
+                return StatusCode(500, new 
+                { 
+                    success = false, 
+                    message = "Error interno del servidor al procesar la aprobación" 
+                });
+            }
         }
 
         // PUT: api/solicitudes/{id}/rechazar
         [HttpPut("{id}/rechazar")]
         public async Task<IActionResult> Rechazar(Guid id, [FromBody] string observaciones)
         {
-            await _solicitudesService.RechazarSolicitudAsync(id, observaciones);
-            return NoContent();
+            try
+            {
+                // Validar que se proporcione una justificación obligatoria
+                if (string.IsNullOrWhiteSpace(observaciones))
+                {
+                    return BadRequest(new 
+                    { 
+                        success = false, 
+                        message = "La justificación es obligatoria para rechazar una solicitud",
+                        field = "observaciones"
+                    });
+                }
+
+                // Validar longitud mínima de la justificación
+                if (observaciones.Trim().Length < 10)
+                {
+                    return BadRequest(new 
+                    { 
+                        success = false, 
+                        message = "La justificación debe tener al menos 10 caracteres",
+                        field = "observaciones"
+                    });
+                }
+
+                await _solicitudesService.RechazarSolicitudAsync(id, observaciones.Trim());
+                
+                return Ok(new 
+                { 
+                    success = true, 
+                    message = "Solicitud rechazada exitosamente" 
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning("Error de validación al rechazar solicitud {SolicitudId}: {Message}", id, ex.Message);
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message 
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Operación inválida al rechazar solicitud {SolicitudId}: {Message}", id, ex.Message);
+                return BadRequest(new 
+                { 
+                    success = false, 
+                    message = ex.Message 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inesperado al rechazar solicitud {SolicitudId}", id);
+                return StatusCode(500, new 
+                { 
+                    success = false, 
+                    message = "Error interno del servidor al procesar el rechazo" 
+                });
+            }
         }
 
         // Endpoint de prueba sin autorización
