@@ -1,8 +1,8 @@
 ﻿@page "/Dashboard"
 @using Microsoft.AspNetCore.Authorization
-
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Models
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -10,20 +10,124 @@
 @inject ISolicitudService SolicitudService
 
 @code {
-    string NombreUsuarioLogueado = "Carlos Ramos";
-    string NombreCompletoUsuario = "Carlos Giovanni Ramos Jacome";
+    string NombreUsuarioLogueado = "";
+    string NombreCompletoUsuario = "";
     string UrlFotoPerfil = "/images/IconoUser.png";
-    int CantidadNotificaciones = 2;
-    string FechaInicioProceso = "31/03/2024";
-    int PorcentajeAvance = 85;
+    int CantidadNotificaciones = 0;
+    string FechaInicioProceso = "";
+    int PorcentajeAvance = 0;
+    string? RangoActual = "";
 
     // Variables para proceso de ascenso
     private bool tieneSolicitudActiva = false;
-    private bool isLoading = false;
+    private bool isLoading = true;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         await VerificarSolicitudActiva();
+        await CargarDatosUsuario();
+        isLoading = false;
+    }
+
+    private async Task CargarDatosUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Agregar el token a los headers
+                Http.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        var docente = result.Data;
+                        NombreUsuarioLogueado = $"{docente.Nombre1} {docente.Apellido1}";
+                        NombreCompletoUsuario = $"{docente.Nombre1} {docente.Nombre2} {docente.Apellido1} {docente.Apellido2}".Replace("  ", " ").Trim();
+                        RangoActual = docente.RangoNombre;
+                        
+                        // Si tiene solicitud activa, calcular fecha y progreso
+                        if (tieneSolicitudActiva)
+                        {
+                            await CalcularProgresoSolicitud();
+                        }
+                        else
+                        {
+                            FechaInicioProceso = "";
+                            PorcentajeAvance = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    // Token inválido, redirigir al login
+                    Navigation.NavigateTo("/login", true);
+                }
+            }
+            else
+            {
+                // No hay token, redirigir al login
+                Navigation.NavigateTo("/login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar datos del usuario: {ex.Message}";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task CalcularProgresoSolicitud()
+    {
+        try
+        {
+            // Obtener información de la solicitud actual
+            var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+            if (!string.IsNullOrEmpty(solicitudId))
+            {
+                // Usar fecha actual como fecha de inicio (esto debería venir de la BD)
+                FechaInicioProceso = DateTime.Now.ToString("dd/MM/yyyy");
+                
+                // Calcular progreso basado en documentos subidos
+                var progreso = CalcularProgreso();
+                PorcentajeAvance = progreso;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al calcular progreso: {ex.Message}");
+            FechaInicioProceso = DateTime.Now.ToString("dd/MM/yyyy");
+            PorcentajeAvance = 15; // Progreso mínimo por tener solicitud
+        }
+    }
+
+    private int CalcularProgreso()
+    {
+        try
+        {
+            // Calcular progreso basado en tipos de documentos subidos
+            int progreso = 15; // Base por tener solicitud activa
+            
+            // Cada tipo de documento agrega puntos al progreso
+            // Esto es una simulación, idealmente deberías consultar qué documentos tiene realmente
+            
+            // Simular que tiene algunos documentos (esto debería ser una consulta real)
+            // Por ahora, damos un progreso moderado
+            progreso += 35; // Algunos documentos subidos
+            
+            // El progreso máximo sin completar sería 75%, el 100% sería cuando esté aprobado
+            return Math.Min(progreso, 75);
+        }
+        catch
+        {
+            return 15; // Progreso mínimo
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -71,6 +175,28 @@
             await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
             Navigation.NavigateTo("/login", true);
         }
+    }
+
+    // Modelos para las respuestas de API
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Rol { get; set; }
+        public string? Cedula { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Nombre2 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Apellido2 { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
     }
 }
 <style>
@@ -314,18 +440,46 @@
     </div>
 
     <div class="main-content">
-        <div class="left">
-            <h1>Welcome<br />System</h1>
-            <p>@NombreCompletoUsuario</p>
-
-            <div class="notifications" style="position: relative">
-                <img src="/images/iconoBell.png" alt="Notifications" />
-                @if (CantidadNotificaciones > 0)
-                {
-                    <span class="badge">@CantidadNotificaciones</span>
-                }
-                <span>Notifications</span>
+        @if (isLoading)
+        {
+            <div style="display: flex; justify-content: center; align-items: center; height: 50vh; width: 100%;">
+                <div style="text-align: center;">
+                    <p>Cargando información del usuario...</p>
+                    <div style="margin-top: 1rem;">⏳</div>
+                </div>
             </div>
+        }
+        else if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div style="display: flex; justify-content: center; align-items: center; height: 50vh; width: 100%;">
+                <div style="text-align: center; color: red;">
+                    <p>@errorMessage</p>
+                    <button @onclick="@(() => Navigation.NavigateTo("/login"))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0a1d44; color: white; border: none; border-radius: 4px;">
+                        Volver al Login
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="left">
+                <h1>Welcome<br />System</h1>
+                <p>@NombreCompletoUsuario</p>
+                @if (!string.IsNullOrEmpty(RangoActual))
+                {
+                    <p style="font-size: 1rem; color: #666; margin-top: 0.5rem;">
+                        <strong>Rango Actual:</strong> @RangoActual
+                    </p>
+                }
+
+                <div class="notifications" style="position: relative">
+                    <img src="/images/iconoBell.png" alt="Notifications" />
+                    @if (CantidadNotificaciones > 0)
+                    {
+                        <span class="badge">@CantidadNotificaciones</span>
+                    }
+                    <span>Notifications</span>
+                </div>
 
             <div class="buttons">
                 @if (tieneSolicitudActiva)
@@ -344,16 +498,17 @@
             </div>
         </div>
 
-        <div class="promotion-card">
-            <h3>View Promotion</h3>
-            <small>Start Promotion</small>
-            <div>@FechaInicioProceso</div>
-            <div class="advance">
-                <small>Advance</small><br />
-                @PorcentajeAvance%
+            <div class="promotion-card">
+                <h3>View Promotion</h3>
+                <small>Start Promotion</small>
+                <div>@(!string.IsNullOrEmpty(FechaInicioProceso) ? FechaInicioProceso : "No iniciado")</div>
+                <div class="advance">
+                    <small>Advance</small><br />
+                    @PorcentajeAvance%
+                </div>
+                <button @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">View Progress</button>
             </div>
-            <button>View Progress</button>
-        </div>
+        }
     </div>
 
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
