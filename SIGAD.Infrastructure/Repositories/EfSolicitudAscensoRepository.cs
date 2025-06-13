@@ -1,7 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -14,42 +18,50 @@ namespace SIGAD.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<SolicitudAscenso?> GetByIdAsync(Guid id)
-        {
-            return await _context.SolicitudesAscenso.FindAsync(id);
-        }
-
-        public async Task<IEnumerable<SolicitudAscenso>> GetAllAsync()
-        {
-            return await _context.SolicitudesAscenso.ToListAsync();
-        }
-
-        public async Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync()
-        {
-            return await _context.SolicitudesAscenso
-                .Include(s => s.Docente)
-                .Include(s => s.RangoActual)
-                .Include(s => s.RangoSolicitado)
-                .ToListAsync();
-        }
-
         public async Task AddAsync(SolicitudAscenso solicitud)
         {
             await _context.SolicitudesAscenso.AddAsync(solicitud);
         }
 
-        public async Task UpdateAsync(SolicitudAscenso solicitud)
+        public async Task<SolicitudAscenso?> GetByIdAsync(Guid id)
         {
-            await Task.Run(() => _context.SolicitudesAscenso.Update(solicitud));
+            return await _context.SolicitudesAscenso.FindAsync(id);
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync()
         {
-            var solicitud = await GetByIdAsync(id);
-            if (solicitud != null)
-            {
-                _context.SolicitudesAscenso.Remove(solicitud);
-            }
+            return await _context.SolicitudesAscenso
+                .AsNoTracking()
+                .Include(s => s.Docente)
+                .Include(s => s.RangoSolicitado)
+                .OrderByDescending(s => s.FechaEnvio)
+                .ToListAsync();
+        }
+
+        public async Task<SolicitudAscenso?> GetByIdWithDetailsAsync(Guid id)
+        {
+            return await _context.SolicitudesAscenso
+                .AsNoTracking()
+                .Include(s => s.Docente)
+                .Include(s => s.RangoActual)
+                .Include(s => s.RangoSolicitado)
+                .Include(s => s.ArticulosPorSolicitud)
+                    .ThenInclude(aps => aps.Articulo)
+                .Include(s => s.CursosPorSolicitud)
+                    .ThenInclude(cps => cps.Curso)
+                .Include(s => s.InvestigacionesPorSolicitud)
+                    .ThenInclude(ips => ips.Investigacion)
+                .Include(s => s.ExperienciaPorSolicitud)
+                    .ThenInclude(eps => eps.ExperienciaLaboral)
+                .Include(s => s.EvaluacionesPorSolicitud)
+                    .ThenInclude(evps => evps.Evaluacion)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
+        public Task UpdateAsync(SolicitudAscenso solicitud)
+        {
+            _context.SolicitudesAscenso.Update(solicitud);
+            return Task.CompletedTask;
         }
 
         public async Task<bool> ExistsAsync(Guid id)
@@ -57,4 +69,4 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.SolicitudesAscenso.AnyAsync(s => s.Id == id);
         }
     }
-} 
+}
