@@ -12,7 +12,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- SECCI�N DE CONFIGURACI�N DE SERVICIOS ---
+// --- SECCIÓN DE CONFIGURACIÓN DE SERVICIOS ---
 
 // 1. Configurar DbContext para Entity Framework Core
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 3. Registrar servicios para Inyecci�n de Dependencias (DI)
+// 3. Registrar servicios para Inyección de Dependencias (DI)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
 builder.Services.AddScoped<ICuentaRepository, EfCuentaRepository>();
@@ -53,13 +53,16 @@ builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
 builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
 builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
+builder.Services.AddScoped<IExperienciaLaboralRepository, ExperienciaLaboralRepository>();
+builder.Services.AddScoped<IOrganizacionRepository, EfOrganizacionRepository>();
 
-// Servicios de aplicaci�n
+// Servicios de aplicación
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
 builder.Services.AddScoped<IArticuloService, ArticuloService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
 builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
+builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
 // builder.Services.AddScoped<GestionArticulosAppService>();
 // builder.Services.AddScoped<GestionInvestigacionesAppService>();
 // builder.Services.AddScoped<ConsultaRangoAppService>();
@@ -78,13 +81,13 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "SIGAD API",
         Version = "v1",
-        Description = "API para el Sistema de Gesti�n Acad�mica Docente (SIGAD)"
+        Description = "API para el Sistema de Gestión Académica Docente (SIGAD)"
     });
 
-    // Configurar autenticaci�n JWT en Swagger
+    // Configurar Swagger para usar JWT
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header usando el esquema Bearer. Ejemplo: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -102,40 +105,37 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
 
 // 6. Configurar CORS
-builder.Services.AddCors();
-
-// --- CONSTRUCCI�N DE LA APLICACI�N Y PIPELINE ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
-// Configurar el pipeline de solicitudes HTTP
-// Habilitar Swagger en todos los ambientes para desarrollo
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
+
+// 1. Configurar el pipeline de solicitudes HTTP
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGAD API v1");
-    c.DocumentTitle = "SIGAD API - Documentaci�n";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
-
-// Usar la pol�tica de CORS (recuerda ajustar los puertos si son diferentes)
-app.UseCors(policy =>
-    policy.WithOrigins("https://localhost:7087", "http://localhost:5000", "http://localhost:5250")
-    .AllowAnyMethod()
-    .AllowAnyHeader()
-    .AllowCredentials());
-
-// IMPORTANTE: El orden de estos middlewares es crucial
-app.UseAuthentication(); // Debe ir antes de UseAuthorization
+app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

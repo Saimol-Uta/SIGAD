@@ -20,5 +20,6 @@ namespace SIGAD.Domain.Entities
         // Propiedades de navegación para ambas claves foráneas
         public virtual Organizacion Organizacion { get; set; }
         public virtual Docente Docente { get; set; }
+        public virtual ICollection<ExperienciaPorSolicitud> ExperienciasPorSolicitud { get; set; } = new List<ExperienciaPorSolicitud>();
     }
 }
