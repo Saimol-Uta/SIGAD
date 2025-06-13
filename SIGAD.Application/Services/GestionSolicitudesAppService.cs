@@ -72,9 +72,7 @@ namespace SIGAD.Application.Services
         public async Task<SolicitudDetalleDto?> GetDetalleParaAdminAsync(Guid id)
         {
             var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
-            if (solicitud == null) return null;
-
-            // Mapeo de la entidad completa al DTO de detalle
+            if (solicitud == null) return null;            // Mapeo de la entidad completa al DTO de detalle
             return new SolicitudDetalleDto
             {
                 Id = solicitud.Id,
@@ -83,13 +81,63 @@ namespace SIGAD.Application.Services
                 FechaEnvio = solicitud.FechaEnvio,
                 FechaResolucion = solicitud.FechaResolucion,
                 ObservacionesAdmin = solicitud.ObservacionesAdmin,
-                DocenteCedula = solicitud.Docente.Cedula,
-                DocenteNombreCompleto = $"{solicitud.Docente.Nombre1} {solicitud.Docente.Nombre2} {solicitud.Docente.Apellido1} {solicitud.Docente.Apellido2}".Replace("  ", " ").Trim(),
+                DocenteCedula = solicitud.Docente?.Cedula ?? "",
+                DocenteNombreCompleto = solicitud.Docente != null
+                    ? $"{solicitud.Docente.Nombre1} {solicitud.Docente.Nombre2} {solicitud.Docente.Apellido1} {solicitud.Docente.Apellido2}".Replace("  ", " ").Trim()
+                    : "N/A",
                 RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
-                RangoSolicitadoNombre = solicitud.RangoSolicitado.Nombre,
-                ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto { DOI = a.Articulo.DOI, Titulo = a.Articulo.Titulo, Revista = a.Articulo.Revista, AnioPublicacion = a.Articulo.AnioPublicacion }).ToList(),
-                InvestigacionesPresentadas = solicitud.InvestigacionesPorSolicitud.Select(i => new VerInvestigacionDto { Id = i.Investigacion.Id, Titulo = i.Investigacion.Titulo, MesesDeInvestigacion = i.Investigacion.MesesDeInvestigacion }).ToList(),
-                // ... aquí irían los mapeos para Cursos, Experiencias, etc. ...
+                RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
+                ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
+                {
+                    DOI = a.Articulo?.DOI ?? "",
+                    Titulo = a.Articulo?.Titulo ?? "",
+                    Revista = a.Articulo?.Revista ?? "",
+                    AnioPublicacion = a.Articulo?.AnioPublicacion ?? 0,
+                    DocenteCedula = a.Articulo?.DocenteCedula ?? "",
+                    DocenteNombreCompleto = a.Articulo?.Docente != null
+                        ? $"{a.Articulo.Docente.Nombre1} {a.Articulo.Docente.Apellido1}".Trim()
+                        : "N/A"
+                }).ToList(),
+                InvestigacionesPresentadas = solicitud.InvestigacionesPorSolicitud.Select(i => new VerInvestigacionDto
+                {
+                    Id = i.Investigacion?.Id ?? 0,
+                    Titulo = i.Investigacion?.Titulo ?? "",
+                    RolEnInvestigacion = i.Investigacion?.RolEnInvestigacion ?? "",
+                    MesesDeInvestigacion = i.Investigacion?.MesesDeInvestigacion ?? 0,
+                    FechaFinalizacion = i.Investigacion?.FechaFinalizacion ?? DateTime.MinValue,
+                    NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim()
+                }).ToList(),
+                CursosPresentados = solicitud.CursosPorSolicitud.Select(c => new VerCursoDto
+                {
+                    Id = c.Curso?.Id ?? 0,
+                    Nombre = c.Curso?.Nombre ?? "",
+                    NombreOrganizacion = c.Curso?.Organizacion?.Nombre ?? "",
+                    NumeroHoras = c.Curso?.NumeroHoras ?? 0,
+                    FechaFinalizacion = c.Curso?.FechaFinalizacion ?? DateTime.MinValue,
+                    DocenteCedula = c.Curso?.DocenteCedula ?? "",
+                    NombreDocente = c.Curso?.Docente != null
+                        ? $"{c.Curso.Docente.Nombre1} {c.Curso.Docente.Apellido1}".Trim()
+                        : "N/A",
+                    TieneCertificado = !string.IsNullOrEmpty(c.Curso?.CertificadoRuta)
+                }).ToList(),
+                ExperienciasLaborales = solicitud.ExperienciaPorSolicitud.Select(e => new VerExperienciaLaboralDto
+                {
+                    Id = e.ExperienciaLaboral?.Id ?? 0,
+                    OrganizacionNombre = e.ExperienciaLaboral?.Organizacion?.Nombre ?? "",
+                    OrganizacionTipo = e.ExperienciaLaboral?.Organizacion?.TipoOrganizacion ?? "",
+                    Cargo = e.ExperienciaLaboral?.Cargo ?? "",
+                    FechaInicio = e.ExperienciaLaboral?.FechaInicio ?? DateTime.MinValue,
+                    FechaFin = e.ExperienciaLaboral?.FechaFin,
+                    CertificadoRuta = e.ExperienciaLaboral?.CertificadoRuta ?? ""
+                }).ToList(),
+                EvaluacionesDocente = solicitud.EvaluacionesPorSolicitud.Select(ev => new VerEvaluacionDocenteDto
+                {
+                    Id = ev.Evaluacion?.Id ?? 0,
+                    PeriodoAcademico = ev.Evaluacion?.PeriodoAcademico ?? "",
+                    FechaEvaluacion = ev.Evaluacion?.FechaEvaluacion ?? DateTime.MinValue,
+                    PuntajePorcentual = ev.Evaluacion?.PuntajePorcentual ?? 0,
+                    InformeRuta = ev.Evaluacion?.InformeRuta ?? ""
+                }).ToList()
             };
         }
 

@@ -67,11 +67,10 @@
                 </div>
                 <div class="card-body">
                     <div class="accordion" id="evidenciaAccordion">
-                        
-                        <!-- Sub-sección de Artículos -->
+                          <!-- Sub-sección de Artículos -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="articulosHeader">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#articulosCollapse">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#articulosCollapse" aria-expanded="true" aria-controls="articulosCollapse">
                                     Artículos Presentados (@solicitud.ArticulosPresentados.Count)
                                 </button>
                             </h2>
@@ -113,16 +112,13 @@
                                     }
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Sub-sección de Investigaciones -->
+                        </div>                        <!-- Sub-sección de Investigaciones -->
                         <div class="accordion-item">
-                            <h2 class="accordion-header" id="investigacionesHeader">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#investigacionesCollapse">
+                            <h2 class="accordion-header" id="investigacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#investigacionesCollapse" aria-expanded="true" aria-controls="investigacionesCollapse">
                                     Investigaciones Presentadas (@solicitud.InvestigacionesPresentadas.Count)
                                 </button>
                             </h2>
-                            <div id="investigacionesCollapse" class="accordion-collapse collapse" data-bs-parent="#evidenciaAccordion">
+                            <div id="investigacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
                                 <div class="accordion-body">
                                     @if (solicitud.InvestigacionesPresentadas.Any())
                                     {
@@ -160,16 +156,13 @@
                                     }
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Sub-sección de Cursos -->
+                        </div>                        <!-- Sub-sección de Cursos -->
                         <div class="accordion-item">
-                            <h2 class="accordion-header" id="cursosHeader">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cursosCollapse">
+                            <h2 class="accordion-header" id="cursosHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cursosCollapse" aria-expanded="true" aria-controls="cursosCollapse">
                                     Cursos de Capacitación (@solicitud.CursosPresentados.Count)
                                 </button>
                             </h2>
-                            <div id="cursosCollapse" class="accordion-collapse collapse" data-bs-parent="#evidenciaAccordion">
+                            <div id="cursosCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
                                 <div class="accordion-body">
                                     @if (solicitud.CursosPresentados.Any())
                                     {
@@ -204,6 +197,110 @@
                                     else
                                     {
                                         <p class="text-muted">No se presentaron cursos en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Experiencia Laboral -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="experienciasHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#experienciasCollapse" aria-expanded="true" aria-controls="experienciasCollapse">
+                                    Experiencia Laboral (@solicitud.ExperienciasLaborales.Count)
+                                </button>
+                            </h2>
+                            <div id="experienciasCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.ExperienciasLaborales.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Organización</th>
+                                                        <th>Tipo de Organización</th>
+                                                        <th>Cargo</th>
+                                                        <th>Período</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var experiencia in solicitud.ExperienciasLaborales)
+                                                    {
+                                                        <tr>
+                                                            <td>@experiencia.OrganizacionNombre</td>
+                                                            <td>@experiencia.OrganizacionTipo</td>
+                                                            <td>@experiencia.Cargo</td>
+                                                            <td>@experiencia.PeriodoTrabajo</td>
+                                                            <td>
+                                                                @if (experiencia.TieneCertificado)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm">Ver Certificado</button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin certificado</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentó experiencia laboral en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Evaluaciones Docentes -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="evaluacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#evaluacionesCollapse" aria-expanded="true" aria-controls="evaluacionesCollapse">
+                                    Evaluaciones Docentes (@solicitud.EvaluacionesDocente.Count)
+                                </button>
+                            </h2>
+                            <div id="evaluacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.EvaluacionesDocente.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Período Académico</th>
+                                                        <th>Fecha de Evaluación</th>
+                                                        <th>Puntaje</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var evaluacion in solicitud.EvaluacionesDocente)
+                                                    {
+                                                        <tr>
+                                                            <td>@evaluacion.PeriodoAcademico</td>
+                                                            <td>@evaluacion.FechaEvaluacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                <span class="badge @(evaluacion.PuntajePorcentual >= 80 ? "bg-success" : evaluacion.PuntajePorcentual >= 60 ? "bg-warning" : "bg-danger")">
+                                                                    @evaluacion.PuntajeFormateado
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                @if (evaluacion.TieneInforme)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm">Ver Informe</button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin informe</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron evaluaciones docentes en esta solicitud.</p>
                                     }
                                 </div>
                             </div>
@@ -349,11 +446,26 @@
     private bool procesando = false;
     private string accionSeleccionada = "";
     
-    private FormularioDecision formularioDecision = new();
-
-    protected override async Task OnInitializedAsync()
+    private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
     {
         await CargarDetalle();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Inicializar Bootstrap accordion manualmente
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (typeof bootstrap !== 'undefined') {
+                    document.querySelectorAll('.accordion-button').forEach(button => {
+                        button.addEventListener('click', function() {
+                            console.log('Accordion button clicked:', this.getAttribute('data-bs-target'));
+                        });
+                    });
+                }
+            ");
+        }
     }
 
     private async Task CargarDetalle()

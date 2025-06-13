@@ -11,12 +11,12 @@ namespace SIGAD.BlazorApp.Models
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;
         public string? RangoActualNombre { get; set; }
-        public string RangoSolicitadoNombre { get; set; } = string.Empty;
-
-        // La evidencia que se presentó en esta solicitud específica
+        public string RangoSolicitadoNombre { get; set; } = string.Empty;        // La evidencia que se presentó en esta solicitud específica
         public List<VerArticuloDto> ArticulosPresentados { get; set; } = new();
         public List<VerInvestigacionDto> InvestigacionesPresentadas { get; set; } = new();
         public List<VerCursoDto> CursosPresentados { get; set; } = new();
+        public List<VerExperienciaLaboralDto> ExperienciasLaborales { get; set; } = new();
+        public List<VerEvaluacionDocenteDto> EvaluacionesDocente { get; set; } = new();
     }
 
     public class VerArticuloDto
