@@ -744,7 +744,7 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 // Obtener cédula del token
-                var cedulaClaim = User.FindFirst("Cedula")?.Value;
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
                 if (string.IsNullOrEmpty(cedulaClaim))
                 {
                     return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
