@@ -64,7 +64,7 @@ namespace SIGAD.Application.Services
 
             var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
             var extension = Path.GetExtension(informe.FileName).ToLowerInvariant();
-            
+
             if (!allowedExtensions.Contains(extension))
                 throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX");
 
@@ -171,7 +171,7 @@ namespace SIGAD.Application.Services
 
             var fileContent = await File.ReadAllBytesAsync(investigacion.InformeRuta);
             var extension = Path.GetExtension(investigacion.InformeRuta).ToLowerInvariant();
-            
+
             var contentType = extension switch
             {
                 ".pdf" => "application/pdf",
@@ -194,8 +194,8 @@ namespace SIGAD.Application.Services
                 Titulo = i.Titulo,
                 RolEnInvestigacion = i.RolEnInvestigacion,
                 MesesDeInvestigacion = i.MesesDeInvestigacion,
-                NombreDocente = i.Docente != null 
-                    ? $"{i.Docente.Nombre1} {i.Docente.Apellido1}" 
+                NombreDocente = i.Docente != null
+                    ? $"{i.Docente.Nombre1} {i.Docente.Apellido1}"
                     : "Docente no encontrado"
             });
         }
@@ -210,8 +210,8 @@ namespace SIGAD.Application.Services
                 FechaFinalizacion = investigacion.FechaFinalizacion,
                 RolEnInvestigacion = investigacion.RolEnInvestigacion,
                 MesesDeInvestigacion = investigacion.MesesDeInvestigacion,
-                NombreDocente = investigacion.Docente != null 
-                    ? $"{investigacion.Docente.Nombre1} {investigacion.Docente.Apellido1}" 
+                NombreDocente = investigacion.Docente != null
+                    ? $"{investigacion.Docente.Nombre1} {investigacion.Docente.Apellido1}"
                     : "Docente no encontrado",
                 DocenteCedula = investigacion.DocenteCedula,
                 InformeRuta = investigacion.InformeRuta,
@@ -219,4 +219,4 @@ namespace SIGAD.Application.Services
             };
         }
     }
-} 
+}
