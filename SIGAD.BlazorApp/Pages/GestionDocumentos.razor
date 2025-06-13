@@ -265,6 +265,106 @@
         border-radius: 12px;
         margin-left: auto;
     }
+
+    .submission-section {
+        margin-top: 3rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .submission-card {
+        background: white;
+        border: 2px solid #0a1d44;
+        border-radius: 12px;
+        padding: 2.5rem;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .submission-card h2 {
+        color: #0a1d44;
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .submission-description {
+        color: #666;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        line-height: 1.5;
+    }
+
+    .submission-actions {
+        margin-top: 2rem;
+    }
+
+    .btn-large {
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        border: none;
+    }
+
+    .btn-success:hover:not(:disabled) {
+        background-color: #218838;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .help-text {
+        margin-top: 1rem;
+        color: #666;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+
+    .missing-docs-list {
+        text-align: left;
+        margin: 1rem 0;
+        padding-left: 2rem;
+    }
+
+    .missing-docs-list li {
+        margin: 0.5rem 0;
+        color: #856404;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
+    }
 </style>
 
 <body>
@@ -415,6 +515,57 @@
                     <strong>Procesando...</strong> @mensajeProceso
                 </div>
             }
+
+            <!-- Sección de Envío de Solicitud -->
+            @if (!string.IsNullOrEmpty(solicitudId))
+            {
+                <div class="submission-section">
+                    <div class="submission-card">
+                        <h2>📤 Enviar Solicitud de Ascenso</h2>
+                        <p class="submission-description">
+                            Una vez que haya agregado todos sus documentos, puede enviar su solicitud de ascenso para revisión.
+                        </p>
+
+                        @if (tieneDocumentosCompletos)
+                        {
+                            <div class="alert alert-success">
+                                ✅ Su solicitud tiene documentos en todas las categorías requeridas y está lista para envío.
+                            </div>
+                            <div class="submission-actions">
+                                <button class="btn btn-success btn-large" @onclick="EnviarSolicitud" disabled="@enviandoSolicitud">
+                                    @if (enviandoSolicitud)
+                                    {
+                                        <span>🔄 Enviando solicitud...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>📨 Enviar Solicitud de Ascenso</span>
+                                    }
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                ⚠️ Su solicitud aún no está completa. Necesita agregar documentos en las siguientes categorías:
+                                <ul class="missing-docs-list">
+                                    @if (conteoInvestigaciones == 0) { <li>Investigaciones</li> }
+                                    @if (conteoArticulos == 0) { <li>Artículos</li> }
+                                    @if (conteoExperiencias == 0) { <li>Experiencia Laboral</li> }
+                                    @if (conteoEvaluaciones == 0) { <li>Evaluaciones</li> }
+                                    @if (conteoCursos == 0) { <li>Cursos</li> }
+                                </ul>
+                            </div>
+                            <div class="submission-actions">
+                                <button class="btn btn-secondary btn-large" disabled>
+                                    📨 Enviar Solicitud de Ascenso
+                                </button>
+                                <p class="help-text">Complete todos los documentos requeridos para habilitar el envío</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         }
     </div>
 
@@ -442,6 +593,11 @@
     private string? mensajeOperacion;
     private string mensajeProceso = "";
 
+    // Variables para envío de solicitud
+    private string? solicitudId;
+    private bool tieneDocumentosCompletos = false;
+    private bool enviandoSolicitud = false;
+
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
@@ -452,12 +608,92 @@
 
     private async Task VerificarSolicitudActiva()
     {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
+        try
         {
-            // No hay solicitud activa, mostrar mensaje informativo
-            mensajeOperacion = "⚠️ No hay una solicitud de ascenso activa. Inicie un proceso de ascenso para gestionar documentos.";
+            solicitudId = await SolicitudService.GetSolicitudActualAsync();
+            if (string.IsNullOrEmpty(solicitudId))
+            {
+                // No hay solicitud activa, mostrar mensaje informativo
+                mensajeOperacion = "⚠️ No hay una solicitud de ascenso activa. Inicie un proceso de ascenso para gestionar documentos.";
+                operacionExitosa = false;
+            }
+        }
+        catch (Exception)
+        {
+            // Silenciar errores
+        }
+    }
+
+    private void VerificarDocumentosCompletos()
+    {
+        tieneDocumentosCompletos = conteoInvestigaciones > 0 && 
+                                 conteoArticulos > 0 && 
+                                 conteoExperiencias > 0 && 
+                                 conteoEvaluaciones > 0 && 
+                                 conteoCursos > 0;
+    }
+
+    private async Task EnviarSolicitud()
+    {
+        if (enviandoSolicitud || string.IsNullOrEmpty(solicitudId))
+            return;
+
+        enviandoSolicitud = true;
+
+        try
+        {
+            var response = await Http.PostAsync($"api/auth/enviar-solicitud/{solicitudId}", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<EnvioSolicitudResponse>();
+                
+                if (result?.Success == true)
+                {
+                    mensajeOperacion = "✅ Solicitud enviada exitosamente. Su solicitud está ahora en revisión.";
+                    operacionExitosa = true;
+                    
+                    // Limpiar la solicitud actual del servicio
+                    await SolicitudService.ClearSolicitudActualAsync();
+                    
+                    // Redirigir al dashboard después de 3 segundos
+                    await Task.Delay(3000);
+                    Navigation.NavigateTo("/dashboard");
+                }
+                else
+                {
+                    mensajeOperacion = $"❌ Error: {result?.Message ?? "No se pudo enviar la solicitud"}";
+                    operacionExitosa = false;
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorResult = System.Text.Json.JsonSerializer.Deserialize<EnvioSolicitudResponse>(errorContent);
+                
+                mensajeOperacion = $"❌ Error al enviar solicitud: {errorResult?.Message ?? "Error desconocido"}";
+                operacionExitosa = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"❌ Error al enviar solicitud: {ex.Message}";
             operacionExitosa = false;
+        }
+        finally
+        {
+            enviandoSolicitud = false;
+            StateHasChanged();
+            
+            // Limpiar mensaje después de 5 segundos si no fue exitoso
+            if (!operacionExitosa)
+            {
+                _ = Task.Delay(5000).ContinueWith(_ => 
+                {
+                    mensajeOperacion = null;
+                    InvokeAsync(StateHasChanged);
+                });
+            }
         }
     }
 
@@ -502,6 +738,9 @@
                 CargarConteoEvaluaciones(),
                 CargarConteoCursos()
             );
+
+            // Verificar si todos los documentos están completos
+            VerificarDocumentosCompletos();
         }
         catch (Exception ex)
         {
@@ -729,5 +968,12 @@
         public string Message { get; set; } = "";
         public T? Data { get; set; }
         public int Count { get; set; }
+    }
+
+    public class EnvioSolicitudResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public object? Data { get; set; }
     }
 } 

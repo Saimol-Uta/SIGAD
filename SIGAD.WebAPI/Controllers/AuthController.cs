@@ -862,6 +862,189 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// Envía la solicitud de ascenso cambiando su estado de Borrador a Enviada
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud a enviar</param>
+        /// <returns>Resultado del envío</returns>
+        [HttpPost("enviar-solicitud/{solicitudId}")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> EnviarSolicitudAscenso(Guid solicitudId)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Buscar la solicitud
+                var solicitud = await _context.SolicitudesAscenso
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.Id == solicitudId && s.DocenteCedula == cedulaClaim);
+
+                if (solicitud == null)
+                {
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+
+                // Verificar que la solicitud está en estado Borrador
+                if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        message = $"La solicitud no puede ser enviada. Estado actual: {solicitud.Estado}" 
+                    });
+                }
+
+                // Verificar que la solicitud tiene documentos asociados
+                var tieneDocumentos = await VerificarDocumentosAsync(solicitudId);
+                if (!tieneDocumentos.tieneDocumentos)
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        message = "La solicitud debe tener al menos un documento de cada tipo requerido antes de ser enviada",
+                        documentosFaltantes = tieneDocumentos.documentosFaltantes
+                    });
+                }
+
+                // Cambiar estado a Enviada y establecer fecha de envío
+                solicitud.Estado = SIGAD.Domain.Enums.EstadoSolicitud.Enviada;
+                solicitud.FechaEnvio = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud enviada exitosamente. ID: {SolicitudId}, Docente: {Cedula}", solicitudId, cedulaClaim);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud enviada exitosamente",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        estado = solicitud.Estado.ToString(),
+                        fechaEnvio = solicitud.FechaEnvio,
+                        rangoSolicitado = solicitud.RangoSolicitado.Nombre
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al enviar solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Cancela una solicitud en estado Borrador
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud a cancelar</param>
+        /// <returns>Resultado de la cancelación</returns>
+        [HttpDelete("cancelar-solicitud/{solicitudId}")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> CancelarSolicitudAscenso(Guid solicitudId)
+        {
+            try
+            {
+                // Obtener cédula del token
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
+                }
+
+                // Buscar la solicitud
+                var solicitud = await _context.SolicitudesAscenso
+                    .FirstOrDefaultAsync(s => s.Id == solicitudId && s.DocenteCedula == cedulaClaim);
+
+                if (solicitud == null)
+                {
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+
+                // Solo permitir cancelar solicitudes en estado Borrador
+                if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        message = $"Solo se pueden cancelar solicitudes en borrador. Estado actual: {solicitud.Estado}" 
+                    });
+                }
+
+                // Eliminar la solicitud y sus asociaciones
+                _context.SolicitudesAscenso.Remove(solicitud);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud cancelada exitosamente. ID: {SolicitudId}, Docente: {Cedula}", solicitudId, cedulaClaim);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud cancelada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cancelar solicitud de ascenso");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Verifica que la solicitud tenga documentos requeridos antes de enviarla
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud</param>
+        /// <returns>Estado de verificación de documentos</returns>
+        private async Task<(bool tieneDocumentos, List<string> documentosFaltantes)> VerificarDocumentosAsync(Guid solicitudId)
+        {
+            var documentosFaltantes = new List<string>();
+
+            // Verificar artículos
+            var tieneArticulos = await _context.ArticulosPorSolicitud
+                .AnyAsync(aps => aps.SolicitudId == solicitudId);
+            if (!tieneArticulos)
+            {
+                documentosFaltantes.Add("Artículos");
+            }
+
+            // Verificar cursos
+            var tieneCursos = await _context.CursosPorSolicitud
+                .AnyAsync(cps => cps.SolicitudId == solicitudId);
+            if (!tieneCursos)
+            {
+                documentosFaltantes.Add("Cursos");
+            }
+
+            // Verificar investigaciones
+            var tieneInvestigaciones = await _context.InvestigacionesPorSolicitud
+                .AnyAsync(ips => ips.SolicitudId == solicitudId);
+            if (!tieneInvestigaciones)
+            {
+                documentosFaltantes.Add("Investigaciones");
+            }
+
+            // Verificar experiencias laborales
+            var tieneExperiencias = await _context.ExperienciasPorSolicitud
+                .AnyAsync(eps => eps.SolicitudId == solicitudId);
+            if (!tieneExperiencias)
+            {
+                documentosFaltantes.Add("Experiencias Laborales");
+            }
+
+            // Verificar evaluaciones
+            var tieneEvaluaciones = await _context.EvaluacionesPorSolicitud
+                .AnyAsync(evps => evps.SolicitudId == solicitudId);
+            if (!tieneEvaluaciones)
+            {
+                documentosFaltantes.Add("Evaluaciones");
+            }
+
+            return (documentosFaltantes.Count == 0, documentosFaltantes);
+        }
+
+        /// <summary>
         /// Obtiene información del rango actual del docente
         /// </summary>
         /// <param name="docenteCedula">Cédula del docente</param>
