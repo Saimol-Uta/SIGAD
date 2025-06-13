@@ -722,7 +722,8 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Verifica si el docente autenticado tiene una solicitud activa en borrador
+        /// Verifica si el docente autenticado tiene una solicitud de ascenso activa
+        /// Una solicitud está activa si está en estado: Borrador, Enviada o EnRevision
         /// </summary>
         /// <returns>Estado de la solicitud activa</returns>
         [HttpGet("verificar-solicitud-activa")]
@@ -738,9 +739,18 @@ namespace SIGAD.WebAPI.Controllers
                     return BadRequest(new { success = false, message = "No se pudo obtener la información del usuario" });
                 }
 
-                // Verificar que no tiene una solicitud en borrador activa
+                // Estados considerados como "activos" - el docente no puede crear otra solicitud
+                var estadosActivos = new[]
+                {
+                    SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
+                    SIGAD.Domain.Enums.EstadoSolicitud.Enviada,
+                    SIGAD.Domain.Enums.EstadoSolicitud.EnRevision
+                };
+
+                // Verificar que no tiene una solicitud activa
                 var solicitudActiva = await _context.SolicitudesAscenso
-                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && estadosActivos.Contains(s.Estado));
 
                 if (solicitudActiva != null)
                 {
@@ -749,7 +759,12 @@ namespace SIGAD.WebAPI.Controllers
                         success = true,
                         tieneSolicitudActiva = true,
                         solicitudId = solicitudActiva.Id,
-                        fechaCreacion = solicitudActiva.FechaCreacion
+                        estado = solicitudActiva.Estado.ToString(),
+                        estadoDescripcion = GetEstadoDescripcion(solicitudActiva.Estado),
+                        fechaCreacion = solicitudActiva.FechaCreacion,
+                        fechaEnvio = solicitudActiva.FechaEnvio,
+                        rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre,
+                        mensaje = GetMensajeEstadoSolicitud(solicitudActiva.Estado)
                     });
                 }
 
@@ -757,7 +772,8 @@ namespace SIGAD.WebAPI.Controllers
                 {
                     success = true,
                     tieneSolicitudActiva = false,
-                    solicitudId = (string?)null
+                    solicitudId = (string?)null,
+                    mensaje = "No tiene solicitudes activas. Puede iniciar una nueva solicitud de ascenso."
                 });
             }
             catch (Exception ex)
@@ -799,13 +815,30 @@ namespace SIGAD.WebAPI.Controllers
                     return NotFound(new { success = false, message = "Rango solicitado no encontrado" });
                 }
 
-                // Verificar que no tiene una solicitud en borrador activa
+                // Estados considerados como "activos" - el docente no puede crear otra solicitud
+                var estadosActivos = new[]
+                {
+                    SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
+                    SIGAD.Domain.Enums.EstadoSolicitud.Enviada,
+                    SIGAD.Domain.Enums.EstadoSolicitud.EnRevision
+                };
+
+                // Verificar que no tiene una solicitud activa
                 var solicitudActiva = await _context.SolicitudesAscenso
-                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
+                    .Include(s => s.RangoSolicitado)
+                    .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && estadosActivos.Contains(s.Estado));
 
                 if (solicitudActiva != null)
                 {
-                    return BadRequest(new { success = false, message = "Ya tiene una solicitud en proceso", solicitudId = solicitudActiva.Id });
+                    var mensajeDetallado = GetMensajeEstadoSolicitud(solicitudActiva.Estado);
+                    return BadRequest(new 
+                    { 
+                        success = false, 
+                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}", 
+                        solicitudId = solicitudActiva.Id,
+                        estado = solicitudActiva.Estado.ToString(),
+                        rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre
+                    });
                 }
 
                 // Determinar rango actual
@@ -1030,6 +1063,40 @@ namespace SIGAD.WebAPI.Controllers
             }
 
             return (documentosFaltantes.Count == 0, documentosFaltantes);
+        }
+
+        /// <summary>
+        /// Obtiene una descripción amigable del estado de la solicitud
+        /// </summary>
+        /// <param name="estado">Estado de la solicitud</param>
+        /// <returns>Descripción del estado</returns>
+        private string GetEstadoDescripcion(SIGAD.Domain.Enums.EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                SIGAD.Domain.Enums.EstadoSolicitud.Borrador => "En preparación",
+                SIGAD.Domain.Enums.EstadoSolicitud.Enviada => "Enviada para revisión",
+                SIGAD.Domain.Enums.EstadoSolicitud.EnRevision => "En proceso de evaluación",
+                SIGAD.Domain.Enums.EstadoSolicitud.Aprobada => "Aprobada",
+                SIGAD.Domain.Enums.EstadoSolicitud.Rechazada => "Rechazada",
+                _ => "Estado desconocido"
+            };
+        }
+
+        /// <summary>
+        /// Obtiene un mensaje específico según el estado de la solicitud activa
+        /// </summary>
+        /// <param name="estado">Estado de la solicitud</param>
+        /// <returns>Mensaje para mostrar al usuario</returns>
+        private string GetMensajeEstadoSolicitud(SIGAD.Domain.Enums.EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                SIGAD.Domain.Enums.EstadoSolicitud.Borrador => "Tiene una solicitud en preparación. Complete los documentos requeridos para enviarla.",
+                SIGAD.Domain.Enums.EstadoSolicitud.Enviada => "Su solicitud ha sido enviada y está pendiente de revisión. No puede crear otra solicitud hasta obtener una respuesta.",
+                SIGAD.Domain.Enums.EstadoSolicitud.EnRevision => "Su solicitud está siendo evaluada por los administradores. No puede crear otra solicitud hasta obtener una respuesta.",
+                _ => "Tiene una solicitud activa en proceso."
+            };
         }
 
         /// <summary>
