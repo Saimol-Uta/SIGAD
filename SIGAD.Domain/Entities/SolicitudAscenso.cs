@@ -54,6 +54,44 @@ namespace SIGAD.Domain.Entities
             FechaEnvio = DateTime.UtcNow;
         }
 
+        public SolicitudAscenso(
+        string docenteCedula,
+        int rangoActualId,
+        int rangoSolicitadoId,
+        string observacionesAdmin = null)
+        {
+            Id = Guid.NewGuid();
+            DocenteCedula = docenteCedula;
+            RangoActualId = rangoActualId;
+            RangoSolicitadoId = rangoSolicitadoId;
+            FechaCreacion = DateTime.UtcNow;
+            FechaEnvio = null;
+            FechaResolucion = null;
+            Estado = EstadoSolicitud.Borrador;
+            ObservacionesAdmin = observacionesAdmin;
+        }
+
+        public SolicitudAscenso(
+    string docenteCedula,
+    int? rangoActualId,
+    int rangoSolicitadoId,
+    DateTime fechaCreacion,
+    DateTime? fechaEnvio,
+    DateTime? fechaResolucion,
+    SIGAD.Domain.Enums.EstadoSolicitud estado,
+    string observacionesAdmin = null)
+        {
+            Id = Guid.NewGuid();
+            DocenteCedula = docenteCedula;
+            RangoActualId = rangoActualId;
+            RangoSolicitadoId = rangoSolicitadoId;
+            FechaCreacion = fechaCreacion;
+            FechaEnvio = fechaEnvio;
+            FechaResolucion = fechaResolucion;
+            Estado = estado;
+            ObservacionesAdmin = observacionesAdmin;
+        }
+
         public void Rechazar(string? observaciones)
         {
             if (this.Estado != EstadoSolicitud.Enviada && this.Estado != EstadoSolicitud.EnRevision)

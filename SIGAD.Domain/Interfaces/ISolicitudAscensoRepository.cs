@@ -7,7 +7,6 @@ public interface ISolicitudAscensoRepository
     Task<SolicitudAscenso?> GetByIdWithDetailsAsync(Guid id);
     Task AddAsync(SolicitudAscenso solicitud);
     Task UpdateAsync(SolicitudAscenso solicitud);
-
-    // Agregar el método ExistsAsync
     Task<bool> ExistsAsync(Guid id);
+    Task<IEnumerable<SolicitudAscenso>> GetAllAsync();
 }

@@ -470,18 +470,16 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 // Crear solicitud de ascenso aprobada
-                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso
-                {
-                    Id = Guid.NewGuid(),
-                    DocenteCedula = cedula,
-                    RangoActualId = null, // Asumimos que es su primer rango
-                    RangoSolicitadoId = rangoId,
-                    FechaCreacion = DateTime.UtcNow.AddDays(-30), // Hace 30 días
-                    FechaEnvio = DateTime.UtcNow.AddDays(-25),   // Hace 25 días
-                    FechaResolucion = DateTime.UtcNow.AddDays(-1), // Hace 1 día
-                    Estado = SIGAD.Domain.Enums.EstadoSolicitud.Aprobada,
-                    ObservacionesAdmin = "Solicitud de prueba - Aprobada automáticamente"
-                };
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+     cedula,
+     null, // Primer rango
+     rangoId,
+     DateTime.UtcNow.AddDays(-30), // Hace 30 días
+     DateTime.UtcNow.AddDays(-25),   // Hace 25 días
+     DateTime.UtcNow.AddDays(-1), // Hace 1 día
+     SIGAD.Domain.Enums.EstadoSolicitud.Aprobada,
+     "Solicitud de prueba - Aprobada automáticamente"
+ );
 
                 _context.SolicitudesAscenso.Add(solicitud);
                 var savedRecords = await _context.SaveChangesAsync();
@@ -574,26 +572,17 @@ namespace SIGAD.WebAPI.Controllers
                     {
                         rangoActualId = rangoNivel1.Id;
                         rangoActualNombre = rangoNivel1.Nombre + " (asignado automáticamente)";
-                        _logger.LogInformation("Docente {Cedula} sin rango previo - Asignando automáticamente rango nivel 1: {RangoNombre}", 
+                        _logger.LogInformation("Docente {Cedula} sin rango previo - Asignando automáticamente rango nivel 1: {RangoNombre}",
                             cedula, rangoNivel1.Nombre);
                     }
                 }
 
                 // Crear la solicitud con el rango actual (ya sea real o asignado automáticamente)
-                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso
-                {
-                    Id = Guid.NewGuid(),
-                    DocenteCedula = cedula,
-                    RangoActualId = rangoActualId,
-                    RangoSolicitadoId = rangoSolicitadoId,
-                    FechaCreacion = DateTime.UtcNow,
-                    FechaEnvio = null, // En borrador
-                    FechaResolucion = null,
-                    Estado = SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
-                    ObservacionesAdmin = rangoActualId != solicitudesAprobadas?.RangoSolicitadoId 
-                        ? "Rango actual asignado automáticamente (nivel 1) - Docente sin ascensos previos"
-                        : null
-                };
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+                    cedula,
+                    rangoActualId ?? 1, // Use 1 as default if null
+                    rangoSolicitadoId
+                );
 
                 _context.SolicitudesAscenso.Add(solicitud);
                 var savedRecords = await _context.SaveChangesAsync();
@@ -752,21 +741,23 @@ namespace SIGAD.WebAPI.Controllers
                 // Verificar que no tiene una solicitud en borrador activa
                 var solicitudActiva = await _context.SolicitudesAscenso
                     .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
-                
+
                 if (solicitudActiva != null)
                 {
-                    return Ok(new { 
-                        success = true, 
-                        tieneSolicitudActiva = true, 
+                    return Ok(new
+                    {
+                        success = true,
+                        tieneSolicitudActiva = true,
                         solicitudId = solicitudActiva.Id,
-                        fechaCreacion = solicitudActiva.FechaCreacion 
+                        fechaCreacion = solicitudActiva.FechaCreacion
                     });
                 }
 
-                return Ok(new { 
-                    success = true, 
-                    tieneSolicitudActiva = false, 
-                    solicitudId = (string?)null 
+                return Ok(new
+                {
+                    success = true,
+                    tieneSolicitudActiva = false,
+                    solicitudId = (string?)null
                 });
             }
             catch (Exception ex)
@@ -811,7 +802,7 @@ namespace SIGAD.WebAPI.Controllers
                 // Verificar que no tiene una solicitud en borrador activa
                 var solicitudActiva = await _context.SolicitudesAscenso
                     .FirstOrDefaultAsync(s => s.DocenteCedula == cedulaClaim && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Borrador);
-                
+
                 if (solicitudActiva != null)
                 {
                     return BadRequest(new { success = false, message = "Ya tiene una solicitud en proceso", solicitudId = solicitudActiva.Id });
@@ -821,18 +812,12 @@ namespace SIGAD.WebAPI.Controllers
                 var rangoActual = await GetRangoActualInfoAsync(cedulaClaim);
 
                 // Crear nueva solicitud
-                var nuevaSolicitud = new SIGAD.Domain.Entities.SolicitudAscenso
-                {
-                    Id = Guid.NewGuid(),
-                    DocenteCedula = cedulaClaim,
-                    RangoActualId = rangoActual.rangoId,
-                    RangoSolicitadoId = request.RangoSolicitadoId,
-                    FechaCreacion = DateTime.UtcNow,
-                    FechaEnvio = null,
-                    FechaResolucion = null,
-                    Estado = SIGAD.Domain.Enums.EstadoSolicitud.Borrador,
-                    ObservacionesAdmin = rangoActual.rangoId != null ? null : "Rango actual asignado automáticamente (nivel 1) - Docente sin ascensos previos"
-                };
+                var nuevaSolicitud = new SIGAD.Domain.Entities.SolicitudAscenso(
+             cedulaClaim,
+             rangoActual.rangoId ?? 1,
+             request.RangoSolicitadoId,
+             rangoActual.rangoId != null ? null : "Rango actual asignado automáticamente (nivel 1) - Docente sin ascensos previos"
+            );
 
                 _context.SolicitudesAscenso.Add(nuevaSolicitud);
                 await _context.SaveChangesAsync();
@@ -892,9 +877,10 @@ namespace SIGAD.WebAPI.Controllers
                 // Verificar que la solicitud está en estado Borrador
                 if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
                 {
-                    return BadRequest(new { 
-                        success = false, 
-                        message = $"La solicitud no puede ser enviada. Estado actual: {solicitud.Estado}" 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"La solicitud no puede ser enviada. Estado actual: {solicitud.Estado}"
                     });
                 }
 
@@ -902,8 +888,9 @@ namespace SIGAD.WebAPI.Controllers
                 var tieneDocumentos = await VerificarDocumentosAsync(solicitudId);
                 if (!tieneDocumentos.tieneDocumentos)
                 {
-                    return BadRequest(new { 
-                        success = false, 
+                    return BadRequest(new
+                    {
+                        success = false,
                         message = "La solicitud debe tener al menos un documento de cada tipo requerido antes de ser enviada",
                         documentosFaltantes = tieneDocumentos.documentosFaltantes
                     });
@@ -967,9 +954,10 @@ namespace SIGAD.WebAPI.Controllers
                 // Solo permitir cancelar solicitudes en estado Borrador
                 if (solicitud.Estado != SIGAD.Domain.Enums.EstadoSolicitud.Borrador)
                 {
-                    return BadRequest(new { 
-                        success = false, 
-                        message = $"Solo se pueden cancelar solicitudes en borrador. Estado actual: {solicitud.Estado}" 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Solo se pueden cancelar solicitudes en borrador. Estado actual: {solicitud.Estado}"
                     });
                 }
 
@@ -1054,7 +1042,7 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 _logger.LogInformation("Obteniendo rango actual para docente {Cedula}", docenteCedula);
-                
+
                 // Buscar la última solicitud aprobada del docente
                 var ultimaSolicitudAprobada = await _context.SolicitudesAscenso
                     .Where(s => s.DocenteCedula == docenteCedula && s.Estado == SIGAD.Domain.Enums.EstadoSolicitud.Aprobada)
@@ -1067,7 +1055,7 @@ namespace SIGAD.WebAPI.Controllers
                     var rango = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == ultimaSolicitudAprobada.RangoSolicitadoId);
                     if (rango != null)
                     {
-                        _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                        _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})",
                             docenteCedula, rango.Nombre, rango.Id);
                         return (rango.Id, rango.Nombre);
                     }
@@ -1076,10 +1064,10 @@ namespace SIGAD.WebAPI.Controllers
                 // Si no tiene solicitudes aprobadas, asumir rango nivel 1 por defecto (sin crear solicitud)
                 _logger.LogInformation("Docente {Cedula} sin rango actual - Asumiendo rango nivel 1 por defecto", docenteCedula);
                 var rangoNivel1 = await _context.Rangos.OrderBy(r => r.Id).FirstOrDefaultAsync();
-                
+
                 if (rangoNivel1 != null)
                 {
-                    _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                    _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})",
                         docenteCedula, rangoNivel1.Nombre, rangoNivel1.Id);
                     return (rangoNivel1.Id, rangoNivel1.Nombre);
                 }

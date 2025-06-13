@@ -68,5 +68,12 @@ namespace SIGAD.Infrastructure.Repositories
         {
             return await _context.SolicitudesAscenso.AnyAsync(s => s.Id == id);
         }
+
+        public async Task<IEnumerable<SolicitudAscenso>> GetAllAsync()
+        {
+            return await _context.SolicitudesAscenso
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }
