@@ -347,6 +347,174 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// TEMPORAL: Crea rangos de prueba (SOLO DESARROLLO)
+        /// </summary>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-test-rangos")]
+        public async Task<IActionResult> CreateTestRangos()
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando creación de rangos de prueba...");
+
+                // Limpiar rangos existentes si existen
+                var existingRangos = await _context.Rangos.ToListAsync();
+                if (existingRangos.Any())
+                {
+                    _context.Rangos.RemoveRange(existingRangos);
+                    _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Crear rangos de prueba (sin IDs específicos - dejar que la DB los genere)
+                var testRangos = new[]
+                {
+                    new { Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0.0m },
+                    new { Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70.0m },
+                    new { Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75.0m },
+                    new { Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80.0m }
+                };
+
+                var rangosCreados = new List<object>();
+
+                foreach (var rango in testRangos)
+                {
+                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre);
+
+                    var newRango = new SIGAD.Domain.Entities.Rango
+                    {
+                        // No establecemos Id - dejar que Entity Framework lo genere automáticamente
+                        Nombre = rango.Nombre,
+                        ArticulosRequeridos = rango.ArticulosRequeridos,
+                        AniosExperienciaRequeridos = rango.AniosExperienciaRequeridos,
+                        HorasCursoRequeridas = rango.HorasCursoRequeridas,
+                        MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
+                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
+                    };
+
+                    _context.Rangos.Add(newRango);
+                }
+
+                var savedRecords = await _context.SaveChangesAsync();
+
+                // Obtener los rangos creados con sus IDs generados
+                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync();
+                rangosCreados = rangosEnDb.Select(r => new
+                {
+                    id = r.Id,
+                    nombre = r.Nombre,
+                    articulosRequeridos = r.ArticulosRequeridos,
+                    aniosExperiencia = r.AniosExperienciaRequeridos,
+                    horasCurso = r.HorasCursoRequeridas,
+                    mesesInvestigacion = r.MesesInvestigacionRequeridos,
+                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
+                }).ToList<object>();
+                _logger.LogInformation("Rangos creados exitosamente. Registros guardados: {Count}", savedRecords);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Rangos de prueba creados exitosamente",
+                    data = new
+                    {
+                        rangosCreados = savedRecords,
+                        rangos = rangosCreados
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear rangos de prueba");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear rangos de prueba",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// TEMPORAL: Crea una solicitud de ascenso aprobada para un docente (SOLO DESARROLLO)
+        /// </summary>
+        /// <param name="cedula">Cédula del docente</param>
+        /// <param name="rangoId">ID del rango a asignar</param>
+        /// <returns>Resultado de la creación</returns>
+        [HttpPost("create-test-ascenso/{cedula}/{rangoId}")]
+        public async Task<IActionResult> CreateTestAscenso(string cedula, int rangoId)
+        {
+            try
+            {
+                _logger.LogInformation("Creando solicitud de ascenso de prueba para docente {Cedula} al rango {RangoId}", cedula, rangoId);
+
+                // Verificar que el docente existe
+                var docente = await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedula);
+                if (docente == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Docente con cédula {cedula} no encontrado"
+                    });
+                }
+
+                // Verificar que el rango existe
+                var rango = await _context.Rangos.FirstOrDefaultAsync(r => r.Id == rangoId);
+                if (rango == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Rango con ID {rangoId} no encontrado"
+                    });
+                }
+
+                // Crear solicitud de ascenso aprobada
+                var solicitud = new SIGAD.Domain.Entities.SolicitudAscenso
+                {
+                    Id = Guid.NewGuid(),
+                    DocenteCedula = cedula,
+                    RangoActualId = null, // Asumimos que es su primer rango
+                    RangoSolicitadoId = rangoId,
+                    FechaCreacion = DateTime.UtcNow.AddDays(-30), // Hace 30 días
+                    FechaEnvio = DateTime.UtcNow.AddDays(-25),   // Hace 25 días
+                    FechaResolucion = DateTime.UtcNow.AddDays(-1), // Hace 1 día
+                    Estado = SIGAD.Domain.Enums.EstadoSolicitud.Aprobada,
+                    ObservacionesAdmin = "Solicitud de prueba - Aprobada automáticamente"
+                };
+
+                _context.SolicitudesAscenso.Add(solicitud);
+                var savedRecords = await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Solicitud de ascenso creada exitosamente. ID: {SolicitudId}", solicitud.Id);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud de ascenso de prueba creada exitosamente",
+                    data = new
+                    {
+                        solicitudId = solicitud.Id,
+                        docenteCedula = cedula,
+                        rangoAsignado = rango.Nombre,
+                        rangoId = rangoId,
+                        fechaAprobacion = solicitud.FechaResolucion
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear solicitud de ascenso de prueba");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error al crear solicitud de ascenso de prueba",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// TEMPORAL: Crea usuarios de prueba con hashes correctos (SOLO DESARROLLO)
         /// </summary>
         /// <returns>Resultado de la creación</returns>
