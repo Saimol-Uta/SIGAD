@@ -2,10 +2,12 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject ISolicitudService SolicitudService
 
 <PageTitle>Gestión de Documentos - SIGAD</PageTitle>
 
@@ -320,8 +322,8 @@
                         <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
                             📥 Importar
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
-                            📤 Exportar
+                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-investigacion"))" disabled="@operacionEnProceso">
+                            📤 Agregar
                         </button>
                     </div>
                 </div>
@@ -443,8 +445,20 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
+        await VerificarSolicitudActiva();
         await CargarConteoDocumentos();
         isLoading = false;
+    }
+
+    private async Task VerificarSolicitudActiva()
+    {
+        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+        if (string.IsNullOrEmpty(solicitudId))
+        {
+            // No hay solicitud activa, mostrar mensaje informativo
+            mensajeOperacion = "⚠️ No hay una solicitud de ascenso activa. Inicie un proceso de ascenso para gestionar documentos.";
+            operacionExitosa = false;
+        }
     }
 
     private async Task CargarInformacionUsuario()

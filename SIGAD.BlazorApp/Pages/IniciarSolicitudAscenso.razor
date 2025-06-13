@@ -2,10 +2,13 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using System.Text.Json
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject ISolicitudService SolicitudService
 
 <PageTitle>Iniciar Solicitud de Ascenso - SIGAD</PageTitle>
 
@@ -535,27 +538,55 @@
 
         try
         {
-            // Preparar los datos para la solicitud
-            var solicitudData = new
+            // Limpiar cualquier solicitud anterior
+            await SolicitudService.ClearSolicitudActualAsync();
+
+            // Preparar datos para la solicitud
+            var requestData = new { RangoSolicitadoId = rangoSiguiente.Id };
+
+            // Llamar al endpoint para crear la solicitud
+            var response = await Http.PostAsJsonAsync("api/auth/crear-solicitud", requestData);
+            
+            if (response.IsSuccessStatusCode)
             {
-                RangoSolicitadoId = rangoSiguiente.Id,
-                RangoActualId = rangoActualId == 0 ? (int?)null : rangoActualId, // Si es 0, se asignará automáticamente el rango 1
-                Observaciones = rangoActualId == 0 ? 
-                    "Solicitud inicial - Se asigna automáticamente Rango 1 (Instructor) como rango actual" : 
-                    $"Solicitud de ascenso secuencial de {rangoActual} a {rangoSiguiente.Nombre}"
-            };
+                var content = await response.Content.ReadAsStringAsync();
+                var result = System.Text.Json.JsonSerializer.Deserialize<CreateSolicitudResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
-            // Aquí llamarías a tu endpoint para crear la solicitud
-            // Por ejemplo: await Http.PostAsJsonAsync($"api/auth/create-solicitud-con-logica/{cedula}/{rangoSiguiente.Id}", solicitudData);
-            
-            // Por ahora simulamos la creación
-            await Task.Delay(2000);
-
-            solicitudCreada = true;
-            
-            // Redirigir a la gestión de documentos después de 3 segundos
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/gestion-documentos");
+                if (result?.Success == true && result.Data?.SolicitudId != null)
+                {
+                    // Guardar el ID de la solicitud creada
+                    await SolicitudService.SetSolicitudActualAsync(result.Data.SolicitudId);
+                    
+                    solicitudCreada = true;
+                    
+                    // Redirigir a la gestión de documentos después de 2 segundos
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/gestion-documentos");
+                }
+                else
+                {
+                    errorMessage = result?.Message ?? "Error al crear la solicitud";
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    var errorResult = System.Text.Json.JsonSerializer.Deserialize<CreateSolicitudResponse>(errorContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    errorMessage = errorResult?.Message ?? "Error al crear la solicitud";
+                }
+                catch
+                {
+                    errorMessage = $"Error al crear la solicitud: {response.StatusCode}";
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -618,5 +649,22 @@
         public string? NombreCompleto { get; set; }
         public string? RangoId { get; set; }
         public string? RangoNombre { get; set; }
+    }
+
+    public class CreateSolicitudResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public SolicitudData? Data { get; set; }
+    }
+
+    public class SolicitudData
+    {
+        public string SolicitudId { get; set; } = "";
+        public string DocenteCedula { get; set; } = "";
+        public object? RangoActual { get; set; }
+        public object? RangoSolicitado { get; set; }
+        public string Estado { get; set; } = "";
+        public string? Observaciones { get; set; }
     }
 } 
