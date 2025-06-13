@@ -1,0 +1,719 @@
+@page "/gestion-documentos"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+
+<PageTitle>Gestión de Documentos - SIGAD</PageTitle>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .back-btn, .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn {
+        background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    .main-content {
+        padding: 2rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header .subtitle {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .documents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .document-card {
+        background: white;
+        border: 1px solid #0a1d44;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .document-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .document-card h3 {
+        color: #0a1d44;
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .document-card .icon {
+        font-size: 1.5rem;
+    }
+
+    .document-card .description {
+        color: #666;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.4;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .btn-import {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-import:hover {
+        background-color: #218838;
+    }
+
+    .btn-export {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-export:hover {
+        background-color: #0056b3;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .status-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .status-info h3 {
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+    }
+
+    .status-info p {
+        color: #666;
+        margin: 0;
+    }
+
+    .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .triangle-bg {
+        position: fixed;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+
+    .document-count {
+        background-color: #0a1d44;
+        color: white;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        margin-left: auto;
+    }
+</style>
+
+<body>
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
+        </div>
+        <div class="user-profile">
+            <a href="/Dashboard" class="back-btn">← Volver al Dashboard</a>
+            <span>@nombreUsuario</span>
+            <img src="@urlFotoPerfil" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Gestión de Documentos</h1>
+            <p class="subtitle">Importe y exporte sus documentos académicos para el proceso de ascenso</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading">
+                <p>Cargando información de documentos...</p>
+            </div>
+        }
+        else
+        {
+            <div class="status-info">
+                <h3>📋 Estado de sus Documentos</h3>
+                <p>Docente: <strong>@nombreCompleto</strong> | Cédula: <strong>@cedula</strong></p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensajeOperacion))
+            {
+                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
+                    @mensajeOperacion
+                </div>
+            }
+
+            <div class="documents-grid">
+                <!-- Investigaciones -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">🔬</span>
+                        Investigaciones
+                        <span class="document-count">@conteoInvestigaciones</span>
+                    </h3>
+                    <p class="description">
+                        Gestione sus proyectos de investigación, informes y documentos relacionados con actividades investigativas.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
+                            📥 Importar
+                        </button>
+                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
+                            📤 Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Artículos -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">📄</span>
+                        Artículos
+                        <span class="document-count">@conteoArticulos</span>
+                    </h3>
+                    <p class="description">
+                        Administre sus publicaciones científicas, artículos de revista y documentos académicos publicados.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("articulos"))" disabled="@operacionEnProceso">
+                            📥 Importar
+                        </button>
+                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("articulos"))" disabled="@operacionEnProceso">
+                            📤 Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Experiencia Laboral -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">💼</span>
+                        Experiencia Laboral
+                        <span class="document-count">@conteoExperiencias</span>
+                    </h3>
+                    <p class="description">
+                        Gestione su historial profesional, certificados laborales y documentos de experiencia docente.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
+                            📥 Importar
+                        </button>
+                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
+                            📤 Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Evaluaciones -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">📊</span>
+                        Evaluaciones
+                        <span class="document-count">@conteoEvaluaciones</span>
+                    </h3>
+                    <p class="description">
+                        Administre sus evaluaciones docentes, reportes de desempeño y documentos de evaluación académica.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
+                            📥 Importar
+                        </button>
+                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
+                            📤 Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cursos -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">🎓</span>
+                        Cursos
+                        <span class="document-count">@conteoCursos</span>
+                    </h3>
+                    <p class="description">
+                        Gestione sus cursos impartidos, certificados de capacitación y documentos de formación académica.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("cursos"))" disabled="@operacionEnProceso">
+                            📥 Importar
+                        </button>
+                        <button class="btn btn-export" @onclick="@(() => ExportarDocumentos("cursos"))" disabled="@operacionEnProceso">
+                            📤 Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            @if (operacionEnProceso)
+            {
+                <div class="alert alert-info">
+                    <strong>Procesando...</strong> @mensajeProceso
+                </div>
+            }
+        }
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>
+
+@code {
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+    private string nombreCompleto = "";
+    private string cedula = "";
+    private string urlFotoPerfil = "/images/IconoUser.png";
+
+    // Variables de conteo de documentos
+    private int conteoInvestigaciones = 0;
+    private int conteoArticulos = 0;
+    private int conteoExperiencias = 0;
+    private int conteoEvaluaciones = 0;
+    private int conteoCursos = 0;
+
+    // Variables de estado
+    private bool isLoading = true;
+    private bool operacionEnProceso = false;
+    private bool operacionExitosa = false;
+    private string? mensajeOperacion;
+    private string mensajeProceso = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionUsuario();
+        await CargarConteoDocumentos();
+        isLoading = false;
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                        nombreCompleto = result.Data.NombreCompleto ?? "";
+                        cedula = result.Data.Cedula ?? "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = "Error al cargar información del usuario: " + ex.Message;
+            operacionExitosa = false;
+        }
+    }
+
+    private async Task CargarConteoDocumentos()
+    {
+        if (string.IsNullOrEmpty(cedula)) return;
+
+        try
+        {
+            // Cargar conteo de cada tipo de documento
+            await Task.WhenAll(
+                CargarConteoInvestigaciones(),
+                CargarConteoArticulos(),
+                CargarConteoExperiencias(),
+                CargarConteoEvaluaciones(),
+                CargarConteoCursos()
+            );
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = "Error al cargar el conteo de documentos: " + ex.Message;
+            operacionExitosa = false;
+        }
+    }
+
+    private async Task CargarConteoInvestigaciones()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/investigaciones/docente/{cedula}");
+            if (response.IsSuccessStatusCode)
+            {
+                var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
+                conteoInvestigaciones = investigaciones?.Count ?? 0;
+            }
+        }
+        catch (Exception)
+        {
+            conteoInvestigaciones = 0;
+        }
+    }
+
+    private async Task CargarConteoArticulos()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/articulos/docente/{cedula}");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                conteoArticulos = result?.Data?.Count ?? 0;
+            }
+        }
+        catch (Exception)
+        {
+            conteoArticulos = 0;
+        }
+    }
+
+    private async Task CargarConteoExperiencias()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/experienciaslaborales/docente/{cedula}");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                conteoExperiencias = result?.Data?.Count ?? 0;
+            }
+        }
+        catch (Exception)
+        {
+            conteoExperiencias = 0;
+        }
+    }
+
+    private async Task CargarConteoEvaluaciones()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/evaluaciones/docente/{cedula}");
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                conteoEvaluaciones = result?.Data?.Count ?? 0;
+            }
+        }
+        catch (Exception)
+        {
+            conteoEvaluaciones = 0;
+        }
+    }
+
+    private async Task CargarConteoCursos()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/cursos/docente/{cedula}");
+            if (response.IsSuccessStatusCode)
+            {
+                var cursos = await response.Content.ReadFromJsonAsync<List<object>>();
+                conteoCursos = cursos?.Count ?? 0;
+            }
+        }
+        catch (Exception)
+        {
+            conteoCursos = 0;
+        }
+    }
+
+    private async Task ImportarDocumentos(string tipoDocumento)
+    {
+        if (operacionEnProceso) return;
+
+        operacionEnProceso = true;
+        mensajeProceso = $"Preparando importación de {tipoDocumento}...";
+        mensajeOperacion = null;
+
+        try
+        {
+            // Por ahora simulamos la operación de importación
+            await Task.Delay(2000);
+
+            // Aquí implementarías la lógica real de importación
+            // Por ejemplo, abrir un diálogo de archivo o navegar a una página de importación
+
+            mensajeOperacion = $"Funcionalidad de importación de {tipoDocumento} estará disponible próximamente.";
+            operacionExitosa = true;
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"Error al importar {tipoDocumento}: " + ex.Message;
+            operacionExitosa = false;
+        }
+        finally
+        {
+            operacionEnProceso = false;
+            mensajeProceso = "";
+        }
+    }
+
+    private async Task ExportarDocumentos(string tipoDocumento)
+    {
+        if (operacionEnProceso) return;
+
+        operacionEnProceso = true;
+        mensajeProceso = $"Exportando {tipoDocumento}...";
+        mensajeOperacion = null;
+
+        try
+        {
+            string endpoint = tipoDocumento switch
+            {
+                "investigaciones" => $"api/investigaciones/docente/{cedula}",
+                "articulos" => $"api/articulos/docente/{cedula}",
+                "experiencias" => $"api/experienciaslaborales/docente/{cedula}",
+                "evaluaciones" => $"api/evaluaciones/docente/{cedula}",
+                "cursos" => $"api/cursos/docente/{cedula}",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(endpoint))
+            {
+                var response = await Http.GetAsync(endpoint);
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonContent = await response.Content.ReadAsStringAsync();
+                    
+                    // Descargar como archivo JSON
+                    var fileName = $"{tipoDocumento}_{cedula}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+                    await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", jsonContent);
+                    
+                    mensajeOperacion = $"✅ {tipoDocumento} exportados exitosamente como {fileName}";
+                    operacionExitosa = true;
+                }
+                else
+                {
+                    mensajeOperacion = $"Error al exportar {tipoDocumento}: No se pudieron obtener los datos";
+                    operacionExitosa = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"Error al exportar {tipoDocumento}: " + ex.Message;
+            operacionExitosa = false;
+        }
+        finally
+        {
+            operacionEnProceso = false;
+            mensajeProceso = "";
+            
+            // Limpiar mensaje después de 5 segundos
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                mensajeOperacion = null;
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    // Modelos para las respuestas de API
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Rol { get; set; }
+        public string? Cedula { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Nombre2 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Apellido2 { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public T? Data { get; set; }
+        public int Count { get; set; }
+    }
+} 

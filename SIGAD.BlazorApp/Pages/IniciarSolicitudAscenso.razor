@@ -553,9 +553,9 @@
 
             solicitudCreada = true;
             
-            // Redirigir después de 3 segundos
+            // Redirigir a la gestión de documentos después de 3 segundos
             await Task.Delay(3000);
-            Navigation.NavigateTo("/Dashboard");
+            Navigation.NavigateTo("/gestion-documentos");
         }
         catch (Exception ex)
         {
