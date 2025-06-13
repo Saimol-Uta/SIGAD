@@ -218,7 +218,9 @@
                                                         <th>Organización</th>
                                                         <th>Tipo de Organización</th>
                                                         <th>Cargo</th>
-                                                        <th>Período</th>
+                                                        <th>Fecha Inicio</th>
+                                                        <th>Fecha Fin</th>
+                                                        <th>Duración</th>
                                                         <th>Acciones</th>
                                                     </tr>
                                                 </thead>
@@ -226,14 +228,50 @@
                                                     @foreach (var experiencia in solicitud.ExperienciasLaborales)
                                                     {
                                                         <tr>
-                                                            <td>@experiencia.OrganizacionNombre</td>
-                                                            <td>@experiencia.OrganizacionTipo</td>
+                                                            <td>
+                                                                <strong>@experiencia.OrganizacionNombre</strong>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-info text-dark">@experiencia.OrganizacionTipo</span>
+                                                            </td>
                                                             <td>@experiencia.Cargo</td>
-                                                            <td>@experiencia.PeriodoTrabajo</td>
+                                                            <td>@experiencia.FechaInicio.ToString("MM/yyyy")</td>
+                                                            <td>
+                                                                @if (experiencia.FechaFin.HasValue)
+                                                                {
+                                                                    @experiencia.FechaFin.Value.ToString("MM/yyyy")
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-success">Actual</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @{
+                                                                    var fechaFin = experiencia.FechaFin ?? DateTime.Now;
+                                                                    var meses = ((fechaFin.Year - experiencia.FechaInicio.Year) * 12) + fechaFin.Month - experiencia.FechaInicio.Month;
+                                                                    var años = meses / 12;
+                                                                    var mesesRestantes = meses % 12;
+                                                                }
+                                                                @if (años > 0)
+                                                                {
+                                                                    <span>@años año@(años > 1 ? "s" : "")</span>
+                                                                    @if (mesesRestantes > 0)
+                                                                    {
+                                                                        <span>, @mesesRestantes mes@(mesesRestantes > 1 ? "es" : "")</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>@meses mes@(meses > 1 ? "es" : "")</span>
+                                                                }
+                                                            </td>
                                                             <td>
                                                                 @if (experiencia.TieneCertificado)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">Ver Certificado</button>
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">
+                                                                        <i class="fas fa-download"></i> Ver Certificado
+                                                                    </button>
                                                                 }
                                                                 else
                                                                 {
