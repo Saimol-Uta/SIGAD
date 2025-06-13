@@ -449,20 +449,15 @@
     private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
     {
         await CargarDetalle();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    }    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Inicializar Bootstrap accordion manualmente
+            // Asegurar que Bootstrap está inicializado
             await JSRuntime.InvokeVoidAsync("eval", @"
+                console.log('Bootstrap loaded:', typeof bootstrap !== 'undefined');
                 if (typeof bootstrap !== 'undefined') {
-                    document.querySelectorAll('.accordion-button').forEach(button => {
-                        button.addEventListener('click', function() {
-                            console.log('Accordion button clicked:', this.getAttribute('data-bs-target'));
-                        });
-                    });
+                    console.log('Bootstrap accordion initialized');
                 }
             ");
         }
