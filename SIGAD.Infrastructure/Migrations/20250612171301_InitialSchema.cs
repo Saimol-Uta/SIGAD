@@ -225,7 +225,7 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaEnvio = table.Column<DateTime>(type: "datetime2", nullable: true),
                     FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Estado = table.Column<int>(type: "int", maxLength: 20, nullable: false),
+                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ObservacionesAdmin = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>

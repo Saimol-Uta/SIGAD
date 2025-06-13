@@ -12,7 +12,11 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
+<<<<<<<< HEAD:SIGAD.Infrastructure/Migrations/20250612171301_InitialSchema.Designer.cs
     [Migration("20250612171301_InitialSchema")]
+========
+    [Migration("20250612221631_InitialSchema")]
+>>>>>>>> DevelopSigad:SIGAD.Infrastructure/Migrations/20250612221631_InitialSchema.Designer.cs
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -450,9 +454,10 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("Estado")
+                    b.Property<string>("Estado")
+                        .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("int");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
