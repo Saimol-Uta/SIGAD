@@ -261,6 +261,7 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = evaluacion.FechaEvaluacion,
                 PuntajePorcentual = evaluacion.PuntajePorcentual,
                 InformeRuta = evaluacion.InformeRuta,
+                ContenidoHash = evaluacion.ContenidoHash,
                 DocenteCedula = evaluacion.DocenteCedula,
                 DocenteNombreCompleto = nombreCompleto
             };

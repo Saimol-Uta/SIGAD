@@ -6,6 +6,7 @@ namespace SIGAD.Domain.Interfaces
     {
         Task<IEnumerable<Organizacion>> GetAllAsync();
         Task<Organizacion?> GetByIdAsync(int id);
+        Task<Organizacion?> GetByNombreAsync(string nombre);
         Task AddAsync(Organizacion organizacion);
         Task UpdateAsync(Organizacion organizacion);
         Task DeleteAsync(int id);

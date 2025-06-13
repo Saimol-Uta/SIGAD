@@ -72,11 +72,18 @@ namespace SIGAD.Application.Services
                 throw new ArgumentException("El docente especificado no existe");
             }
 
-            // Validar que la organización existe
-            var organizacionExists = await _organizacionRepository.ExistsAsync(createDto.OrganizacionId);
-            if (!organizacionExists)
+            // Buscar o crear la organización
+            var organizacion = await _organizacionRepository.GetByNombreAsync(createDto.OrganizacionNombre);
+            if (organizacion == null)
             {
-                throw new ArgumentException("La organización especificada no existe");
+                // Crear nueva organización
+                organizacion = new Organizacion
+                {
+                    Nombre = createDto.OrganizacionNombre,
+                    TipoOrganizacion = "Empresa" // Tipo por defecto
+                };
+                await _organizacionRepository.AddAsync(organizacion);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             // Procesar archivo si se proporciona
@@ -92,7 +99,7 @@ namespace SIGAD.Application.Services
 
             var experiencia = new ExperienciaLaboral
             {
-                OrganizacionId = createDto.OrganizacionId,
+                OrganizacionId = organizacion.Id,
                 DocenteCedula = createDto.DocenteCedula,
                 Cargo = createDto.Cargo,
                 FechaInicio = createDto.FechaInicio,

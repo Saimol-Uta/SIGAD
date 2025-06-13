@@ -19,7 +19,8 @@ namespace SIGAD.Application.DTOs
     public class CreateExperienciaLaboralDto
     {
         [Required(ErrorMessage = "La organización es requerida")]
-        public int OrganizacionId { get; set; }
+        [StringLength(100, ErrorMessage = "El nombre de la organización no puede exceder los 100 caracteres")]
+        public string OrganizacionNombre { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La cédula del docente es requerida")]
         [StringLength(10, ErrorMessage = "La cédula debe tener 10 caracteres")]
