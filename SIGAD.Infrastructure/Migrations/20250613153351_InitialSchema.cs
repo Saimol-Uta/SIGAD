@@ -94,7 +94,9 @@ namespace SIGAD.Infrastructure.Migrations
                     Correo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ClaveHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Rol = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Rol = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CodigoRecuperacion = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CodigoExpiracion = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {

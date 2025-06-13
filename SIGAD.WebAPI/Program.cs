@@ -8,6 +8,7 @@ using SIGAD.Application.Services;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
+using SIGAD.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,6 +70,7 @@ builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService
 // builder.Services.AddScoped<GestionRangoAppService>();
 // builder.Services.AddScoped<ActualizarRangoService>();
 builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<IEmailService, DummyEmailService>();
 
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();

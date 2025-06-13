@@ -21,6 +21,7 @@ namespace SIGAD.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
+        private readonly IEmailService _emailService;
 
         public AuthService(
             ICuentaRepository cuentaRepository,
@@ -29,7 +30,8 @@ namespace SIGAD.Application.Services
             IRangoRepository rangoRepository,
             IUnitOfWork unitOfWork,
             IConfiguration configuration,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IEmailService emailService)
         {
             _cuentaRepository = cuentaRepository;
             _docenteRepository = docenteRepository;
@@ -322,6 +324,60 @@ namespace SIGAD.Application.Services
         public string HashPassword(string password)
         {
             return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
+        }
+
+        public async Task<bool> SolicitarRecuperacionAsync(string email)
+        {
+            var cuenta = await _cuentaRepository.GetByEmailAsync(email);
+
+            if (cuenta == null)
+            {
+                // NOTA DE SEGURIDAD: No revelamos si el correo existe o no.
+                // Siempre devolvemos un mensaje de éxito para evitar que los atacantes
+                // adivinen qué correos están registrados en el sistema.
+                return true;
+            }
+
+            // 1. Generar un código aleatorio de 6 dígitos
+            var codigo = new Random().Next(100000, 999999).ToString();
+
+            // 2. Guardar el código y su fecha de expiración en la base de datos
+            cuenta.CodigoRecuperacion = codigo;
+            cuenta.CodigoExpiracion = DateTime.UtcNow.AddMinutes(15); // El código es válido por 15 minutos
+
+            await _unitOfWork.SaveChangesAsync();
+
+            // 3. Enviar el correo (usando nuestro servicio de simulación)
+            var asunto = "Código de Recuperación de Contraseña - SIGAD";
+            var cuerpo = $"Hola, has solicitado restablecer tu contraseña. Tu código de recuperación es: {codigo}. Este código expirará en 15 minutos.";
+            await _emailService.SendEmailAsync(cuenta.Correo, asunto, cuerpo);
+
+            return true;
+        }
+
+        // --- NUEVO MÉTODO: RESTABLECER CONTRASEÑA ---
+        public async Task<bool> RestablecerContrasenaAsync(string email, string codigo, string nuevaContrasena)
+        {
+            var cuenta = await _cuentaRepository.GetByEmailAsync(email);
+
+            // 1. Validar que la cuenta y el código sean correctos y no hayan expirado
+            if (cuenta == null || cuenta.CodigoRecuperacion != codigo || cuenta.CodigoExpiracion < DateTime.UtcNow)
+            {
+                return false; // Si algo falla, el restablecimiento no procede
+            }
+
+            // 2. Hashear la nueva contraseña
+            // ¡IMPORTANTE! Aquí debes usar tu método existente para hashear contraseñas.
+            // Estoy usando BCrypt como ejemplo.
+            cuenta.ClaveHash = BCrypt.Net.BCrypt.HashPassword(nuevaContrasena);
+
+            // 3. Invalidar el código de recuperación para que no se pueda volver a usar
+            cuenta.CodigoRecuperacion = null;
+            cuenta.CodigoExpiracion = null;
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
         }
     }
 }

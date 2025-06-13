@@ -13,6 +13,31 @@ namespace SIGAD.WebAPI.Controllers
     [Produces("application/json")]
     public class AuthController : ControllerBase
     {
+
+        [HttpPost("solicitar-recuperacion")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Un usuario sin sesión debe poder usar esto
+        public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto dto)
+        {
+            await _authService.SolicitarRecuperacionAsync(dto.Email);
+
+            // Por seguridad, siempre devolvemos una respuesta genérica exitosa
+            return Ok(new { Message = "Si su correo electrónico está registrado en nuestro sistema, recibirá un correo con las instrucciones para restablecer su contraseña." });
+        }
+
+        [HttpPost("restablecer-contrasena")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+        public async Task<IActionResult> RestablecerContrasena([FromBody] RestablecerContrasenaDto dto)
+        {
+            var success = await _authService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena);
+
+            if (!success)
+            {
+                return BadRequest(new { Message = "El código de recuperación es inválido, ha expirado o el correo es incorrecto." });
+            }
+
+            return Ok(new { Message = "Su contraseña ha sido restablecida exitosamente." });
+        }
+
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly SigadDbContext _context;
@@ -660,7 +685,7 @@ namespace SIGAD.WebAPI.Controllers
                 {
                     new { Cedula = "1234567890", Nombre1 = "Juan", Nombre2 = "Carlos", Apellido1 = "Pérez", Apellido2 = "González", Correo = "admin@sigad.edu.co", Rol = "ADMINISTRADOR" },
                     new { Cedula = "0987654321", Nombre1 = "María", Nombre2 = "Elena", Apellido1 = "Rodríguez", Apellido2 = "López", Correo = "docente1@sigad.edu.co", Rol = "DOCENTE" },
-                    new { Cedula = "1122334455", Nombre1 = "Pedro", Nombre2 = (string?)null, Apellido1 = "Martínez", Apellido2 = "Hernández", Correo = "docente2@sigad.edu.co", Rol = "DOCENTE" }
+                    new { Cedula = "1122334455", Nombre1 = "Pedro", Nombre2 = "Andes", Apellido1 = "Martínez", Apellido2 = "Hernández", Correo = "docente2@sigad.edu.co", Rol = "DOCENTE" }
                 };
 
                 foreach (var user in testUsers)
