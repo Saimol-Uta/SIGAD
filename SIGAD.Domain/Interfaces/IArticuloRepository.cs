@@ -15,4 +15,4 @@ namespace SIGAD.Domain.Interfaces
         Task AddToSolicitudAsync(Guid solicitudId, string articuloDoi);
         Task RemoveFromSolicitudAsync(Guid solicitudId, string articuloDoi);
     }
-} 
+}

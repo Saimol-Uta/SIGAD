@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SIGAD.Infrastructure.Repositories
 {
@@ -97,4 +100,4 @@ namespace SIGAD.Infrastructure.Repositories
             }
         }
     }
-} 
+}
