@@ -2,6 +2,10 @@
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
 @using SIGAD.BlazorApp.Components
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
 
 <div class="page-wrapper">
     <Encabezado />
@@ -42,6 +46,25 @@
             </div>
 
             <!-- TABLA DE SOLICITUDES -->
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
+                    <strong>Error:</strong> @mensajeError
+                    <button @onclick="CargarSolicitudes" style="margin-left: 10px; padding: 5px 10px; background-color: #0a1d44; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        Reintentar
+                    </button>
+                </div>
+            }
+
+            @if (cargando)
+            {
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="margin-bottom: 15px;">Cargando solicitudes...</div>
+                    <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0a1d44; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                </div>
+            }
+            else
+            {
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
                     <thead style="background-color: #0a1d44; color: white;">
@@ -56,16 +79,15 @@
                     </thead>
                     <tbody>
                         @if (Filtradas.Any())
-                        {
-                            foreach (var solicitud in Filtradas)
+                        {                            foreach (var solicitud in Filtradas)
                             {
                                 <tr style="border-bottom: 1px solid #eee; text-align: left;">
                                     <td style="padding: 10px 20px;">@solicitud.Id</td>
-                                    <td style="padding: 10px 20px;">@solicitud.NombreDocente</td>
-                                    <td style="padding: 10px 20px;">@solicitud.Categoria</td>
-                                    <td style="padding: 10px 20px;">@solicitud.FechaSolicitud.ToString("dd/MM/yyyy")</td>
+                                    <td style="padding: 10px 20px;">@solicitud.DocenteNombreCompleto</td>
+                                    <td style="padding: 10px 20px;">@solicitud.RangoSolicitadoNombre</td>
+                                    <td style="padding: 10px 20px;">@(solicitud.FechaEnvio?.ToString("dd/MM/yyyy") ?? "N/A")</td>
                                     <td style="padding: 10px 20px;"><span style="color: @ObtenerColorEstado(solicitud.Estado); font-weight: bold;">●</span> @solicitud.Estado</td>
-                                    <td style="padding: 10px 20px;"><button style="background: none; border: none; color: #0a1d44; cursor: pointer;">Ver Detalles</button></td>
+                                    <td style="padding: 10px 20px;"><button @onclick="() => VerDetalles(solicitud.Id)" style="background: none; border: none; color: #0a1d44; cursor: pointer;">Ver Detalles</button></td>
                                 </tr>
                             }
                         }
@@ -76,8 +98,7 @@
                             </tr>
                         }
                     </tbody>
-                </table>
-            </div>
+                </table>            </div>
 
             <!-- PAGINACIÓN -->
             <div style="margin-top: 20px; display: flex; justify-content: center;">
@@ -89,6 +110,7 @@
                     </button>
                 }
             </div>
+            }
         </div>
     </div>
 </div>
@@ -176,50 +198,73 @@
             font-size: 32px;
             font-weight: bold;
             margin-bottom: 5px;
-        }
-
-        .card p {
+        }        .card p {
             font-size: 14px;
             color: #444;
         }
+
+
 </style>
 
 @code {
-    int NuevasSolicitudes = 3;
-    int SolicitudesEnProceso = 8;
-    int SolicitudesFinalizadas = 12;
+    int NuevasSolicitudes = 0;
+    int SolicitudesEnProceso = 0;
+    int SolicitudesFinalizadas = 0;
 
     private string filtroNombre = "";
     private int paginaActual = 1;
     private int porPagina = 10;
+    private bool cargando = true;
+    private string? mensajeError = null;
 
-    private class Solicitud
-    {
-        public int Id { get; set; }
-        public string NombreDocente { get; set; }
-        public string Categoria { get; set; }
-        public DateTime FechaSolicitud { get; set; }
-        public string Estado { get; set; }
-    }
-
-    private List<Solicitud> TodasSolicitudes = new()
-    {
-        new() { Id = 1, NombreDocente = "Ana Lucía Paredes", Categoria = "Profesor Titular", FechaSolicitud = new DateTime(2025,6,10), Estado = "Aprobado" },
-        new() { Id = 2, NombreDocente = "Jorge Luis Mendoza", Categoria = "Profesor Principal", FechaSolicitud = new DateTime(2025,6,8), Estado = "En Revisión (Comité)" },
-        new() { Id = 3, NombreDocente = "Sofía Martinez Vega", Categoria = "Profesor Agregado", FechaSolicitud = new DateTime(2025,6,5), Estado = "Rechazado" },
-        new() { Id = 4, NombreDocente = "David Castillo Ruiz", Categoria = "Profesor Principal", FechaSolicitud = new DateTime(2025,6,2), Estado = "Pendiente (Verificación)" },
-        new() { Id = 5, NombreDocente = "Isabela Correa Soto", Categoria = "Profesor Titular", FechaSolicitud = new DateTime(2025,6,1), Estado = "En Revisión (Pares)" },
-    };
+    private List<SolicitudDto> TodasSolicitudes = new();
 
     private string estadoSeleccionado = "";
 
-    private readonly string[] ESTADOS_NUEVOS = new[] { "Pendiente", "Pendiente (Verificación)" };
-    private readonly string[] ESTADOS_EN_PROCESO = new[] { "En Revisión (Comité)", "En Revisión (Pares)" };
-    private readonly string[] ESTADOS_FINALIZADOS = new[] { "Aprobado", "Rechazado" };
+    private readonly string[] ESTADOS_NUEVOS = new[] { "Enviada", "Pendiente" };
+    private readonly string[] ESTADOS_EN_PROCESO = new[] { "EnRevision", "En Revisión" };
+    private readonly string[] ESTADOS_FINALIZADOS = new[] { "Aprobada", "Rechazada" };
 
-    private IEnumerable<Solicitud> Filtradas =>
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarSolicitudes();
+    }
+
+    private async Task CargarSolicitudes()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            StateHasChanged();
+
+            var solicitudesApi = await SolicitudesService.GetAllSolicitudesAsync();
+            
+            TodasSolicitudes = solicitudesApi;
+            ActualizarContadores();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar las solicitudes: {ex.Message}";
+            Console.WriteLine($"Error en CargarSolicitudes: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ActualizarContadores()
+    {
+        NuevasSolicitudes = TodasSolicitudes.Count(s => ESTADOS_NUEVOS.Contains(s.Estado));
+        SolicitudesEnProceso = TodasSolicitudes.Count(s => ESTADOS_EN_PROCESO.Contains(s.Estado));
+        SolicitudesFinalizadas = TodasSolicitudes.Count(s => ESTADOS_FINALIZADOS.Contains(s.Estado));
+    }
+
+    private IEnumerable<SolicitudDto> Filtradas =>
         TodasSolicitudes
-            .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.NombreDocente.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
+            .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
             .Where(s => estadoSeleccionado switch
             {
                 "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
@@ -230,20 +275,39 @@
             .Skip((paginaActual - 1) * porPagina)
             .Take(porPagina);
 
-    private int PaginasTotales =>
-        (int)Math.Ceiling(Filtradas.Count() / (double)porPagina);
+    private int PaginasTotales
+    {
+        get
+        {
+            var totalFiltradas = TodasSolicitudes
+                .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
+                .Where(s => estadoSeleccionado switch
+                {
+                    "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
+                    "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
+                    "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
+                    _ => true
+                })
+                .Count();
+            
+            return (int)Math.Ceiling(totalFiltradas / (double)porPagina);
+        }
+    }
 
-    private void CambiarPagina(int nueva) => paginaActual = nueva;
-
-    private void FiltrarPor(string estadoGrupo)
+    private void CambiarPagina(int nueva) => paginaActual = nueva;    private void FiltrarPor(string estadoGrupo)
     {
         estadoSeleccionado = estadoGrupo;
         paginaActual = 1;
     }
 
+    private void VerDetalles(Guid solicitudId)
+    {
+        Navigation.NavigateTo($"/admin/solicitud/{solicitudId}");
+    }
+
     private string ObtenerColorEstado(string estado) =>
-        estado.Contains("Aprobado") ? "green" :
-        estado.Contains("Revisión") ? "orange" :
-        estado.Contains("Rechazado") ? "red" :
+        estado.Contains("Aprobad") ? "green" :
+        estado.Contains("Revision") || estado.Contains("Revisión") ? "orange" :
+        estado.Contains("Rechazad") ? "red" :
         "blue";
 }

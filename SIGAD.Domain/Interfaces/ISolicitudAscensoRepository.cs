@@ -1,20 +1,13 @@
 ﻿using SIGAD.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SIGAD.Domain.Interfaces
+public interface ISolicitudAscensoRepository
 {
-    public interface ISolicitudAscensoRepository
-    {
-        Task<SolicitudAscenso?> GetByIdAsync(Guid id);
-        Task<IEnumerable<SolicitudAscenso>> GetAllAsync();
-        Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync();
-        Task AddAsync(SolicitudAscenso solicitud);
-        Task UpdateAsync(SolicitudAscenso solicitud);
-        Task DeleteAsync(Guid id);
-        Task<bool> ExistsAsync(Guid id);
-    }
+    Task<SolicitudAscenso?> GetByIdAsync(Guid id);
+    Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync();
+    Task<SolicitudAscenso?> GetByIdWithDetailsAsync(Guid id);
+    Task AddAsync(SolicitudAscenso solicitud);
+    Task UpdateAsync(SolicitudAscenso solicitud);
+
+    // Agregar el método ExistsAsync
+    Task<bool> ExistsAsync(Guid id);
 }

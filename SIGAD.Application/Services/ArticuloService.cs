@@ -5,7 +5,7 @@ using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
-using ISolicitudAscensoRepository = SIGAD.Domain.Interfaces.ISolicitudAscensoRepository;
+
 
 namespace SIGAD.Application.Services
 {
@@ -107,7 +107,8 @@ namespace SIGAD.Application.Services
             // Si se especifica una solicitud, verificar que existe y asociar el artículo
             if (createDto.SolicitudId.HasValue)
             {
-                var solicitudExists = await _solicitudRepository.ExistsAsync(createDto.SolicitudId.Value);
+                var solicitud = await _solicitudRepository.GetByIdAsync(createDto.SolicitudId.Value);
+                var solicitudExists = solicitud != null;
                 if (solicitudExists)
                 {
                     await _articuloRepository.AddToSolicitudAsync(createDto.SolicitudId.Value, articulo.DOI);
@@ -184,8 +185,8 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
-            var solicitudExists = await _solicitudRepository.ExistsAsync(asociarDto.SolicitudId);
-            if (!solicitudExists)
+            var solicitud = await _solicitudRepository.GetByIdAsync(asociarDto.SolicitudId);
+            if (solicitud == null)
             {
                 return false;
             }

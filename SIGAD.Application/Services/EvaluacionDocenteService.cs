@@ -5,7 +5,7 @@ using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
-using ISolicitudAscensoRepository = SIGAD.Domain.Interfaces.ISolicitudAscensoRepository;
+
 
 namespace SIGAD.Application.Services
 {
