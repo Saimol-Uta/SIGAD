@@ -1,8 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace SIGAD.Application.DTOs
 {
-    public class CrearInvestigacionDto
+    public class ActualizarInvestigacionDto
     {
         [Required(ErrorMessage = "El título es requerido")]
         [StringLength(200, ErrorMessage = "El título no puede exceder los 200 caracteres")]
@@ -28,14 +28,5 @@ namespace SIGAD.Application.DTOs
         [Range(1, 120, ErrorMessage = "Los meses deben estar entre 1 y 120")]
         [Display(Name = "Meses de Investigación")]
         public int MesesDeInvestigacion { get; set; }
-
-        [Required(ErrorMessage = "La cédula del docente es requerida")]
-        [StringLength(10, MinimumLength = 8, ErrorMessage = "La cédula debe tener entre 8 y 10 caracteres")]
-        [Display(Name = "Cédula del Docente")]
-        public string DocenteCedula { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El ID de la solicitud es requerido")]
-        [Display(Name = "ID de la Solicitud")]
-        public Guid SolicitudId { get; set; }
     }
-}
+} 

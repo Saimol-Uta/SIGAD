@@ -1,3 +1,4 @@
+/*
 using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
@@ -61,7 +62,7 @@ namespace SIGAD.Application.Services
             {
                 throw new InvalidOperationException("El docente con la cédula proporcionada no existe.");
             }
-            
+
             // 4. Lógica corregida: Usa el método que definimos en la interfaz
             var articulos = await _articuloRepository.GetByDocenteAsync(docenteCedula);
 
@@ -77,4 +78,4 @@ namespace SIGAD.Application.Services
         }
     }
 }
-
+*/

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿/*
+using Microsoft.Extensions.Logging;
 using SIGAD.Application.DTOs.Validacion;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Enums;
@@ -108,3 +109,4 @@ namespace SIGAD.Application.Services
         }
     }
 }
+*/
