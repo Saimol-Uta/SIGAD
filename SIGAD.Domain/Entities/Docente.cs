@@ -14,6 +14,8 @@ namespace SIGAD.Domain.Entities
         public string Apellido1 { get; set; } = string.Empty;
         public string Apellido2 { get; set; } = string.Empty;
 
+        public string NombreCompleto => $"{Nombre1} {Nombre2} {Apellido1} {Apellido2}".Replace("  ", " ").Trim();
+
         // Propiedades de navegación para relaciones
         public virtual Cuenta? Cuenta { get; set; } // Un docente tiene una cuenta
         public virtual ICollection<SolicitudAscenso> Solicitudes { get; set; } = new List<SolicitudAscenso>();

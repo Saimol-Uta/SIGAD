@@ -1,15 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SIGAD.Application.DTOs
 {
     public class VerInvestigacionDto
     {
         public int Id { get; set; }
-        public string Titulo { get; set; }
+
+        [Display(Name = "Título")]
+        public string Titulo { get; set; } = string.Empty;
+
+        [Display(Name = "Rol en la Investigación")]
+        public string RolEnInvestigacion { get; set; } = string.Empty;
+
+        [Display(Name = "Meses de Investigación")]
         public int MesesDeInvestigacion { get; set; }
+
+        [Display(Name = "Nombre del Docente")]
+        public string NombreDocente { get; set; } = string.Empty;
     }
 }
