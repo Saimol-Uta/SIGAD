@@ -9,6 +9,7 @@
 @inject ISolicitudesService SolicitudesService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
 
 <div class="page-wrapper">
     <Encabezado />
@@ -98,7 +99,7 @@
                                                             <td>@articulo.Revista</td>
                                                             <td>@articulo.AnioPublicacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm">Ver Documento</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("articulo", articulo.DOI))">Ver Documento</button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -142,7 +143,7 @@
                                                             <td>@investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>@investigacion.MesesDeInvestigacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm">Ver Informe</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("investigacion", investigacion.Id.ToString()))">Ver Informe</button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -186,7 +187,7 @@
                                                             <td>@curso.NumeroHoras</td>
                                                             <td>@curso.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm">Ver Certificado</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("curso", curso.Id.ToString()))">Ver Certificado</button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -232,7 +233,7 @@
                                                             <td>
                                                                 @if (experiencia.TieneCertificado)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm">Ver Certificado</button>
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">Ver Certificado</button>
                                                                 }
                                                                 else
                                                                 {
@@ -285,7 +286,7 @@
                                                             <td>
                                                                 @if (evaluacion.TieneInforme)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm">Ver Informe</button>
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("evaluacion", evaluacion.Id.ToString()))">Ver Informe</button>
                                                                 }
                                                                 else
                                                                 {
@@ -567,6 +568,99 @@
             "enrevision" => "bg-warning",
             _ => "bg-secondary"
         };
+    }
+
+    private async Task DescargarDocumento(string tipoDocumento, string id)
+    {
+        try
+        {
+            string endpoint = tipoDocumento.ToLower() switch
+            {
+                "articulo" => $"api/articulos/{id}/archivo",
+                "investigacion" => $"api/investigaciones/{id}/descargar-informe",
+                "curso" => $"api/cursos/{id}/certificado",
+                "experiencia" => $"api/experienciaslaborales/{id}/archivo",
+                "evaluacion" => $"api/evaluaciones/{id}/archivo",
+                _ => ""
+            };
+
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido.");
+                return;
+            }
+
+            // Obtener el token de autenticación
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            
+            // Realizar la descarga usando HttpClient con autenticación
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+                
+                // Obtener el nombre del archivo desde el header Content-Disposition si existe
+                var fileName = $"{tipoDocumento}_{id}";
+                if (response.Content.Headers.ContentDisposition?.FileName != null)
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+                }
+                else if (contentType.Contains("pdf"))
+                {
+                    fileName += ".pdf";
+                }
+                else if (contentType.Contains("word") || contentType.Contains("document"))
+                {
+                    fileName += ".docx";
+                }
+
+                // Convertir a Base64 para JavaScript
+                var base64 = Convert.ToBase64String(fileBytes);
+                
+                // Usar JavaScript para descargar el archivo
+                await JSRuntime.InvokeVoidAsync("eval", $@"
+                    const byteCharacters = atob('{base64}');
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {{
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }}
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], {{ type: '{contentType}' }});
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = '{fileName}';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                ");
+            }
+            else
+            {
+                var errorMessage = response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.NotFound => "Archivo no encontrado",
+                    System.Net.HttpStatusCode.Unauthorized => "No autorizado para acceder a este archivo",
+                    _ => $"Error del servidor: {response.StatusCode}"
+                };
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el archivo: {errorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el documento: {ex.Message}");
+        }
     }
 
     public class FormularioDecision

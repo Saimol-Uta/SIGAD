@@ -62,7 +62,7 @@ namespace SIGAD.WebAPI.Controllers
         /// Crea una nueva investigación con archivo de informe (se asocia automáticamente a la solicitud)
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<InvestigacionDto>> Create([FromForm] CrearInvestigacionDto crearInvestigacionDto, IFormFile? informe)
+        public async Task<ActionResult<InvestigacionDto>> Create([FromForm] CrearInvestigacionDto crearInvestigacionDto, IFormFile informe)
         {
             try
             {
@@ -127,6 +127,10 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var (fileContent, contentType, fileName) = await _investigacionService.DownloadInformeAsync(id);
+                
+                // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
+                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                
                 return File(fileContent, contentType, fileName);
             }
             catch (FileNotFoundException ex)
