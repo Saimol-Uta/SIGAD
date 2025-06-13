@@ -1,0 +1,622 @@
+@page "/iniciar-solicitud-ascenso"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+
+<PageTitle>Iniciar Solicitud de Ascenso - SIGAD</PageTitle>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .back-btn, .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn {
+        background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    .main-content {
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .form-container {
+        background: white;
+        padding: 2rem;
+        max-width: 800px;
+        width: 100%;
+        border: 1px solid #0a1d44;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .form-container h1 {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .form-container .subtitle {
+        font-size: 1.1rem;
+        color: #666;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .info-section {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-section h3 {
+        color: #0a1d44;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .info-label {
+        font-weight: bold;
+        color: #0a1d44;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        color: #333;
+        font-size: 1rem;
+        padding: 0.5rem;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: bold;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0a1d44;
+        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #09203f;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+
+    .triangle-bg {
+        position: fixed;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+</style>
+
+<body>
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
+        </div>
+        <div class="user-profile">
+            <a href="/Dashboard" class="back-btn">← Volver al Dashboard</a>
+            <span>@nombreUsuario</span>
+            <img src="@urlFotoPerfil" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="form-container">
+            <h1>Iniciar Solicitud de Ascenso</h1>
+            <p class="subtitle">Complete la información para comenzar su proceso de ascenso académico</p>
+
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <p>Cargando información...</p>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">
+                    @errorMessage
+                </div>
+            }
+            else
+            {
+                <!-- Información del Docente -->
+                <div class="info-section">
+                    <h3>Información del Docente</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Nombre Completo:</span>
+                            <span class="info-value">@nombreCompleto</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Cédula:</span>
+                            <span class="info-value">@cedula</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Correo Electrónico:</span>
+                            <span class="info-value">@correo</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Rango Actual:</span>
+                            <span class="info-value">@rangoActual</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de Ascenso Automático -->
+                @if (rangoActualId == 0)
+                {
+                    <div class="alert alert-info">
+                        <h4>🎓 Asignación de Rango Inicial</h4>
+                        <p>Como es su primera solicitud, se le asignará automáticamente el <strong>Rango 1 - Instructor</strong> como rango inicial.</p>
+                        <p>Su solicitud será para ascender a: <strong>@rangoSiguiente?.Nombre</strong></p>
+                    </div>
+                }
+                else
+                {
+                    <div class="info-section">
+                        <h3>Proceso de Ascenso Secuencial</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Su Rango Actual:</span>
+                                <span class="info-value">@rangoActual</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Rango al que Ascenderá:</span>
+                                <span class="info-value">@(rangoSiguiente?.Nombre ?? "No disponible")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (rangoSiguiente != null)
+                {
+                    <div class="alert alert-info">
+                        <h4>Requisitos para @rangoSiguiente.Nombre:</h4>
+                        <ul>
+                            <li>Artículos requeridos: @rangoSiguiente.ArticulosRequeridos</li>
+                            <li>Años de experiencia: @rangoSiguiente.AniosExperienciaRequeridos</li>
+                            <li>Horas de curso: @rangoSiguiente.HorasCursoRequeridas</li>
+                            <li>Meses de investigación: @rangoSiguiente.MesesInvestigacionRequeridos</li>
+                            <li>Puntaje promedio evaluaciones: @rangoSiguiente.PuntajePromedioEvaluacionesRequerido%</li>
+                        </ul>
+                    </div>
+                }
+                else if (rangoActualId >= 4)
+                {
+                    <div class="alert alert-warning">
+                        <h4>⚠️ Rango Máximo Alcanzado</h4>
+                        <p>Ya ha alcanzado el rango máximo disponible. No puede solicitar más ascensos.</p>
+                    </div>
+                }
+
+                <!-- Formulario de Solicitud -->
+                @if (rangoSiguiente != null)
+                {
+                    <EditForm Model="@solicitudModel" OnValidSubmit="@HandleSubmit">
+                        <DataAnnotationsValidator />
+
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo("/Dashboard"))">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span>Creando solicitud...</span>
+                                }
+                                else
+                                {
+                                    <span>Iniciar Proceso de Ascenso</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                }
+
+                @if (solicitudCreada)
+                {
+                    <div class="alert alert-success">
+                        ¡Solicitud de ascenso creada exitosamente! Será redirigido al dashboard en unos segundos.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>
+
+@code {
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+    private string nombreCompleto = "";
+    private string cedula = "";
+    private string correo = "";
+    private string rangoActual = "";
+    private int rangoActualId = 0;
+    private string urlFotoPerfil = "/images/IconoUser.png";
+
+    // Variables para el formulario
+    private SolicitudAscensoModel solicitudModel = new();
+    private List<RangoModel>? rangosDisponibles;
+    private RangoModel? rangoSiguiente;
+
+    // Variables de estado
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private bool solicitudCreada = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionUsuario();
+        await CargarRangosDisponibles();
+        isLoading = false;
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            // Obtener información del token
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Verificar token y obtener información del usuario
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                        nombreCompleto = result.Data.NombreCompleto ?? "";
+                        cedula = result.Data.Cedula ?? "";
+                        correo = result.Data.Correo ?? "";
+                        
+                        // Determinar rango actual
+                        if (int.TryParse(result.Data.RangoId, out int rangoId) && rangoId > 0)
+                        {
+                            rangoActualId = rangoId;
+                            rangoActual = result.Data.RangoNombre ?? "Sin rango asignado";
+                        }
+                        else
+                        {
+                            rangoActualId = 0; // Sin rango asignado
+                            rangoActual = "Sin rango asignado";
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar información del usuario: " + ex.Message;
+        }
+    }
+
+    private async Task CargarRangosDisponibles()
+    {
+        try
+        {
+            // Cargar todos los rangos disponibles
+            rangosDisponibles = new List<RangoModel>
+            {
+                new RangoModel { Id = 1, Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0 },
+                new RangoModel { Id = 2, Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70 },
+                new RangoModel { Id = 3, Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75 },
+                new RangoModel { Id = 4, Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80 }
+            };
+
+            // Determinar el rango siguiente automáticamente
+            DeterminarRangoSiguiente();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar rangos disponibles: " + ex.Message;
+        }
+    }
+
+    private void DeterminarRangoSiguiente()
+    {
+        if (rangosDisponibles == null) return;
+
+        int siguienteRangoId;
+        
+        if (rangoActualId == 0)
+        {
+            // Si no tiene rango, el siguiente será el rango 2 (después de asignarle el 1 automáticamente)
+            siguienteRangoId = 2;
+        }
+        else
+        {
+            // El siguiente rango es el actual + 1
+            siguienteRangoId = rangoActualId + 1;
+        }
+
+        rangoSiguiente = rangosDisponibles.FirstOrDefault(r => r.Id == siguienteRangoId);
+        
+        // Asignar al modelo para el formulario
+        if (rangoSiguiente != null)
+        {
+            solicitudModel.RangoSolicitadoId = rangoSiguiente.Id;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting || rangoSiguiente == null) return;
+
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            // Preparar los datos para la solicitud
+            var solicitudData = new
+            {
+                RangoSolicitadoId = rangoSiguiente.Id,
+                RangoActualId = rangoActualId == 0 ? (int?)null : rangoActualId, // Si es 0, se asignará automáticamente el rango 1
+                Observaciones = rangoActualId == 0 ? 
+                    "Solicitud inicial - Se asigna automáticamente Rango 1 (Instructor) como rango actual" : 
+                    $"Solicitud de ascenso secuencial de {rangoActual} a {rangoSiguiente.Nombre}"
+            };
+
+            // Aquí llamarías a tu endpoint para crear la solicitud
+            // Por ejemplo: await Http.PostAsJsonAsync($"api/auth/create-solicitud-con-logica/{cedula}/{rangoSiguiente.Id}", solicitudData);
+            
+            // Por ahora simulamos la creación
+            await Task.Delay(2000);
+
+            solicitudCreada = true;
+            
+            // Redirigir después de 3 segundos
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/Dashboard");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al crear la solicitud: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    // Modelos para el formulario
+    public class SolicitudAscensoModel
+    {
+        public int? RangoSolicitadoId { get; set; }
+    }
+
+    public class RangoModel
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+        public int ArticulosRequeridos { get; set; }
+        public int AniosExperienciaRequeridos { get; set; }
+        public int HorasCursoRequeridas { get; set; }
+        public int MesesInvestigacionRequeridos { get; set; }
+        public decimal PuntajePromedioEvaluacionesRequerido { get; set; }
+    }
+
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Rol { get; set; }
+        public string? Cedula { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Nombre2 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Apellido2 { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
+    }
+} 
