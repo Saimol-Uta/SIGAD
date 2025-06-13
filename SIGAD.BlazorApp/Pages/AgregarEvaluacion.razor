@@ -289,17 +289,10 @@
 
                     <div class="form-group">
                         <label class="form-label">
-                            Tipo de Evaluación <span class="required">*</span>
+                            Período Académico <span class="required">*</span>
                         </label>
-                        <InputSelect @bind-Value="evaluacionModel.TipoEvaluacion" class="form-control">
-                            <option value="">Seleccione el tipo de evaluación</option>
-                            <option value="Evaluación Docente">Evaluación Docente</option>
-                            <option value="Evaluación de Desempeño">Evaluación de Desempeño</option>
-                            <option value="Evaluación de Competencias">Evaluación de Competencias</option>
-                            <option value="Evaluación Anual">Evaluación Anual</option>
-                            <option value="Evaluación de Proyecto">Evaluación de Proyecto</option>
-                            <option value="Otra">Otra</option>
-                        </InputSelect>
+                        <InputText @bind-Value="evaluacionModel.TipoEvaluacion" class="form-control"
+                                 placeholder="Ej: 2024-1, Enero-Junio 2024, etc." />
                         <ValidationMessage For="@(() => evaluacionModel.TipoEvaluacion)" />
                     </div>
 
@@ -314,31 +307,15 @@
 
                         <div class="form-group">
                             <label class="form-label">
-                                Calificación <span class="required">*</span>
+                                Puntaje Porcentual (0-100) <span class="required">*</span>
                             </label>
                             <InputNumber @bind-Value="evaluacionModel.Calificacion" class="form-control" 
-                                       placeholder="Ej: 4.5" min="0" max="5" step="0.1" />
+                                       placeholder="Ej: 85" min="0" max="100" step="0.1" />
                             <ValidationMessage For="@(() => evaluacionModel.Calificacion)" />
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">
-                            Evaluador <span class="required">*</span>
-                        </label>
-                        <InputText @bind-Value="evaluacionModel.Evaluador" class="form-control" 
-                                 placeholder="Nombre del evaluador o institución" />
-                        <ValidationMessage For="@(() => evaluacionModel.Evaluador)" />
-                    </div>
 
-                    <div class="form-group">
-                        <label class="form-label">
-                            Observaciones
-                        </label>
-                        <InputTextArea @bind-Value="evaluacionModel.Observaciones" class="form-control" 
-                                     placeholder="Comentarios adicionales sobre la evaluación"
-                                     rows="4" />
-                    </div>
 
                                         <div class="form-group">
                         <label class="form-label">Documento de Evaluación <span class="required">*</span></label>
@@ -488,12 +465,10 @@
             // Crear el formulario multipart
             using var content = new MultipartFormDataContent();
             
-            // Campos requeridos por CrearEvaluacionDto
-            content.Add(new StringContent(evaluacionModel.TipoEvaluacion), "TipoEvaluacion");
+            // Campos requeridos por CreateEvaluacionDocenteDto
+            content.Add(new StringContent(evaluacionModel.TipoEvaluacion), "PeriodoAcademico");
             content.Add(new StringContent(evaluacionModel.FechaEvaluacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaEvaluacion");
-            content.Add(new StringContent(evaluacionModel.Calificacion.ToString()), "Calificacion");
-            content.Add(new StringContent(evaluacionModel.Evaluador), "Evaluador");
-            content.Add(new StringContent(evaluacionModel.Observaciones ?? ""), "Observaciones");
+            content.Add(new StringContent(evaluacionModel.Calificacion.ToString()), "PuntajePorcentual");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
@@ -569,11 +544,9 @@
     // Modelos
     public class EvaluacionModel
     {
-        public string TipoEvaluacion { get; set; } = "";
+        public string TipoEvaluacion { get; set; } = ""; // Se usa como PeriodoAcademico
         public DateTime FechaEvaluacion { get; set; } = DateTime.Today;
-        public decimal Calificacion { get; set; } = 0;
-        public string Evaluador { get; set; } = "";
-        public string? Observaciones { get; set; }
+        public decimal Calificacion { get; set; } = 0; // Se usa como PuntajePorcentual (0-100)
     }
 
     public class VerifyTokenResponse
