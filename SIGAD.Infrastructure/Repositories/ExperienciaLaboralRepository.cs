@@ -41,10 +41,13 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task<IEnumerable<ExperienciaLaboral>> GetBySolicitudIdAsync(Guid solicitudId)
         {
-            return await _context.ExperienciasLaborales
-                .Include(e => e.Organizacion)
-                .Include(e => e.Docente)
-                .Where(e => e.ExperienciasPorSolicitud.Any(eps => eps.SolicitudId == solicitudId))
+            return await _context.ExperienciasPorSolicitud
+                .Include(eps => eps.ExperienciaLaboral)
+                    .ThenInclude(e => e.Organizacion)
+                .Include(eps => eps.ExperienciaLaboral)
+                    .ThenInclude(e => e.Docente)
+                .Where(eps => eps.SolicitudId == solicitudId)
+                .Select(eps => eps.ExperienciaLaboral)
                 .ToListAsync();
         }
 
