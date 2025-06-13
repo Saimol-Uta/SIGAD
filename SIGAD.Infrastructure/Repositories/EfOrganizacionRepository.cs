@@ -24,6 +24,12 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Organizaciones.FindAsync(id);
         }
 
+        public async Task<Organizacion?> GetByNombreAsync(string nombre)
+        {
+            return await _context.Organizaciones
+                .FirstOrDefaultAsync(o => o.Nombre.ToLower() == nombre.ToLower());
+        }
+
         public async Task AddAsync(Organizacion organizacion)
         {
             await _context.Organizaciones.AddAsync(organizacion);

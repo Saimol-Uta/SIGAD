@@ -507,14 +507,11 @@
             // Crear el formulario multipart
             using var content = new MultipartFormDataContent();
             
-            // Campos requeridos por CrearExperienciaLaboralDto
-            content.Add(new StringContent(experienciaModel.Empresa), "Empresa");
+            // Campos requeridos por CreateExperienciaLaboralDto
+            content.Add(new StringContent(experienciaModel.Empresa), "OrganizacionNombre");
             content.Add(new StringContent(experienciaModel.Cargo), "Cargo");
             content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
-            content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
-            content.Add(new StringContent(experienciaModel.TipoContrato), "TipoContrato");
-            content.Add(new StringContent(experienciaModel.MesesExperiencia.ToString()), "MesesExperiencia");
-            content.Add(new StringContent(experienciaModel.Descripcion ?? ""), "Descripcion");
+            content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFin");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
