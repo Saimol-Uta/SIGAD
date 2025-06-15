@@ -46,5 +46,14 @@ namespace SIGAD.Infrastructure.Repositories
             _context.Docentes.Update(docente);
             await Task.CompletedTask;
         }
+        public async Task<Docente?> ObtenerPorCedulaAsync(string cedula)
+        {
+            return await _context.Docentes.FirstOrDefaultAsync(d => d.Cedula == cedula);
+        }
+        public async Task AgregarAsync(Docente docente)
+        {
+            await _context.Docentes.AddAsync(docente);
+        }
+
     }
 }

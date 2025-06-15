@@ -97,5 +97,14 @@ namespace SIGAD.Infrastructure.Repositories
                 _context.ArticulosPorSolicitud.Remove(articuloPorSolicitud);
             }
         }
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _context.Articulos.AnyAsync(a => a.ContenidoHash == hash);
+        }
+
+        public async Task AgregarAsync(Articulo articulo)
+        {
+            await _context.Articulos.AddAsync(articulo);
+        }
     }
 }

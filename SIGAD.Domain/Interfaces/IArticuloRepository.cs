@@ -14,5 +14,8 @@ namespace SIGAD.Domain.Interfaces
         Task<bool> ExistsAsync(string doi);
         Task AddToSolicitudAsync(Guid solicitudId, string articuloDoi);
         Task RemoveFromSolicitudAsync(Guid solicitudId, string articuloDoi);
+
+        Task<bool> ExistePorHashAsync(string hash);
+        Task AgregarAsync(Articulo articulo);
     }
 } 

@@ -96,5 +96,14 @@ namespace SIGAD.Infrastructure.Repositories
                 _context.ExperienciasPorSolicitud.Remove(experienciaPorSolicitud);
             }
         }
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _context.ExperienciasLaborales.AnyAsync(e => e.ContenidoHash == hash);
+        }
+
+        public async Task AgregarAsync(ExperienciaLaboral experiencia)
+        {
+            await _context.ExperienciasLaborales.AddAsync(experiencia);
+        }
     }
 } 

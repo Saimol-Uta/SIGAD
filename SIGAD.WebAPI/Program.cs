@@ -1,11 +1,15 @@
 // SIGAD.WebAPI/Program.cs
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIGAD.Application.Interfaces;
+using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Application.Services;
+using SIGAD.Application.Services.ExternalServices;
 using SIGAD.Domain.Interfaces;
+using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
 using System.Text;
@@ -18,6 +22,30 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<SigadDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(type => type.FullName); // 👈 Solución alternativa
+});
+
+var configuration = builder.Configuration;
+
+builder.Services.AddScoped<ISgthSyncService>(_ =>
+    new SgthSyncService(configuration.GetConnectionString("SGTH")!));
+
+builder.Services.AddScoped<ISutSyncService>(_ =>
+    new SutSyncService(configuration.GetConnectionString("SUT")!));
+
+builder.Services.AddScoped<IDiticSyncService>(_ =>
+    new DiticSyncService(configuration.GetConnectionString("DITIC")!));
+
+
+builder.Services.AddScoped<DocenteSyncCoordinator>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDocenteSyncCoordinator, DocenteSyncCoordinator>();
+builder.Services.AddScoped<HistorialDocenteImporter>();
+
+
 
 // 2. Configurar JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -124,6 +152,18 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next.Invoke();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"🔥 ERROR: {ex.Message}\n{ex.StackTrace}");
+        throw;
+    }
+});
 
 // 1. Configurar el pipeline de solicitudes HTTP
 if (app.Environment.IsDevelopment())
@@ -131,6 +171,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

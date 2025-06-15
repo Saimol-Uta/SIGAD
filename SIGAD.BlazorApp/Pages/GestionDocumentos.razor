@@ -1101,36 +1101,61 @@
         }
     }
 
-    private async Task ImportarDocumentos(string tipoDocumento)
+  private async Task ImportarDocumentos(string tipoDocumento)
+{
+    if (operacionEnProceso || string.IsNullOrEmpty(cedula)) return;
+
+    operacionEnProceso = true;
+    mensajeProceso = $"Importando {tipoDocumento} desde sistemas externos...";
+    mensajeOperacion = null;
+
+    try
     {
-        if (operacionEnProceso) return;
-
-        operacionEnProceso = true;
-        mensajeProceso = $"Preparando importación de {tipoDocumento}...";
-        mensajeOperacion = null;
-
-        try
+        string endpoint = tipoDocumento switch
         {
-            // Por ahora simulamos la operación de importación
-            await Task.Delay(2000);
+            "investigaciones" => $"api/investigaciones/externa/importar/{cedula}",
+            "articulos" => $"api/articulos/externos/importar/{cedula}",
+            "experiencias" => $"api/experiencia/externa/importar/{cedula}",
+            "evaluaciones" => $"api/evaluaciones/externas/importar/{cedula}",
+            "cursos" => $"api/cursos/externos/importar/{cedula}",
+            _ => null
+        };
 
-            // Aquí implementarías la lógica real de importación
-            // Por ejemplo, abrir un diálogo de archivo o navegar a una página de importación
-
-            mensajeOperacion = $"Funcionalidad de importación de {tipoDocumento} estará disponible próximamente.";
-            operacionExitosa = true;
+        if (string.IsNullOrEmpty(endpoint))
+        {
+            mensajeOperacion = "❌ Tipo de documento no reconocido.";
+            operacionExitosa = false;
+            return;
         }
-        catch (Exception ex)
+
+        var response = await Http.PostAsync(endpoint, null);
+        if (response.IsSuccessStatusCode)
         {
-            mensajeOperacion = $"Error al importar {tipoDocumento}: " + ex.Message;
+            var resultado = await response.Content.ReadAsStringAsync();
+            mensajeOperacion = $"✅ Importación exitosa: {resultado}";
+            operacionExitosa = true;
+
+            // Actualizar los conteos
+            await CargarConteoDocumentos();
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            mensajeOperacion = $"❌ Falló la importación: {error}";
             operacionExitosa = false;
         }
-        finally
-        {
-            operacionEnProceso = false;
-            mensajeProceso = "";
-        }
     }
+    catch (Exception ex)
+    {
+        mensajeOperacion = $"❌ Error: {ex.Message}";
+        operacionExitosa = false;
+    }
+    finally
+    {
+        operacionEnProceso = false;
+        mensajeProceso = "";
+    }
+}
 
     private async Task ExportarDocumentos(string tipoDocumento)
     {

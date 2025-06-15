@@ -10,6 +10,9 @@ namespace SIGAD.Domain.Interfaces
         Task AddAsync(Organizacion organizacion);
         Task UpdateAsync(Organizacion organizacion);
         Task DeleteAsync(int id);
+
+        Task<Organizacion?> ObtenerPorNombreAsync(string nombre);
+        Task AgregarAsync(Organizacion organizacion);
         Task<bool> ExistsAsync(int id);
     }
 } 

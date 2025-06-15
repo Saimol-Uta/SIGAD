@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SIGAD.Domain\SIGAD.Domain.csproj" />
-    <ProjectReference Include="..\SIGAD.Infrastructure\SIGAD.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
