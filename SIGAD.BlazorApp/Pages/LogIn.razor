@@ -183,14 +183,11 @@
 
             <div class="mb-3">
                 <InputText @bind-Value="loginModel.Clave" type="password" class="login-input"
-                placeholder="Contraseña" />
+                    placeholder="Contraseña" />
                 <ValidationMessage For="@(() => loginModel.Clave)" />
             </div>
 
-            <button type="submit" class="login-button" disabled="@isLoading">
-
             <button type="submit" class="login-button" disabled="@(isLoading || cuentaBloqueada)">
-
                 @if (isLoading)
                 {
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -205,18 +202,7 @@
                     <span>LOGIN</span>
                 }
             </button>
-
-         
             <a class="forgot-password">Olvidé mi contraseña</a>
-
-
-            <div>
-                <p>¿No tiene una cuenta?</p>
-
-                <button class="button-secondary" @onclick="Registro">
-                    Regístrese
-                </button>
-            </div>
         </EditForm>
     </div>
 </div>
@@ -339,13 +325,6 @@
         }
     }
 
-
-    void Registro()
-    {
-        NavigationManager.NavigateTo("/register");
-
-        
-
     private async Task VerificarBloqueoExistente()
     {
         try
@@ -458,6 +437,5 @@
         var minutos = segundos / 60;
         var segundosRestantes = segundos % 60;
         return $"{minutos:D2}:{segundosRestantes:D2}";
-
     }
 }
