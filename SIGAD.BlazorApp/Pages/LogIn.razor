@@ -1,0 +1,441 @@
+﻿@page "/login"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<style>
+    body,
+    html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    .login-background {
+        background-color: white;
+        height: 100vh;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .decor-top-right,
+    .decor-bottom-left {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        z-index: 1;
+    }
+
+    .decor-top-right {
+        background-image: url("/images/blueWatercolor.jpg");
+        top: 0;
+        right: 0;
+        transform: rotate(360deg);
+    }
+
+    .decor-bottom-left {
+        background-image: url("/images/blueWatercolor.jpg");
+        bottom: 0;
+        left: 0;
+        transform: rotate(180deg);
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 2;
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        width: 650px;
+        text-align: center;
+    }
+
+    .login-container img {
+        width: 50px;
+        margin-bottom: 10px;
+    }
+
+    .login-container h2 {
+        font-size: 16px;
+        color: #0a1d44;
+        margin-bottom: 30px;
+    }
+
+    .login-input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .login-button {
+        width: 100%;
+        padding: 10px;
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin-top: 20px;
+        cursor: pointer;
+    }
+
+    .login-button:hover {
+        background-color: #0e2c6c;
+    }
+
+    .login-button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .login-button:disabled:hover {
+        background-color: #6c757d;
+    }
+
+    .forgot-password {
+        display: block;
+        margin-top: 10px;
+        font-size: 0.8em;
+        color: #0a1d44;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .spinner-border {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        vertical-align: text-bottom;
+        border: 0.15em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border 0.75s linear infinite;
+    }
+
+    .spinner-border-sm {
+        width: 0.875rem;
+        height: 0.875rem;
+        border-width: 0.1em;
+    }
+
+
+
+    .alert {
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+    }
+</style>
+
+<div class="login-background">
+    <!-- Imágenes decorativas -->
+    <div class="decor-top-right"></div>
+    <div class="decor-bottom-left"></div>
+
+    <!-- Caja de login -->
+    <div class="login-container">
+        <img src="/images/IconoUser.png" alt="User Icon" />
+        <h2>ACADEMIC MANAGEMENT EVENTS</h2>
+
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert @(cuentaBloqueada ? "alert-warning" : "alert-danger")" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Correo Electrónico" />
+                <ValidationMessage For="@(() => loginModel.Correo)" />
+            </div>
+
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Clave" type="password" class="login-input"
+                    placeholder="Contraseña" />
+                <ValidationMessage For="@(() => loginModel.Clave)" />
+            </div>
+
+            <button type="submit" class="login-button" disabled="@(isLoading || cuentaBloqueada)">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Ingresando...</span>
+                }
+                else if (cuentaBloqueada)
+                {
+                    <span>BLOQUEADO (@FormatearTiempo(tiempoRestanteSegundos))</span>
+                }
+                else
+                {
+                    <span>LOGIN</span>
+                }
+            </button>
+            <a class="forgot-password">Olvidé mi contraseña</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    // 1. Objeto para enlazar los datos del formulario.
+    private LoginRequestDto loginModel = new();
+
+    // 2. Variables para mostrar mensajes al usuario.
+    private string? errorMessage;
+    private bool isLoading = false; // Para saber si estamos esperando respuesta de la API
+
+    // 3. Variables para control de bloqueo temporal
+    private int intentosFallidos = 0;
+    private DateTime? tiempoBloqueo = null;
+    private bool cuentaBloqueada = false;
+    private int tiempoRestanteSegundos = 0;
+    private Timer? temporizadorBloqueo;
+
+    // 4. Constantes de configuración
+    private const int MAX_INTENTOS = 3;
+    private const int MINUTOS_BLOQUEO = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await VerificarBloqueoExistente();
+    }
+
+    public void Dispose()
+    {
+        temporizadorBloqueo?.Dispose();
+    }
+
+    // 3. Método que se ejecutará al enviar el formulario.
+    private async Task HandleLogin()
+    {
+        // Verificar si la cuenta está bloqueada
+        if (cuentaBloqueada)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthService.Login(loginModel);
+
+            Console.WriteLine($"Login result: {result}");
+
+            if (result != null)
+            {
+                // Login exitoso - resetear intentos fallidos
+                await ResetearIntentosFallidos();
+
+                // Guardar el token en localStorage
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+
+                Console.WriteLine($"Token guardado: {result.Token}");
+                Console.WriteLine($"Rol del usuario: '{result.Rol}'");
+                Console.WriteLine($"Tipo del rol: {result.Rol.GetType()}");
+
+                // Limpiar espacios y normalizar el rol
+                var rolLimpio = result.Rol.ToString().ToUpper();
+                Console.WriteLine($"Rol limpio: '{rolLimpio}'");
+
+                // Redireccionar según el rol
+                if (rolLimpio == "ADMINISTRADOR")
+                {
+                    NavigationManager.NavigateTo("/admin-dashboard", true);
+                }
+                else if (rolLimpio == "DOCENTE")
+                {
+                    NavigationManager.NavigateTo("/Dashboard", true);
+                }
+                else
+                {
+                    errorMessage = $"Rol de usuario no válido: '{result.Rol}' (limpio: '{rolLimpio}')";
+                    await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+                }
+            }
+            else
+            {
+                // Login fallido - incrementar contador
+                await RegistrarIntentoFallido();
+                errorMessage = $"Correo o contraseña incorrectos. Intentos restantes: {MAX_INTENTOS - intentosFallidos}";
+            }
+
+            isLoading = false;
+
+        }
+        catch (HttpRequestException httpEx)
+        {
+            // Error HTTP específico - también cuenta como intento fallido
+            await RegistrarIntentoFallido();
+            
+            if (httpEx.Message.Contains("401"))
+            {
+                errorMessage = $"Credenciales incorrectas. Intentos restantes: {MAX_INTENTOS - intentosFallidos}";
+            }
+            else if (httpEx.Message.Contains("400"))
+            {
+                errorMessage = "Datos de entrada inválidos. Verifique los campos.";
+            }
+            else
+            {
+                errorMessage = "Error de conexión. Verifique su conexión a internet.";
+            }
+            Console.WriteLine($"Error HTTP en login: {httpEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "No se pudo conectar con el servidor. Por favor, intente más tarde.";
+            Console.WriteLine($"Error en el login: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task VerificarBloqueoExistente()
+    {
+        try
+        {
+            var intentosStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "loginAttempts");
+            var tiempoBloqueoStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "lockoutTime");
+
+            if (!string.IsNullOrEmpty(intentosStr) && int.TryParse(intentosStr, out var intentos))
+            {
+                intentosFallidos = intentos;
+            }
+
+            if (!string.IsNullOrEmpty(tiempoBloqueoStr) && DateTime.TryParse(tiempoBloqueoStr, out var tiempo))
+            {
+                tiempoBloqueo = tiempo;
+                
+                // Verificar si el bloqueo aún está activo
+                if (DateTime.Now < tiempoBloqueo)
+                {
+                    IniciarBloqueo();
+                }
+                else
+                {
+                    // El bloqueo ya expiró, resetear
+                    await ResetearIntentosFallidos();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar bloqueo: {ex.Message}");
+        }
+    }
+
+    private async Task RegistrarIntentoFallido()
+    {
+        intentosFallidos++;
+        
+        // Guardar en localStorage
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "loginAttempts", intentosFallidos.ToString());
+
+        if (intentosFallidos >= MAX_INTENTOS)
+        {
+            // Bloquear cuenta
+            tiempoBloqueo = DateTime.Now.AddMinutes(MINUTOS_BLOQUEO);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "lockoutTime", tiempoBloqueo.Value.ToString());
+            
+            IniciarBloqueo();
+            errorMessage = $"Cuenta bloqueada por {MINUTOS_BLOQUEO} minutos debido a múltiples intentos fallidos.";
+        }
+    }
+
+    private async Task ResetearIntentosFallidos()
+    {
+        intentosFallidos = 0;
+        tiempoBloqueo = null;
+        cuentaBloqueada = false;
+        tiempoRestanteSegundos = 0;
+        
+        temporizadorBloqueo?.Dispose();
+        
+        // Limpiar localStorage
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "loginAttempts");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "lockoutTime");
+    }
+
+    private void IniciarBloqueo()
+    {
+        if (tiempoBloqueo.HasValue)
+        {
+            cuentaBloqueada = true;
+            var tiempoRestante = tiempoBloqueo.Value - DateTime.Now;
+            tiempoRestanteSegundos = (int)tiempoRestante.TotalSeconds;
+
+            if (tiempoRestanteSegundos > 0)
+            {
+                // Iniciar temporizador que se actualiza cada segundo
+                temporizadorBloqueo = new Timer(ActualizarTemporizador, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+                errorMessage = $"Cuenta bloqueada. Tiempo restante: {FormatearTiempo(tiempoRestanteSegundos)}";
+            }
+            else
+            {
+                // El bloqueo ya expiró
+                _ = ResetearIntentosFallidos();
+            }
+        }
+    }
+
+    private async void ActualizarTemporizador(object? state)
+    {
+        tiempoRestanteSegundos--;
+
+        if (tiempoRestanteSegundos <= 0)
+        {
+            // Bloqueo expirado
+            await ResetearIntentosFallidos();
+            errorMessage = "El bloqueo ha expirado. Puede intentar iniciar sesión nuevamente.";
+        }
+        else
+        {
+            errorMessage = $"Cuenta bloqueada. Tiempo restante: {FormatearTiempo(tiempoRestanteSegundos)}";
+        }
+
+        // Actualizar la UI
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string FormatearTiempo(int segundos)
+    {
+        var minutos = segundos / 60;
+        var segundosRestantes = segundos % 60;
+        return $"{minutos:D2}:{segundosRestantes:D2}";
+    }
+}

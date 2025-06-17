@@ -1,0 +1,800 @@
+@page "/admin/solicitud/{solicitudId}"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Components
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+
+<div class="page-wrapper">
+    <Encabezado />
+
+    <div class="detalle-container">
+        @if (cargando)
+        {
+            <div class="text-center" style="padding: 40px;">
+                <div style="margin-bottom: 15px;">Cargando detalles de la solicitud...</div>
+                <div class="spinner"></div>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-danger">
+                <strong>Error:</strong> @mensajeError
+                <button @onclick="CargarDetalle" class="btn btn-primary ms-3">Reintentar</button>
+            </div>
+        }
+        else if (solicitud != null)
+        {
+            <!-- Sección 1: Cabecera de la Solicitud -->
+            <div class="cabecera-solicitud">
+                <h2>Detalle de Solicitud de Ascenso</h2>
+                <h4 class="text-muted">Solicitud ID: @solicitud.Id</h4>
+                <div class="estado-badge">
+                    Estado: <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span>
+                </div>
+            </div>
+
+            <!-- Sección 2: Información del Docente y la Solicitud -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Docente y la Solicitud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre del Docente:</strong> @solicitud.DocenteNombreCompleto</p>
+                            <p><strong>Cédula:</strong> @solicitud.DocenteCedula</p>
+                            <p><strong>Rango Actual:</strong> @(solicitud.RangoActualNombre ?? "N/A")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Rango Solicitado:</strong> @solicitud.RangoSolicitadoNombre</p>
+                            <p><strong>Fecha de Envío:</strong> @(solicitud.FechaEnvio?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                            <p><strong>Fecha de Creación:</strong> @solicitud.FechaCreacion.ToString("dd/MM/yyyy")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 3: Evidencia Presentada por el Docente -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Evidencia Adjunta a la Solicitud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="evidenciaAccordion">
+                          <!-- Sub-sección de Artículos -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="articulosHeader">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#articulosCollapse" aria-expanded="true" aria-controls="articulosCollapse">
+                                    Artículos Presentados (@solicitud.ArticulosPresentados.Count)
+                                </button>
+                            </h2>
+                            <div id="articulosCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.ArticulosPresentados.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>DOI</th>
+                                                        <th>Título</th>
+                                                        <th>Revista</th>
+                                                        <th>Año</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var articulo in solicitud.ArticulosPresentados)
+                                                    {
+                                                        <tr>
+                                                            <td>@articulo.DOI</td>
+                                                            <td>@articulo.Titulo</td>
+                                                            <td>@articulo.Revista</td>
+                                                            <td>@articulo.AnioPublicacion</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("articulo", articulo.DOI))">Ver Documento</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron artículos en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Investigaciones -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="investigacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#investigacionesCollapse" aria-expanded="true" aria-controls="investigacionesCollapse">
+                                    Investigaciones Presentadas (@solicitud.InvestigacionesPresentadas.Count)
+                                </button>
+                            </h2>
+                            <div id="investigacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.InvestigacionesPresentadas.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Título</th>
+                                                        <th>Rol en la Investigación</th>
+                                                        <th>Fecha de Finalización</th>
+                                                        <th>Meses Aportados</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var investigacion in solicitud.InvestigacionesPresentadas)
+                                                    {
+                                                        <tr>
+                                                            <td>@investigacion.Titulo</td>
+                                                            <td>@investigacion.RolEnInvestigacion</td>
+                                                            <td>@investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>@investigacion.MesesDeInvestigacion</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("investigacion", investigacion.Id.ToString()))">Ver Informe</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron investigaciones en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Cursos -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cursosHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cursosCollapse" aria-expanded="true" aria-controls="cursosCollapse">
+                                    Cursos de Capacitación (@solicitud.CursosPresentados.Count)
+                                </button>
+                            </h2>
+                            <div id="cursosCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.CursosPresentados.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Nombre del Curso</th>
+                                                        <th>Institución</th>
+                                                        <th>Número de Horas</th>
+                                                        <th>Fecha de Finalización</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var curso in solicitud.CursosPresentados)
+                                                    {
+                                                        <tr>
+                                                            <td>@curso.Nombre</td>
+                                                            <td>@curso.NombreOrganizacion</td>
+                                                            <td>@curso.NumeroHoras</td>
+                                                            <td>@curso.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("curso", curso.Id.ToString()))">Ver Certificado</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron cursos en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Experiencia Laboral -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="experienciasHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#experienciasCollapse" aria-expanded="true" aria-controls="experienciasCollapse">
+                                    Experiencia Laboral (@solicitud.ExperienciasLaborales.Count)
+                                </button>
+                            </h2>
+                            <div id="experienciasCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.ExperienciasLaborales.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Organización</th>
+                                                        <th>Tipo de Organización</th>
+                                                        <th>Cargo</th>
+                                                        <th>Fecha Inicio</th>
+                                                        <th>Fecha Fin</th>
+                                                        <th>Duración</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var experiencia in solicitud.ExperienciasLaborales)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <strong>@experiencia.OrganizacionNombre</strong>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-info text-dark">@experiencia.OrganizacionTipo</span>
+                                                            </td>
+                                                            <td>@experiencia.Cargo</td>
+                                                            <td>@experiencia.FechaInicio.ToString("MM/yyyy")</td>
+                                                            <td>
+                                                                @if (experiencia.FechaFin.HasValue)
+                                                                {
+                                                                    @experiencia.FechaFin.Value.ToString("MM/yyyy")
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-success">Actual</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @{
+                                                                    var fechaFin = experiencia.FechaFin ?? DateTime.Now;
+                                                                    var meses = ((fechaFin.Year - experiencia.FechaInicio.Year) * 12) + fechaFin.Month - experiencia.FechaInicio.Month;
+                                                                    var años = meses / 12;
+                                                                    var mesesRestantes = meses % 12;
+                                                                }
+                                                                @if (años > 0)
+                                                                {
+                                                                    <span>@años año@(años > 1 ? "s" : "")</span>
+                                                                    @if (mesesRestantes > 0)
+                                                                    {
+                                                                        <span>, @mesesRestantes mes@(mesesRestantes > 1 ? "es" : "")</span>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>@meses mes@(meses > 1 ? "es" : "")</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (experiencia.TieneCertificado)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">
+                                                                        <i class="fas fa-download"></i> Ver Certificado
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin certificado</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentó experiencia laboral en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Evaluaciones Docentes -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="evaluacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#evaluacionesCollapse" aria-expanded="true" aria-controls="evaluacionesCollapse">
+                                    Evaluaciones Docentes (@solicitud.EvaluacionesDocente.Count)
+                                </button>
+                            </h2>
+                            <div id="evaluacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.EvaluacionesDocente.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Período Académico</th>
+                                                        <th>Fecha de Evaluación</th>
+                                                        <th>Puntaje</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var evaluacion in solicitud.EvaluacionesDocente)
+                                                    {
+                                                        <tr>
+                                                            <td>@evaluacion.PeriodoAcademico</td>
+                                                            <td>@evaluacion.FechaEvaluacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                <span class="badge @(evaluacion.PuntajePorcentual >= 80 ? "bg-success" : evaluacion.PuntajePorcentual >= 60 ? "bg-warning" : "bg-danger")">
+                                                                    @evaluacion.PuntajeFormateado
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                @if (evaluacion.TieneInforme)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("evaluacion", evaluacion.Id.ToString()))">Ver Informe</button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin informe</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron evaluaciones docentes en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 4: Zona de Acción del Administrador -->
+            @if (solicitud.Estado != "Aprobada" && solicitud.Estado != "Rechazada")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Decisión del Administrador</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@formularioDecision" OnValidSubmit="@ProcesarDecision">
+                            <DataAnnotationsValidator />
+                            
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">
+                                    Observaciones / Justificación: 
+                                    <span class="text-danger">*</span>
+                                    <small class="text-muted">(Obligatorio para rechazar)</small>
+                                </label>
+                                <InputTextArea @bind-Value="formularioDecision.Observaciones" 
+                                               class="@($"form-control {GetTextAreaClass()}")" 
+                                               id="observaciones" rows="4" 
+                                               placeholder="Escriba aquí sus observaciones o justificación para la decisión..." 
+                                               @oninput="StateHasChanged" />
+                                <ValidationMessage For="@(() => formularioDecision.Observaciones)" />
+                                <div class="form-text d-flex justify-content-between">
+                                    <span>Mínimo 10 caracteres. Para rechazos, debe explicar claramente los motivos de la decisión.</span>
+                                    <span class="@($"{GetCharCountClass()}")">
+                                        @(formularioDecision.Observaciones?.Trim().Length ?? 0) caracteres
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(formularioDecision.Observaciones) && formularioDecision.Observaciones.Trim().Length < 10)
+                            {
+                                <div class="alert alert-warning alert-sm">
+                                    ⚠️ <strong>Justificación insuficiente:</strong> Se requieren al menos 10 caracteres para rechazar una solicitud.
+                                    <small class="d-block">Caracteres actuales: @(formularioDecision.Observaciones?.Trim().Length ?? 0)</small>
+                                </div>
+                            }
+
+                            <div class="d-flex gap-3 justify-content-center">
+                                <button type="button" @onclick="@(() => AprobarSolicitud())" class="btn btn-success btn-lg" disabled="@procesando">
+                                    @if (procesando && accionSeleccionada == "aprobar")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-check"></i> Aprobar Solicitud
+                                </button>
+                                
+                                <button type="button" @onclick="@(() => RechazarSolicitud())" 
+                                        class="btn btn-danger btn-lg" 
+                                        disabled="@(procesando || string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || formularioDecision.Observaciones.Trim().Length < 10)">
+                                    @if (procesando && accionSeleccionada == "rechazar")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-times"></i> Rechazar Solicitud
+                                    @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
+                                    {
+                                        <small class="d-block">*Justificación requerida</small>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Decisión Final</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Estado Final:</strong> <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span></p>
+                        @if (!string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
+                        {
+                            <p><strong>Observaciones del Administrador:</strong></p>
+                            <div class="alert alert-info">@solicitud.ObservacionesAdmin</div>
+                        }
+                        @if (solicitud.FechaResolucion.HasValue)
+                        {
+                            <p><strong>Fecha de Resolución:</strong> @solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy")</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Botón de regreso -->
+            <div class="text-center mb-4">
+                <button @onclick="VolverAlDashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f8f9fa;
+    }
+
+    .detalle-container {
+        flex: 1;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .cabecera-solicitud {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .estado-badge {
+        margin-top: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0a1d44;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #e7f1ff;
+        color: #0c63e4;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+    }
+</style>
+
+@code {
+    [Parameter] public string SolicitudId { get; set; } = "";
+
+    private SolicitudDetalleDto? solicitud;
+    private bool cargando = true;
+    private string? mensajeError = null;
+    private bool procesando = false;
+    private string accionSeleccionada = "";
+    
+    private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
+    {
+        await CargarDetalle();
+    }    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Asegurar que Bootstrap está inicializado
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                console.log('Bootstrap loaded:', typeof bootstrap !== 'undefined');
+                if (typeof bootstrap !== 'undefined') {
+                    console.log('Bootstrap accordion initialized');
+                }
+            ");
+        }
+    }
+
+    private async Task CargarDetalle()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            StateHasChanged();
+
+            if (Guid.TryParse(SolicitudId, out var guid))
+            {
+                solicitud = await SolicitudesService.GetSolicitudDetalleAsync(guid);
+                if (solicitud == null)
+                {
+                    mensajeError = "No se encontró la solicitud especificada.";
+                }
+            }
+            else
+            {
+                mensajeError = "ID de solicitud inválido.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar los detalles: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AprobarSolicitud()
+    {
+        await ProcesarDecisionInterna("aprobar");
+    }
+
+    private async Task RechazarSolicitud()
+    {
+        // Validación del lado del cliente para rechazos
+        if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe proporcionar una justificación para rechazar la solicitud.");
+            return;
+        }
+
+        if (formularioDecision.Observaciones.Trim().Length < 10)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "⚠️ La justificación debe tener al menos 10 caracteres.");
+            return;
+        }
+
+        await ProcesarDecisionInterna("rechazar");
+    }
+
+    private async Task ProcesarDecisionInterna(string accion)
+    {
+        try
+        {
+            procesando = true;
+            accionSeleccionada = accion;
+            StateHasChanged();
+
+            if (Guid.TryParse(SolicitudId, out var guid))
+            {
+                (bool success, string message) resultado = (false, "");
+                
+                if (accion == "aprobar")
+                {
+                    resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                }
+                else if (accion == "rechazar")
+                {
+                    resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                }
+
+                if (resultado.success)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", $"✅ {resultado.message}");
+                    await CargarDetalle(); // Recargar para mostrar el nuevo estado
+                    
+                    // Limpiar el formulario
+                    formularioDecision.Observaciones = "";
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", $"❌ {resultado.message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"❌ Error inesperado: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+            accionSeleccionada = "";
+            StateHasChanged();
+        }
+    }    private void ProcesarDecision()
+    {
+        // Este método se puede usar si necesitas validación adicional
+    }
+
+    private void VolverAlDashboard()
+    {
+        Navigation.NavigateTo("/admin-dashboard");
+    }
+
+    private string ObtenerClaseBadge(string estado)
+    {
+        return estado.ToLower() switch
+        {
+            "aprobada" => "bg-success",
+            "rechazada" => "bg-danger", 
+            "enviada" => "bg-primary",
+            "enrevision" => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetTextAreaClass()
+    {
+        var length = formularioDecision.Observaciones?.Trim().Length ?? 0;
+        if (length == 0) return "";
+        if (length < 10) return "justify-content-required";
+        return "justify-content-valid";
+    }
+
+    private string GetCharCountClass()
+    {
+        var length = formularioDecision.Observaciones?.Trim().Length ?? 0;
+        if (length < 10) return "text-warning fw-bold";
+        return "text-success";
+    }
+
+    private async Task DescargarDocumento(string tipoDocumento, string id)
+    {
+        try
+        {
+            string endpoint = tipoDocumento.ToLower() switch
+            {
+                "articulo" => $"api/articulos/{id}/archivo",
+                "investigacion" => $"api/investigaciones/{id}/descargar-informe",
+                "curso" => $"api/cursos/{id}/certificado",
+                "experiencia" => $"api/experienciaslaborales/{id}/archivo",
+                "evaluacion" => $"api/evaluaciones/{id}/archivo",
+                _ => ""
+            };
+
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido.");
+                return;
+            }
+
+            // Obtener el token de autenticación
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            
+            // Realizar la descarga usando HttpClient con autenticación
+            var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+                
+                // Obtener el nombre del archivo desde el header Content-Disposition si existe
+                var fileName = $"{tipoDocumento}_{id}";
+                if (response.Content.Headers.ContentDisposition?.FileName != null)
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+                }
+                else if (contentType.Contains("pdf"))
+                {
+                    fileName += ".pdf";
+                }
+                else if (contentType.Contains("word") || contentType.Contains("document"))
+                {
+                    fileName += ".docx";
+                }
+
+                // Convertir a Base64 para JavaScript
+                var base64 = Convert.ToBase64String(fileBytes);
+                
+                // Usar JavaScript para descargar el archivo
+                await JSRuntime.InvokeVoidAsync("eval", $@"
+                    const byteCharacters = atob('{base64}');
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {{
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }}
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], {{ type: '{contentType}' }});
+                    
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = '{fileName}';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                ");
+            }
+            else
+            {
+                var errorMessage = response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.NotFound => "Archivo no encontrado",
+                    System.Net.HttpStatusCode.Unauthorized => "No autorizado para acceder a este archivo",
+                    _ => $"Error del servidor: {response.StatusCode}"
+                };
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el archivo: {errorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el documento: {ex.Message}");
+        }
+    }
+
+    public class FormularioDecision
+    {
+        public string? Observaciones { get; set; }
+    }
+}
+
+<style>
+    .alert-sm {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .btn:disabled small {
+        font-size: 0.7rem;
+        font-weight: normal;
+        opacity: 0.8;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .justify-content-required {
+        border: 2px dashed #ffc107;
+        background-color: #fff3cd;
+    }
+
+    .justify-content-valid {
+        border: 2px solid #198754;
+        background-color: #d1e7dd;
+    }
+</style>

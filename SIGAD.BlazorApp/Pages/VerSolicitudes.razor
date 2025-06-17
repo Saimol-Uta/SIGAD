@@ -1,0 +1,96 @@
+﻿@page "/ver-solicitudes"
+@using SIGAD.BlazorApp.Models
+@inject HttpClient Http
+
+<h3>Solicitudes</h3>
+
+@if (solicitudes == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!solicitudes.Any())
+{
+    <p>No hay solicitudes.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre del Docente</th>
+                <th>Rango Actual</th>
+                <th>Rango Solicitado</th>
+                <th>Fecha de Creación</th>
+                <th>Estado</th>
+                <th>Cambiar Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var solicitud in solicitudes)
+            {
+                <tr>
+                    <td>@solicitud.NombreDocente</td>
+                    <td>@solicitud.RangoActual</td>
+                    <td>@solicitud.RangoSolicitado</td>
+                    <td>@solicitud.FechaCreacion.ToShortDateString()</td>
+                    <td>@solicitud.Estado</td>
+                    <td>
+                        <select class="form-select" @onchange="(e) => CambiarEstado(solicitud.Id, e.Value!.ToString())">
+                            @foreach (var estado in estadosDisponibles)
+                            {
+                                <option value="@estado" selected="@(estado == solicitud.Estado)">
+                                    @estado
+                                </option>
+                            }
+                        </select>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<VerSolicitudDTO>? solicitudes;
+
+    private readonly List<string> estadosDisponibles = new()
+    {
+        "Aprobada", "Rechazada"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulación de datos de ejemplo
+        await Task.Delay(500); // Simula una carga asíncrona
+        solicitudes = new List<VerSolicitudDTO>
+        {
+            new VerSolicitudDTO
+            {
+                Id = Guid.NewGuid(),
+                NombreDocente = "Ana Pérez",
+                RangoActual = "Asistente",
+                RangoSolicitado = "Asociado",
+                Estado = "Aprobada",
+                FechaCreacion = DateTime.Now.AddDays(-3)
+            },
+            new VerSolicitudDTO
+            {
+                Id = Guid.NewGuid(),
+                NombreDocente = "Luis Gómez",
+                RangoActual = "Asociado",
+                RangoSolicitado = "Titular",
+                Estado = "Rechazada",
+                FechaCreacion = DateTime.Now.AddDays(-7)
+            }
+        };
+    }
+
+    private void CambiarEstado(Guid id, string nuevoEstado)
+    {
+        var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
+        if (solicitud != null)
+        {
+            solicitud.Estado = nuevoEstado;
+        }
+    }
+}

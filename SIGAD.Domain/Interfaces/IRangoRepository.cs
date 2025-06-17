@@ -1,18 +1,11 @@
-﻿using SIGAD.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SIGAD.Domain.Entities;
 
 namespace SIGAD.Domain.Interfaces
 {
     public interface IRangoRepository
     {
-        Task<Rango> GetByIdAsync(Guid id);
+        // Métodos básicos - se implementarán más adelante
+        Task<Rango?> GetByIdAsync(int id);
         Task<IEnumerable<Rango>> GetAllAsync();
-        Task AddAsync(Rango rango);
-        Task UpdateAsync(Rango rango);
-        Task DeleteAsync(Guid id);
     }
-}
+} 

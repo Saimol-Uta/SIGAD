@@ -1,4 +1,5 @@
-﻿// SIGAD.WebAPI/Controllers/RangosController.cs
+﻿/*
+// SIGAD.WebAPI/Controllers/RangosController.cs
 using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;          // Para RangoDto
 using SIGAD.Application.Services;    // Para ConsultaRangoAppService
@@ -11,39 +12,82 @@ namespace SIGAD.WebAPI.Controllers
     [Route("api/[controller]")] // Define la ruta base: "api/rangos"
     public class RangosController : ControllerBase
     {
-        private readonly ConsultaRangoAppService _rangoAppService;
+        private readonly ConsultaRangoAppService _consultaRangoService;
+        private readonly GestionRangoAppService _gestionRangoService;
+        private readonly ActualizarRangoService _actualizarRangoService;
 
         // El servicio de aplicación se inyecta a través del constructor
-        public RangosController(ConsultaRangoAppService rangoAppService)
+        public RangosController(
+            ConsultaRangoAppService consultaRangoService,
+            GestionRangoAppService gestionRangoService,
+            ActualizarRangoService actualizarRangoService)
         {
-            _rangoAppService = rangoAppService;
+            _consultaRangoService = consultaRangoService;
+            _gestionRangoService = gestionRangoService;
+            _actualizarRangoService = actualizarRangoService;
         }
 
-        // GET: api/rangos
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<RangoDto>>> GetAllRangosAsync()
+        // GET /api/rangos/docente/{cedula}
+        // Ejemplo: GET /api/rangos/docente/1234567890
+        [HttpGet("docente/{cedula}")]
+        public async Task<IActionResult> GetRangoByDocente(string cedula)
         {
-            var rangos = await _rangoAppService.GetAllRangosAsync();
-            if (rangos == null || !rangos.Any())
+            try
             {
-                return NotFound("No se encontraron rangos."); // Opcional: podrías devolver una lista vacía Ok(new List<RangoDto>())
+                var rangos = await _consultaRangoService.GetAllRangosAsync();
+                return Ok(rangos);
             }
-            return Ok(rangos); // Devuelve 200 OK con la lista de rangos
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        // NOTA SOBRE SaveChangesAsync():
-        // Si tuviéramos un método POST para crear un rango, se vería algo así:
-        // [HttpPost]
-        // public async Task<IActionResult> CreateRango([FromBody] CrearRangoDto crearRangoDto)
-        // {
-        //     // Suponiendo que tienes un CrearRangoAppService o un método en ConsultaRangoAppService
-        //     // var rangoId = await _rangoAppService.CreateRangoAsync(crearRangoDto);
-        //
-        //     // Aquí es donde el Application Service se habría encargado de llamar a AddAsync del repositorio
-        //     // y luego, importante, a SaveChangesAsync() (ya sea directamente en el App Service si tiene
-        //     // el DbContext inyectado -menos ideal- o a través de un servicio de Unit of Work).
-        //
-        //     // return CreatedAtAction(nameof(GetRangoById), new { id = rangoId }, crearRangoDto);
-        // }
+        // POST /api/rangos
+        [HttpPost]
+        public async Task<IActionResult> CrearRango([FromBody] CrearRangoDto dto)
+        {
+            try
+            {
+                var rangoId = await _gestionRangoService.CrearRangoAsync(dto);
+                return CreatedAtAction(nameof(GetRangoByDocente), new { cedula = "temp" }, rangoId);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // GET /api/rangos
+        // Devuelve todos los rangos del sistema
+        [HttpGet]
+        public async Task<IActionResult> GetAllRangos()
+        {
+            try
+            {
+                var rangos = await _consultaRangoService.GetAllRangosAsync();
+                return Ok(rangos);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // PUT /api/rangos/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> ActualizarRango(int id, [FromBody] ActualizarRangoDto dto)
+        {
+            try
+            {
+                await _actualizarRangoService.ActualizarRangoAsync(id, dto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
+*/
