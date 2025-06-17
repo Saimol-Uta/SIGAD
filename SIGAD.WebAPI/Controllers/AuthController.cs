@@ -28,7 +28,7 @@ namespace SIGAD.WebAPI.Controllers
         [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public async Task<IActionResult> RestablecerContrasena([FromBody] RestablecerContrasenaDto dto)
         {
-            var success = await _authService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena);
+            var success = await _authService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena, dto.ConfirmarContrasena);
 
             if (!success)
             {

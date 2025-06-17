@@ -17,5 +17,8 @@ namespace SIGAD.Application.DTOs
 
         [System.ComponentModel.DataAnnotations.Required]
         public string NuevaContrasena { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ConfirmarContrasena { get; set; } = string.Empty;
     }
 }
