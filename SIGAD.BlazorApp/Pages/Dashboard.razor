@@ -1,11 +1,13 @@
 ﻿@page "/Dashboard"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
+
 @using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject ISolicitudService SolicitudService
 
 @code {
     string NombreUsuarioLogueado = "Carlos Ramos";
@@ -14,6 +16,32 @@
     int CantidadNotificaciones = 2;
     string FechaInicioProceso = "31/03/2024";
     int PorcentajeAvance = 85;
+
+    // Variables para proceso de ascenso
+    private bool tieneSolicitudActiva = false;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await VerificarSolicitudActiva();
+    }
+
+    private async Task VerificarSolicitudActiva()
+    {
+        try
+        {
+            tieneSolicitudActiva = await SolicitudService.TieneSolicitudActualAsync();
+        }
+        catch (Exception)
+        {
+            tieneSolicitudActiva = false;
+        }
+    }
+
+    private async Task ContinuarProceso()
+    {
+        Navigation.NavigateTo("/gestion-documentos");
+    }
 
     private async Task Logout()
     {
@@ -142,6 +170,7 @@
         padding-left: 60px;
         /* espacio hacia la izquierda */
         margin-top: 100px;
+
     }
 
     .left h1 {
@@ -313,6 +342,7 @@
             </div>
 
             <div class="buttons">
+
                 <button class="primary-btn" @onclick="IrAProcesoPromocion">
                     Start New Promotion Process
                 </button>
@@ -320,6 +350,21 @@
                 <button class="secondary-btn" @onclick="IrAGestionDocumentos">
                     Manage Documents
                 </button>
+
+                @if (tieneSolicitudActiva)
+                {
+                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continue Promotion Process</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
+                        Documents</button>
+                }
+                else
+                {
+                    <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">🚀
+                        Start New Promotion Process</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
+                        Documents</button>
+                }
+
             </div>
         </div>
 
@@ -337,4 +382,3 @@
 
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
 </body>
-

@@ -8,5 +8,6 @@ namespace SIGAD.Domain.Interfaces
         Task<bool> ExistsByCedulaAsync(string cedula);
         Task AddAsync(Docente docente);
         Task UpdateAsync(Docente docente);
+        Task<Docente?> GetByIdWithDetailsAsync(string cedula);
     }
 }

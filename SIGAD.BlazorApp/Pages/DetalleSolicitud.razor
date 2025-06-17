@@ -1,0 +1,576 @@
+@page "/admin/solicitud/{solicitudId}"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Components
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="page-wrapper">
+    <Encabezado />
+
+    <div class="detalle-container">
+        @if (cargando)
+        {
+            <div class="text-center" style="padding: 40px;">
+                <div style="margin-bottom: 15px;">Cargando detalles de la solicitud...</div>
+                <div class="spinner"></div>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-danger">
+                <strong>Error:</strong> @mensajeError
+                <button @onclick="CargarDetalle" class="btn btn-primary ms-3">Reintentar</button>
+            </div>
+        }
+        else if (solicitud != null)
+        {
+            <!-- Sección 1: Cabecera de la Solicitud -->
+            <div class="cabecera-solicitud">
+                <h2>Detalle de Solicitud de Ascenso</h2>
+                <h4 class="text-muted">Solicitud ID: @solicitud.Id</h4>
+                <div class="estado-badge">
+                    Estado: <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span>
+                </div>
+            </div>
+
+            <!-- Sección 2: Información del Docente y la Solicitud -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Docente y la Solicitud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre del Docente:</strong> @solicitud.DocenteNombreCompleto</p>
+                            <p><strong>Cédula:</strong> @solicitud.DocenteCedula</p>
+                            <p><strong>Rango Actual:</strong> @(solicitud.RangoActualNombre ?? "N/A")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Rango Solicitado:</strong> @solicitud.RangoSolicitadoNombre</p>
+                            <p><strong>Fecha de Envío:</strong> @(solicitud.FechaEnvio?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                            <p><strong>Fecha de Creación:</strong> @solicitud.FechaCreacion.ToString("dd/MM/yyyy")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 3: Evidencia Presentada por el Docente -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Evidencia Adjunta a la Solicitud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="evidenciaAccordion">
+                          <!-- Sub-sección de Artículos -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="articulosHeader">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#articulosCollapse" aria-expanded="true" aria-controls="articulosCollapse">
+                                    Artículos Presentados (@solicitud.ArticulosPresentados.Count)
+                                </button>
+                            </h2>
+                            <div id="articulosCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.ArticulosPresentados.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>DOI</th>
+                                                        <th>Título</th>
+                                                        <th>Revista</th>
+                                                        <th>Año</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var articulo in solicitud.ArticulosPresentados)
+                                                    {
+                                                        <tr>
+                                                            <td>@articulo.DOI</td>
+                                                            <td>@articulo.Titulo</td>
+                                                            <td>@articulo.Revista</td>
+                                                            <td>@articulo.AnioPublicacion</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm">Ver Documento</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron artículos en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Investigaciones -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="investigacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#investigacionesCollapse" aria-expanded="true" aria-controls="investigacionesCollapse">
+                                    Investigaciones Presentadas (@solicitud.InvestigacionesPresentadas.Count)
+                                </button>
+                            </h2>
+                            <div id="investigacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.InvestigacionesPresentadas.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Título</th>
+                                                        <th>Rol en la Investigación</th>
+                                                        <th>Fecha de Finalización</th>
+                                                        <th>Meses Aportados</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var investigacion in solicitud.InvestigacionesPresentadas)
+                                                    {
+                                                        <tr>
+                                                            <td>@investigacion.Titulo</td>
+                                                            <td>@investigacion.RolEnInvestigacion</td>
+                                                            <td>@investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>@investigacion.MesesDeInvestigacion</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm">Ver Informe</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron investigaciones en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Cursos -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="cursosHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cursosCollapse" aria-expanded="true" aria-controls="cursosCollapse">
+                                    Cursos de Capacitación (@solicitud.CursosPresentados.Count)
+                                </button>
+                            </h2>
+                            <div id="cursosCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.CursosPresentados.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Nombre del Curso</th>
+                                                        <th>Institución</th>
+                                                        <th>Número de Horas</th>
+                                                        <th>Fecha de Finalización</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var curso in solicitud.CursosPresentados)
+                                                    {
+                                                        <tr>
+                                                            <td>@curso.Nombre</td>
+                                                            <td>@curso.NombreOrganizacion</td>
+                                                            <td>@curso.NumeroHoras</td>
+                                                            <td>@curso.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                <button class="btn btn-outline-primary btn-sm">Ver Certificado</button>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron cursos en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Experiencia Laboral -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="experienciasHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#experienciasCollapse" aria-expanded="true" aria-controls="experienciasCollapse">
+                                    Experiencia Laboral (@solicitud.ExperienciasLaborales.Count)
+                                </button>
+                            </h2>
+                            <div id="experienciasCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.ExperienciasLaborales.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Organización</th>
+                                                        <th>Tipo de Organización</th>
+                                                        <th>Cargo</th>
+                                                        <th>Período</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var experiencia in solicitud.ExperienciasLaborales)
+                                                    {
+                                                        <tr>
+                                                            <td>@experiencia.OrganizacionNombre</td>
+                                                            <td>@experiencia.OrganizacionTipo</td>
+                                                            <td>@experiencia.Cargo</td>
+                                                            <td>@experiencia.PeriodoTrabajo</td>
+                                                            <td>
+                                                                @if (experiencia.TieneCertificado)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm">Ver Certificado</button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin certificado</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentó experiencia laboral en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>                        <!-- Sub-sección de Evaluaciones Docentes -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="evaluacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#evaluacionesCollapse" aria-expanded="true" aria-controls="evaluacionesCollapse">
+                                    Evaluaciones Docentes (@solicitud.EvaluacionesDocente.Count)
+                                </button>
+                            </h2>
+                            <div id="evaluacionesCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+                                <div class="accordion-body">
+                                    @if (solicitud.EvaluacionesDocente.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Período Académico</th>
+                                                        <th>Fecha de Evaluación</th>
+                                                        <th>Puntaje</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var evaluacion in solicitud.EvaluacionesDocente)
+                                                    {
+                                                        <tr>
+                                                            <td>@evaluacion.PeriodoAcademico</td>
+                                                            <td>@evaluacion.FechaEvaluacion.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                <span class="badge @(evaluacion.PuntajePorcentual >= 80 ? "bg-success" : evaluacion.PuntajePorcentual >= 60 ? "bg-warning" : "bg-danger")">
+                                                                    @evaluacion.PuntajeFormateado
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                @if (evaluacion.TieneInforme)
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm">Ver Informe</button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin informe</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No se presentaron evaluaciones docentes en esta solicitud.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 4: Zona de Acción del Administrador -->
+            @if (solicitud.Estado != "Aprobada" && solicitud.Estado != "Rechazada")
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Decisión del Administrador</h5>
+                    </div>
+                    <div class="card-body">
+                        <EditForm Model="@formularioDecision" OnValidSubmit="@ProcesarDecision">
+                            <DataAnnotationsValidator />
+                            
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">Observaciones / Justificación:</label>
+                                <InputTextArea @bind-Value="formularioDecision.Observaciones" class="form-control" id="observaciones" rows="4" 
+                                               placeholder="Escriba aquí sus observaciones o justificación para la decisión..." />
+                                <ValidationMessage For="@(() => formularioDecision.Observaciones)" />
+                            </div>
+
+                            <div class="d-flex gap-3 justify-content-center">
+                                <button type="button" @onclick="@(() => AprobarSolicitud())" class="btn btn-success btn-lg" disabled="@procesando">
+                                    @if (procesando && accionSeleccionada == "aprobar")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-check"></i> Aprobar Solicitud
+                                </button>
+                                
+                                <button type="button" @onclick="@(() => RechazarSolicitud())" class="btn btn-danger btn-lg" disabled="@procesando">
+                                    @if (procesando && accionSeleccionada == "rechazar")
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    <i class="fas fa-times"></i> Rechazar Solicitud
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Decisión Final</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Estado Final:</strong> <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span></p>
+                        @if (!string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
+                        {
+                            <p><strong>Observaciones del Administrador:</strong></p>
+                            <div class="alert alert-info">@solicitud.ObservacionesAdmin</div>
+                        }
+                        @if (solicitud.FechaResolucion.HasValue)
+                        {
+                            <p><strong>Fecha de Resolución:</strong> @solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy")</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Botón de regreso -->
+            <div class="text-center mb-4">
+                <button @onclick="VolverAlDashboard" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f8f9fa;
+    }
+
+    .detalle-container {
+        flex: 1;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .cabecera-solicitud {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .estado-badge {
+        margin-top: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0a1d44;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #e7f1ff;
+        color: #0c63e4;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        border-top: none;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+    }
+</style>
+
+@code {
+    [Parameter] public string SolicitudId { get; set; } = "";
+
+    private SolicitudDetalleDto? solicitud;
+    private bool cargando = true;
+    private string? mensajeError = null;
+    private bool procesando = false;
+    private string accionSeleccionada = "";
+    
+    private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
+    {
+        await CargarDetalle();
+    }    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Asegurar que Bootstrap está inicializado
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                console.log('Bootstrap loaded:', typeof bootstrap !== 'undefined');
+                if (typeof bootstrap !== 'undefined') {
+                    console.log('Bootstrap accordion initialized');
+                }
+            ");
+        }
+    }
+
+    private async Task CargarDetalle()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            StateHasChanged();
+
+            if (Guid.TryParse(SolicitudId, out var guid))
+            {
+                solicitud = await SolicitudesService.GetSolicitudDetalleAsync(guid);
+                if (solicitud == null)
+                {
+                    mensajeError = "No se encontró la solicitud especificada.";
+                }
+            }
+            else
+            {
+                mensajeError = "ID de solicitud inválido.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar los detalles: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AprobarSolicitud()
+    {
+        await ProcesarDecisionInterna("aprobar");
+    }
+
+    private async Task RechazarSolicitud()
+    {
+        await ProcesarDecisionInterna("rechazar");
+    }
+
+    private async Task ProcesarDecisionInterna(string accion)
+    {
+        try
+        {
+            procesando = true;
+            accionSeleccionada = accion;
+            StateHasChanged();
+
+            if (Guid.TryParse(SolicitudId, out var guid))
+            {
+                bool resultado = false;
+                
+                if (accion == "aprobar")
+                {
+                    resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                }
+                else if (accion == "rechazar")
+                {
+                    resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                }
+
+                if (resultado)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", $"Solicitud {accion}da exitosamente.");
+                    await CargarDetalle(); // Recargar para mostrar el nuevo estado
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", $"Error al {accion} la solicitud. Intente nuevamente.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+            accionSeleccionada = "";
+            StateHasChanged();
+        }
+    }    private void ProcesarDecision()
+    {
+        // Este método se puede usar si necesitas validación adicional
+    }
+
+    private void VolverAlDashboard()
+    {
+        Navigation.NavigateTo("/admin-dashboard");
+    }
+
+    private string ObtenerClaseBadge(string estado)
+    {
+        return estado.ToLower() switch
+        {
+            "aprobada" => "bg-success",
+            "rechazada" => "bg-danger", 
+            "enviada" => "bg-primary",
+            "enrevision" => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+
+    public class FormularioDecision
+    {
+        public string? Observaciones { get; set; }
+    }
+}
