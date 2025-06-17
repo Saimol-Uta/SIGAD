@@ -1,8 +1,8 @@
 ﻿@page "/Dashboard"
 @using Microsoft.AspNetCore.Authorization
-
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Models
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -10,20 +10,204 @@
 @inject ISolicitudService SolicitudService
 
 @code {
-    string NombreUsuarioLogueado = "Carlos Ramos";
-    string NombreCompletoUsuario = "Carlos Giovanni Ramos Jacome";
+    string NombreUsuarioLogueado = "";
+    string NombreCompletoUsuario = "";
     string UrlFotoPerfil = "/images/IconoUser.png";
-    int CantidadNotificaciones = 2;
-    string FechaInicioProceso = "31/03/2024";
-    int PorcentajeAvance = 85;
+    int CantidadNotificaciones = 0;
+    string FechaInicioProceso = "";
+    int PorcentajeAvance = 0;
+    string? RangoActual = "";
 
     // Variables para proceso de ascenso
     private bool tieneSolicitudActiva = false;
-    private bool isLoading = false;
+    private bool isLoading = true;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         await VerificarSolicitudActiva();
+        await CargarDatosUsuario();
+        isLoading = false;
+    }
+
+    private async Task CargarDatosUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Agregar el token a los headers
+                Http.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        var docente = result.Data;
+                        NombreUsuarioLogueado = $"{docente.Nombre1} {docente.Apellido1}";
+                        NombreCompletoUsuario = $"{docente.Nombre1} {docente.Nombre2} {docente.Apellido1} {docente.Apellido2}".Replace("  ", " ").Trim();
+                        RangoActual = docente.RangoNombre;
+                        
+                        // Si tiene solicitud activa, calcular fecha y progreso
+                        if (tieneSolicitudActiva)
+                        {
+                            await CalcularProgresoSolicitud();
+                        }
+                        else
+                        {
+                            FechaInicioProceso = "";
+                            PorcentajeAvance = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    // Token inválido, redirigir al login
+                    Navigation.NavigateTo("/login", true);
+                }
+            }
+            else
+            {
+                // No hay token, redirigir al login
+                Navigation.NavigateTo("/login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar datos del usuario: {ex.Message}";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task CalcularProgresoSolicitud()
+    {
+        try
+        {
+            // Obtener información de la solicitud actual
+            var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+            if (!string.IsNullOrEmpty(solicitudId))
+            {
+                // Obtener información de la solicitud para fecha de inicio
+                await ObtenerFechaSolicitud(solicitudId);
+                
+                // Calcular progreso basado en requisitos del rango
+                var progreso = await CalcularProgresoRequisitos(solicitudId);
+                PorcentajeAvance = progreso;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al calcular progreso: {ex.Message}");
+            FechaInicioProceso = DateTime.Now.ToString("dd/MM/yyyy");
+            PorcentajeAvance = 10; // Progreso mínimo por tener solicitud
+        }
+    }
+
+    private Task ObtenerFechaSolicitud(string solicitudId)
+    {
+        try
+        {
+            // Por ahora usar fecha actual, pero podrías hacer una consulta específica
+            // para obtener la fecha real de creación de la solicitud
+            FechaInicioProceso = DateTime.Now.ToString("dd/MM/yyyy");
+        }
+        catch
+        {
+            FechaInicioProceso = DateTime.Now.ToString("dd/MM/yyyy");
+        }
+        
+        return Task.CompletedTask;
+    }
+
+    private async Task<int> CalcularProgresoRequisitos(string solicitudId)
+    {
+        try
+        {
+            // Hacer la consulta al endpoint de verificación de requisitos
+            var response = await Http.GetAsync($"api/auth/verificar-requisitos/{solicitudId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
+                
+                if (result?.Success == true && result.ValoresActuales != null && result.ValoresRequeridos != null)
+                {
+                    return CalcularPorcentajeProgreso(result.ValoresActuales, result.ValoresRequeridos);
+                }
+            }
+            
+            // Si no se puede obtener la información, devolver progreso base
+            return 10; // 10% por tener una solicitud activa
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar requisitos: {ex.Message}");
+            return 10;
+        }
+    }
+
+    private int CalcularPorcentajeProgreso(ValoresActuales actuales, ValoresRequeridos requeridos)
+    {
+        decimal progresoTotal = 0;
+        const int porcentajePorRequisito = 20; // 100% / 5 = 20% por requisito
+
+        // 1. Calcular progreso de Artículos (20%)
+        if (requeridos.Articulos > 0)
+        {
+            decimal progresoArticulos = Math.Min((decimal)actuales.Articulos / requeridos.Articulos, 1.0m);
+            progresoTotal += progresoArticulos * porcentajePorRequisito;
+        }
+
+        // 2. Calcular progreso de Años de Experiencia (20%)
+        if (requeridos.AniosExperiencia > 0)
+        {
+            decimal progresoExperiencia = Math.Min(actuales.AniosExperiencia / requeridos.AniosExperiencia, 1.0m);
+            progresoTotal += progresoExperiencia * porcentajePorRequisito;
+        }
+
+        // 3. Calcular progreso de Horas de Cursos (20%)
+        if (requeridos.HorasCursos > 0)
+        {
+            decimal progresoCursos = Math.Min((decimal)actuales.HorasCursos / requeridos.HorasCursos, 1.0m);
+            progresoTotal += progresoCursos * porcentajePorRequisito;
+        }
+
+        // 4. Calcular progreso de Meses de Investigación (20%)
+        if (requeridos.MesesInvestigacion > 0)
+        {
+            decimal progresoInvestigacion = Math.Min(actuales.MesesInvestigacion / requeridos.MesesInvestigacion, 1.0m);
+            progresoTotal += progresoInvestigacion * porcentajePorRequisito;
+        }
+
+        // 5. Calcular progreso de Promedio de Evaluaciones (20%)
+        if (requeridos.PromedioEvaluaciones > 0)
+        {
+            decimal progresoEvaluaciones = Math.Min(actuales.PromedioEvaluaciones / requeridos.PromedioEvaluaciones, 1.0m);
+            progresoTotal += progresoEvaluaciones * porcentajePorRequisito;
+        }
+
+        // Convertir a entero y asegurar que siempre haya al menos 5% de progreso si tiene solicitud activa
+        int porcentajeFinal = (int)Math.Round(progresoTotal);
+        return Math.Max(porcentajeFinal, 5);
+    }
+
+    private string GetProgresoDescripcion(int porcentaje)
+    {
+        return porcentaje switch
+        {
+            0 => "📋 Proceso no iniciado",
+            >= 1 and <= 15 => "🟡 Solicitud creada - Agregue documentos",
+            >= 20 and <= 35 => "🟠 1-2 requisitos completados",
+            >= 40 and <= 55 => "🔵 2-3 requisitos completados", 
+            >= 60 and <= 75 => "🟢 3-4 requisitos completados",
+            >= 80 and <= 95 => "✅ 4-5 requisitos completados",
+            100 => "🎉 ¡Todos los requisitos completados!",
+            _ => "📊 Calculando progreso..."
+        };
     }
 
     private async Task VerificarSolicitudActiva()
@@ -72,6 +256,7 @@
             Navigation.NavigateTo("/login", true);
         }
     }
+
     void IrAProcesoPromocion()
     {
         Navigation.NavigateTo("/empezar-proceso-promocion", true);
@@ -86,6 +271,61 @@
         Navigation.NavigateTo("/progreso-docente", true);
     }
     
+
+
+    // Modelos para las respuestas de API
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Rol { get; set; }
+        public string? Cedula { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Nombre2 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Apellido2 { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
+    }
+
+    public class VerificacionRequisitosResponse
+    {
+        public bool Success { get; set; }
+        public bool CumpleRequisitos { get; set; }
+        public List<string>? RequisitosFaltantes { get; set; }
+        public ValoresActuales? ValoresActuales { get; set; }
+        public ValoresRequeridos? ValoresRequeridos { get; set; }
+        public string? RangoSolicitado { get; set; }
+    }
+
+    public class ValoresActuales
+    {
+        public int Articulos { get; set; }
+        public decimal AniosExperiencia { get; set; }
+        public int HorasCursos { get; set; }
+        public decimal MesesInvestigacion { get; set; }
+        public decimal PromedioEvaluaciones { get; set; }
+        public int TotalEvaluaciones { get; set; }
+        public int EvaluacionesCumplen { get; set; }
+    }
+
+    public class ValoresRequeridos
+    {
+        public int Articulos { get; set; }
+        public int AniosExperiencia { get; set; }
+        public int HorasCursos { get; set; }
+        public int MesesInvestigacion { get; set; }
+        public decimal PromedioEvaluaciones { get; set; }
+        public string? RangoNombre { get; set; }
+    }
+
 }
 <style>
     * {
@@ -297,6 +537,82 @@
         background-color: #09203f;
     }
 
+    /* Estilos para la sección de progreso */
+    .progress-section {
+        margin: 1.5rem 0;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-label {
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .progress-percentage {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0a1d44;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+        border-radius: 10px;
+        transition: width 0.6s ease-in-out;
+        position: relative;
+    }
+
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+        animation: progress-shine 2s infinite;
+    }
+
+    @@keyframes progress-shine {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .progress-description {
+        margin-top: 0.8rem;
+        font-size: 0.85rem;
+        color: #666;
+        text-align: center;
+        font-style: italic;
+    }
+
+    .no-process {
+        margin: 1.5rem 0;
+        text-align: center;
+        color: #856404;
+    }
+
+    .no-process p {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+    }
+
     .triangle-bg {
         position: fixed;
         /* detrás del contenido */
@@ -328,18 +644,46 @@
     </div>
 
     <div class="main-content">
-        <div class="left">
-            <h1>Welcome<br />System</h1>
-            <p>@NombreCompletoUsuario</p>
-
-            <div class="notifications" style="position: relative">
-                <img src="/images/iconoBell.png" alt="Notifications" />
-                @if (CantidadNotificaciones > 0)
-                {
-                    <span class="badge">@CantidadNotificaciones</span>
-                }
-                <span>Notifications</span>
+        @if (isLoading)
+        {
+            <div style="display: flex; justify-content: center; align-items: center; height: 50vh; width: 100%;">
+                <div style="text-align: center;">
+                    <p>Cargando información del usuario...</p>
+                    <div style="margin-top: 1rem;">⏳</div>
+                </div>
             </div>
+        }
+        else if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div style="display: flex; justify-content: center; align-items: center; height: 50vh; width: 100%;">
+                <div style="text-align: center; color: red;">
+                    <p>@errorMessage</p>
+                    <button @onclick="@(() => Navigation.NavigateTo("/login"))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0a1d44; color: white; border: none; border-radius: 4px;">
+                        Volver al Login
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="left">
+                <h1>Welcome<br />System</h1>
+                <p>@NombreCompletoUsuario</p>
+                @if (!string.IsNullOrEmpty(RangoActual))
+                {
+                    <p style="font-size: 1rem; color: #666; margin-top: 0.5rem;">
+                        <strong>Rango Actual:</strong> @RangoActual
+                    </p>
+                }
+
+                <div class="notifications" style="position: relative">
+                    <img src="/images/iconoBell.png" alt="Notifications" />
+                    @if (CantidadNotificaciones > 0)
+                    {
+                        <span class="badge">@CantidadNotificaciones</span>
+                    }
+                    <span>Notifications</span>
+                </div>
 
             <div class="buttons">
 
@@ -368,16 +712,45 @@
             </div>
         </div>
 
-        <div class="promotion-card">
-            <h3>View Promotion</h3>
-            <small>Start Promotion</small>
-            <div>@FechaInicioProceso</div>
-            <div class="advance">
-                <small>Advance</small><br />
-                @PorcentajeAvance%
+            <div class="promotion-card">
+                <h3>📈 Progreso de Promoción</h3>
+                <small>@(!string.IsNullOrEmpty(FechaInicioProceso) ? $"Iniciado: {FechaInicioProceso}" : "Proceso no iniciado")</small>
+                
+                @if (tieneSolicitudActiva)
+                {
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span class="progress-label">Progreso de Requisitos</span>
+                            <span class="progress-percentage">@PorcentajeAvance%</span>
+                        </div>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: @PorcentajeAvance%"></div>
+                        </div>
+                        
+                        <div class="progress-description">
+                            @GetProgresoDescripcion(PorcentajeAvance)
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="no-process">
+                        <p>⚠️ No hay proceso de promoción activo</p>
+                        <p>Inicie un nuevo proceso para ver el progreso</p>
+                    </div>
+                }
+                
+                <button @onclick="@(() => Navigation.NavigateTo(tieneSolicitudActiva ? "/gestion-documentos" : "/iniciar-solicitud-ascenso"))">
+                    @(tieneSolicitudActiva ? "📊 Ver Detalles" : "🚀 Iniciar Proceso")
+                </button>
             </div>
+
             <button @onclick="IrAVerProgreso">View Progress</button>
         </div>
+
+        }
+
     </div>
 
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />

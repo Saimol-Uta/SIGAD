@@ -493,7 +493,7 @@
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
-            content.Add(fileContent, "archivo", archivoFormulario.Name);
+            content.Add(fileContent, "certificado", archivoFormulario.Name);
 
             // Enviar la solicitud
             var response = await Http.PostAsync("api/cursos", content);

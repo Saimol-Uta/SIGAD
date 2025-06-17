@@ -14,5 +14,7 @@ namespace SIGAD.Domain.Interfaces
         Task<bool> ExistsAsync(int id);
         Task AddToSolicitudAsync(Guid solicitudId, int evaluacionId);
         Task RemoveFromSolicitudAsync(Guid solicitudId, int evaluacionId);
+        Task<bool> ExistePorHashAsync(string hash);
+        Task AgregarAsync(EvaluacionDocente evaluacion);
     }
 } 

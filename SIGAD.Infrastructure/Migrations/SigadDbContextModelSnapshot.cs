@@ -88,6 +88,12 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<DateTime?>("CodigoExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CodigoRecuperacion")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("DocenteCedula")
                         .IsRequired()
                         .HasMaxLength(10)

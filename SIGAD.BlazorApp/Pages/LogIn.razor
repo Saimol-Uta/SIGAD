@@ -8,6 +8,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
 @inject IJSRuntime JSRuntime
+@implements IDisposable
 
 <style>
     body,
@@ -97,6 +98,16 @@
         background-color: #0e2c6c;
     }
 
+    .login-button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .login-button:disabled:hover {
+        background-color: #6c757d;
+    }
+
     .forgot-password {
         display: block;
         margin-top: 10px;
@@ -137,6 +148,12 @@
         background-color: #f8d7da;
         border-color: #f5c6cb;
     }
+
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+    }
 </style>
 
 <div class="login-background">
@@ -154,7 +171,7 @@
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <div class="alert alert-danger" role="alert">
+                <div class="alert @(cuentaBloqueada ? "alert-warning" : "alert-danger")" role="alert">
                     @errorMessage
                 </div>
             }
@@ -170,12 +187,18 @@
                 <ValidationMessage For="@(() => loginModel.Clave)" />
             </div>
 
-
             <button type="submit" class="login-button" disabled="@isLoading">
+
+            <button type="submit" class="login-button" disabled="@(isLoading || cuentaBloqueada)">
+
                 @if (isLoading)
                 {
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                     <span> Ingresando...</span>
+                }
+                else if (cuentaBloqueada)
+                {
+                    <span>BLOQUEADO (@FormatearTiempo(tiempoRestanteSegundos))</span>
                 }
                 else
                 {
@@ -206,9 +229,36 @@
     private string? errorMessage;
     private bool isLoading = false; // Para saber si estamos esperando respuesta de la API
 
+    // 3. Variables para control de bloqueo temporal
+    private int intentosFallidos = 0;
+    private DateTime? tiempoBloqueo = null;
+    private bool cuentaBloqueada = false;
+    private int tiempoRestanteSegundos = 0;
+    private Timer? temporizadorBloqueo;
+
+    // 4. Constantes de configuración
+    private const int MAX_INTENTOS = 3;
+    private const int MINUTOS_BLOQUEO = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await VerificarBloqueoExistente();
+    }
+
+    public void Dispose()
+    {
+        temporizadorBloqueo?.Dispose();
+    }
+
     // 3. Método que se ejecutará al enviar el formulario.
     private async Task HandleLogin()
     {
+        // Verificar si la cuenta está bloqueada
+        if (cuentaBloqueada)
+        {
+            return;
+        }
+
         isLoading = true;
         errorMessage = null;
 
@@ -220,6 +270,9 @@
 
             if (result != null)
             {
+                // Login exitoso - resetear intentos fallidos
+                await ResetearIntentosFallidos();
+
                 // Guardar el token en localStorage
                 await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
 
@@ -248,7 +301,9 @@
             }
             else
             {
-                errorMessage = "Correo o contraseña incorrectos.";
+                // Login fallido - incrementar contador
+                await RegistrarIntentoFallido();
+                errorMessage = $"Correo o contraseña incorrectos. Intentos restantes: {MAX_INTENTOS - intentosFallidos}";
             }
 
             isLoading = false;
@@ -256,10 +311,12 @@
         }
         catch (HttpRequestException httpEx)
         {
-            // Error HTTP específico
+            // Error HTTP específico - también cuenta como intento fallido
+            await RegistrarIntentoFallido();
+            
             if (httpEx.Message.Contains("401"))
             {
-                errorMessage = "Credenciales incorrectas. Verifique su correo y contraseña.";
+                errorMessage = $"Credenciales incorrectas. Intentos restantes: {MAX_INTENTOS - intentosFallidos}";
             }
             else if (httpEx.Message.Contains("400"))
             {
@@ -282,10 +339,125 @@
         }
     }
 
+
     void Registro()
     {
         NavigationManager.NavigateTo("/register");
 
         
+
+    private async Task VerificarBloqueoExistente()
+    {
+        try
+        {
+            var intentosStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "loginAttempts");
+            var tiempoBloqueoStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "lockoutTime");
+
+            if (!string.IsNullOrEmpty(intentosStr) && int.TryParse(intentosStr, out var intentos))
+            {
+                intentosFallidos = intentos;
+            }
+
+            if (!string.IsNullOrEmpty(tiempoBloqueoStr) && DateTime.TryParse(tiempoBloqueoStr, out var tiempo))
+            {
+                tiempoBloqueo = tiempo;
+                
+                // Verificar si el bloqueo aún está activo
+                if (DateTime.Now < tiempoBloqueo)
+                {
+                    IniciarBloqueo();
+                }
+                else
+                {
+                    // El bloqueo ya expiró, resetear
+                    await ResetearIntentosFallidos();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar bloqueo: {ex.Message}");
+        }
+    }
+
+    private async Task RegistrarIntentoFallido()
+    {
+        intentosFallidos++;
+        
+        // Guardar en localStorage
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "loginAttempts", intentosFallidos.ToString());
+
+        if (intentosFallidos >= MAX_INTENTOS)
+        {
+            // Bloquear cuenta
+            tiempoBloqueo = DateTime.Now.AddMinutes(MINUTOS_BLOQUEO);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "lockoutTime", tiempoBloqueo.Value.ToString());
+            
+            IniciarBloqueo();
+            errorMessage = $"Cuenta bloqueada por {MINUTOS_BLOQUEO} minutos debido a múltiples intentos fallidos.";
+        }
+    }
+
+    private async Task ResetearIntentosFallidos()
+    {
+        intentosFallidos = 0;
+        tiempoBloqueo = null;
+        cuentaBloqueada = false;
+        tiempoRestanteSegundos = 0;
+        
+        temporizadorBloqueo?.Dispose();
+        
+        // Limpiar localStorage
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "loginAttempts");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "lockoutTime");
+    }
+
+    private void IniciarBloqueo()
+    {
+        if (tiempoBloqueo.HasValue)
+        {
+            cuentaBloqueada = true;
+            var tiempoRestante = tiempoBloqueo.Value - DateTime.Now;
+            tiempoRestanteSegundos = (int)tiempoRestante.TotalSeconds;
+
+            if (tiempoRestanteSegundos > 0)
+            {
+                // Iniciar temporizador que se actualiza cada segundo
+                temporizadorBloqueo = new Timer(ActualizarTemporizador, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+                errorMessage = $"Cuenta bloqueada. Tiempo restante: {FormatearTiempo(tiempoRestanteSegundos)}";
+            }
+            else
+            {
+                // El bloqueo ya expiró
+                _ = ResetearIntentosFallidos();
+            }
+        }
+    }
+
+    private async void ActualizarTemporizador(object? state)
+    {
+        tiempoRestanteSegundos--;
+
+        if (tiempoRestanteSegundos <= 0)
+        {
+            // Bloqueo expirado
+            await ResetearIntentosFallidos();
+            errorMessage = "El bloqueo ha expirado. Puede intentar iniciar sesión nuevamente.";
+        }
+        else
+        {
+            errorMessage = $"Cuenta bloqueada. Tiempo restante: {FormatearTiempo(tiempoRestanteSegundos)}";
+        }
+
+        // Actualizar la UI
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string FormatearTiempo(int segundos)
+    {
+        var minutos = segundos / 60;
+        var segundosRestantes = segundos % 60;
+        return $"{minutos:D2}:{segundosRestantes:D2}";
+
     }
 }
