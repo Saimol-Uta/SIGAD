@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SIGAD.Application\SIGAD.Application.csproj" />
     <ProjectReference Include="..\SIGAD.Domain\SIGAD.Domain.csproj" />
   </ItemGroup>
 

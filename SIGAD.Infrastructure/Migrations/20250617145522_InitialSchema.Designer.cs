@@ -12,7 +12,7 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    [Migration("20250613063636_InitialSchema")]
+    [Migration("20250617145522_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -90,6 +90,12 @@ namespace SIGAD.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("CodigoExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CodigoRecuperacion")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DocenteCedula")
                         .IsRequired()

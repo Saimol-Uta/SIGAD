@@ -96,5 +96,14 @@ namespace SIGAD.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _context.Investigaciones.AnyAsync(i => i.ContenidoHash == hash);
+        }
+
+        public async Task AgregarAsync(Investigacion investigacion)
+        {
+            await _context.Investigaciones.AddAsync(investigacion);
+        }
     }
 }

@@ -21,6 +21,7 @@ namespace SIGAD.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
+        private readonly IEmailService _emailService;
 
         public AuthService(
             ICuentaRepository cuentaRepository,
@@ -29,7 +30,8 @@ namespace SIGAD.Application.Services
             IRangoRepository rangoRepository,
             IUnitOfWork unitOfWork,
             IConfiguration configuration,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IEmailService emailService)
         {
             _cuentaRepository = cuentaRepository;
             _docenteRepository = docenteRepository;
@@ -38,6 +40,7 @@ namespace SIGAD.Application.Services
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _logger = logger;
+            _emailService = emailService;
         }
 
         public async Task<bool> RegisterAsync(RegisterRequestDto registerRequest)
@@ -317,6 +320,55 @@ namespace SIGAD.Application.Services
             {
                 return false;
             }
+        }
+
+        public async Task<bool> SolicitarRecuperacionAsync(string email)
+        {
+            var cuenta = await _cuentaRepository.GetByEmailAsync(email);
+
+            if (cuenta == null)
+            {
+                return true;
+            }
+
+            var codigo = new Random().Next(100000, 999999).ToString();
+
+            // --- CORRECCIÓN 2: Usar el nombre de propiedad correcto ---
+            cuenta.CodigoRecuperacion = codigo;
+            cuenta.CodigoExpiracion = DateTime.UtcNow.AddMinutes(15);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            var asunto = "Código de Recuperación de Contraseña - SIGAD";
+            var cuerpo = $"Hola, has solicitado restablecer tu contraseña. Tu código de recuperación es: {codigo}. Este código expirará en 15 minutos.";
+            await _emailService.SendEmailAsync(cuenta.Correo, asunto, cuerpo);
+
+            return true;
+        }
+
+        public async Task<bool> RestablecerContrasenaAsync(string email, string codigo, string nuevaContrasena, string confirmarContrasena)
+        {
+            if (nuevaContrasena != confirmarContrasena)
+            {
+                // Si las contraseñas no coinciden, la operación falla inmediatamente.
+                return false;
+            }
+
+            var cuenta = await _cuentaRepository.GetByEmailAsync(email);
+
+            if (cuenta == null || cuenta.CodigoRecuperacion != codigo || cuenta.CodigoExpiracion < DateTime.UtcNow)
+            {
+                return false;
+            }
+
+            cuenta.ClaveHash = HashPassword(nuevaContrasena);
+
+            cuenta.CodigoRecuperacion = null;
+            cuenta.CodigoExpiracion = null;
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
         }
 
         public string HashPassword(string password)

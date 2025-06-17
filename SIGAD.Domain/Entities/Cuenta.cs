@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using SIGAD.Domain.Enums;
+using System;
 
 namespace SIGAD.Domain.Entities
 {
@@ -25,5 +26,8 @@ namespace SIGAD.Domain.Entities
         // Propiedades de navegación
         [ForeignKey("DocenteCedula")]
         public virtual Docente? Docente { get; set; }
+
+        public string? CodigoRecuperacion { get; set; }
+        public DateTime? CodigoExpiracion { get; set; }
     }
 } 
