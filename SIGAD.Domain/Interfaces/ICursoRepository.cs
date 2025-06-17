@@ -22,5 +22,8 @@ namespace SIGAD.Domain.Interfaces
         // Operaciones de asociación con solicitudes
         Task AddToSolicitudAsync(Guid solicitudId, int cursoId);
         Task RemoveFromSolicitudAsync(Guid solicitudId, int cursoId);
+
+        Task<bool> ExistePorHashAsync(string hash);
+        Task AgregarAsync(Curso curso);
     }
 }

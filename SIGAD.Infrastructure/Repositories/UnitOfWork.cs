@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore.Storage;
+using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 
@@ -12,6 +13,18 @@ namespace SIGAD.Infrastructure.Repositories
         public UnitOfWork(SigadDbContext context)
         {
             _context = context;
+            Articulos = new EfArticuloRepository(context);
+            Cursos = new EfCursoRepository(context);
+            Evaluaciones = new EfEvaluacionDocenteRepository(context);
+            Investigaciones = new EfInvestigacionRepository(context);
+            Experiencias = new ExperienciaLaboralRepository(context);
+            Docentes = new EfDocenteRepository(context);
+            Organizaciones = new EfOrganizacionRepository(context);
+            Cuentas = new EfCuentaRepository(context);
+
+
+
+
         }
 
         public async Task<int> SaveChangesAsync()
@@ -48,6 +61,25 @@ namespace SIGAD.Infrastructure.Repositories
         {
             _transaction?.Dispose();
             _context.Dispose();
+        }
+        public IArticuloRepository Articulos { get; }
+        public ICursoRepository Cursos { get; }
+        public IEvaluacionDocenteRepository Evaluaciones { get; }
+        public IInvestigacionRepository Investigaciones { get; }
+        public IExperienciaLaboralRepository Experiencias { get; }
+        public IDocenteRepository Docentes { get; }
+        public IOrganizacionRepository Organizaciones { get; }
+        public ICuentaRepository Cuentas { get; }
+
+
+
+
+
+
+
+        public async Task CompleteAsync()
+        {
+            await _context.SaveChangesAsync();
         }
     }
 } 

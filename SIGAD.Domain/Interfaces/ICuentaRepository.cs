@@ -9,5 +9,10 @@ namespace SIGAD.Domain.Interfaces
         Task<bool> ExistsByDocenteCedulaAsync(string docenteCedula);
         Task AddAsync(Cuenta cuenta);
         Task UpdateAsync(Cuenta cuenta);
+
+        Task<bool> ExistePorCorreoAsync(string correo);
+        Task AgregarAsync(Cuenta cuenta);
+        Task<bool> ExistePorCedulaAsync(string cedula);
+
     }
 } 

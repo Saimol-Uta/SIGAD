@@ -64,9 +64,9 @@ namespace SIGAD.Application.Services
 
         public async Task<CursoDto> CreateAsync(CrearCursoDto crearCursoDto, IFormFile certificado)
         {
-            // Validar archivo
+            // Validar archivo obligatorio
             if (certificado == null || certificado.Length == 0)
-                throw new ArgumentException("El certificado es requerido");
+                throw new ArgumentException("El certificado es obligatorio");
 
             var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
             var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
@@ -76,24 +76,6 @@ namespace SIGAD.Application.Services
 
             if (certificado.Length > 10 * 1024 * 1024) // 10MB
                 throw new ArgumentException("El archivo no puede exceder los 10MB");
-
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
-                throw new ArgumentException("La solicitud especificada no existe");
-
-            // Buscar o crear la organización
-            var organizacion = await _organizacionRepository.GetByNombreAsync(crearCursoDto.OrganizacionNombre);
-            if (organizacion == null)
-            {
-                // Crear nueva organización
-                organizacion = new Organizacion
-                {
-                    Nombre = crearCursoDto.OrganizacionNombre,
-                    TipoOrganizacion = "Institución Educativa" // Tipo por defecto para cursos
-                };
-                await _organizacionRepository.AddAsync(organizacion);
-                await _unitOfWork.SaveChangesAsync();
-            }
 
             // Generar hash del contenido
             string contentHash;
@@ -114,6 +96,24 @@ namespace SIGAD.Application.Services
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await certificado.CopyToAsync(stream);
+            }
+
+            // Verificar que la solicitud existe
+            if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
+                throw new ArgumentException("La solicitud especificada no existe");
+
+            // Buscar o crear la organización
+            var organizacion = await _organizacionRepository.GetByNombreAsync(crearCursoDto.OrganizacionNombre);
+            if (organizacion == null)
+            {
+                // Crear nueva organización
+                organizacion = new Organizacion
+                {
+                    Nombre = crearCursoDto.OrganizacionNombre,
+                    TipoOrganizacion = "Institución Educativa" // Tipo por defecto para cursos
+                };
+                await _organizacionRepository.AddAsync(organizacion);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             // Crear entidad

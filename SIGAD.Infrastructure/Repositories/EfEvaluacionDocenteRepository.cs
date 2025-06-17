@@ -94,5 +94,14 @@ namespace SIGAD.Infrastructure.Repositories
                 _context.EvaluacionesPorSolicitud.Remove(evaluacionPorSolicitud);
             }
         }
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _context.EvaluacionesDocentes.AnyAsync(e => e.ContenidoHash == hash);
+        }
+
+        public async Task AgregarAsync(EvaluacionDocente evaluacion)
+        {
+            await _context.EvaluacionesDocentes.AddAsync(evaluacion);
+        }
     }
 } 
