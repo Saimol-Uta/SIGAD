@@ -1,4 +1,4 @@
-﻿@page "/login"
+﻿@page "/register"
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
 @using SIGAD.BlazorApp.Models
@@ -63,16 +63,16 @@
         text-align: center;
     }
 
-    .login-container img {
-        width: 50px;
-        margin-bottom: 10px;
-    }
+        .login-container img {
+            width: 50px;
+            margin-bottom: 10px;
+        }
 
-    .login-container h2 {
-        font-size: 16px;
-        color: #0a1d44;
-        margin-bottom: 30px;
-    }
+        .login-container h2 {
+            font-size: 16px;
+            color: #0a1d44;
+            margin-bottom: 30px;
+        }
 
     .login-input {
         width: 100%;
@@ -93,9 +93,9 @@
         cursor: pointer;
     }
 
-    .login-button:hover {
-        background-color: #0e2c6c;
-    }
+        .login-button:hover {
+            background-color: #0e2c6c;
+        }
 
     .forgot-password {
         display: block;
@@ -140,11 +140,10 @@
 </style>
 
 <div class="login-background">
-    <!-- Imágenes decorativas -->
+   
     <div class="decor-top-right"></div>
     <div class="decor-bottom-left"></div>
 
-    <!-- Caja de login -->
     <div class="login-container">
         <img src="/images/IconoUser.png" alt="User Icon" />
         <h2>ACADEMIC MANAGEMENT EVENTS</h2>
@@ -158,19 +157,34 @@
                     @errorMessage
                 </div>
             }
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Cédula" />
+                <ValidationMessage For="@(() => loginModel.Correo)" />
+            </div>
 
             <div class="mb-3">
-                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Correo Electrónico" />
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Nombres" />
                 <ValidationMessage For="@(() => loginModel.Correo)" />
             </div>
 
             <div class="mb-3">
                 <InputText @bind-Value="loginModel.Clave" type="password" class="login-input"
-                placeholder="Contraseña" />
+                           placeholder="Apellidos" />
                 <ValidationMessage For="@(() => loginModel.Clave)" />
             </div>
+       
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Correo" class="login-input" placeholder="Correo" />
+                <ValidationMessage For="@(() => loginModel.Correo)" />
+            </div>
 
-
+            <div class="mb-3">
+                <InputText @bind-Value="loginModel.Clave" type="password" class="login-input"
+                           placeholder="Contraseña" />
+                <ValidationMessage For="@(() => loginModel.Clave)" />
+            </div>
+          
+ 
             <button type="submit" class="login-button" disabled="@isLoading">
                 @if (isLoading)
                 {
@@ -179,26 +193,29 @@
                 }
                 else
                 {
-                    <span>LOGIN</span>
+                    <span>REGISTER</span>
                 }
             </button>
-
-         
-            <a class="forgot-password">Olvidé mi contraseña</a>
-
-
-            <div>
-                <p>¿No tiene una cuenta?</p>
-
-                <button class="button-secondary" @onclick="Registro">
-                    Regístrese
-                </button>
-            </div>
+           
         </EditForm>
     </div>
 </div>
 
 @code {
+    private bool isOpen = false;
+
+    private void ToggleMenu()
+    {
+        isOpen = !isOpen;
+    }
+
+    private void SeleccionarRol(string rol)
+    {
+        Console.WriteLine($"Rol seleccionado: {rol}");
+        isOpen = false;
+
+        // Aquí podrías emitir un evento o actualizar un valor según lo necesites
+    }
     // 1. Objeto para enlazar los datos del formulario.
     private LoginRequestDto loginModel = new();
 
@@ -280,12 +297,5 @@
         {
             isLoading = false;
         }
-    }
-
-    void Registro()
-    {
-        NavigationManager.NavigateTo("/register");
-
-        
     }
 }

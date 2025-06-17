@@ -44,15 +44,19 @@
             Navigation.NavigateTo("/login", true);
         }
     }
-            void IrAProcesoPromocion()
-        {
-            Navigation.NavigateTo("/empezar-proceso-promocion", true);
-        }
+    void IrAProcesoPromocion()
+    {
+        Navigation.NavigateTo("/empezar-proceso-promocion", true);
+    }
 
-        void IrAGestionDocumentos()
-        {
-            Navigation.NavigateTo("/gestionar-documentacion", true);
-        }
+    void IrAGestionDocumentos()
+    {
+        Navigation.NavigateTo("/gestionar-documentacion", true);
+    }
+    void IrAVerProgreso()
+    {
+        Navigation.NavigateTo("/progreso-docente", true);
+    }
     
 }
 <style>
@@ -327,7 +331,7 @@
                 <small>Advance</small><br />
                 @PorcentajeAvance%
             </div>
-            <button>View Progress</button>
+            <button @onclick="IrAVerProgreso">View Progress</button>
         </div>
     </div>
 

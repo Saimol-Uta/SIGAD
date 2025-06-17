@@ -1,0 +1,118 @@
+﻿@page "/progreso-docente"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
+
+<style>
+    .progress-container {
+        max-width: 600px;
+        margin: auto;
+        background-color: #fff;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-family: "Segoe UI", sans-serif;
+    }
+
+    .progress-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: #1f2937;
+    }
+
+    .progress-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 6px solid #3b82f6;
+        background-color: #f9fafb;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+        .progress-item:hover {
+            transform: scale(1.01);
+        }
+
+    .progress-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .progress-boxes {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .box {
+        padding: 0.4rem 0.8rem;
+        background-color: #e0f2fe;
+        color: #0369a1;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        min-width: 70px;
+        text-align: center;
+    }
+
+    .percentage {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+</style>
+
+<div class="progress-container">
+    <div class="progress-title">Promotion Progress</div>
+
+    <div class="progress-item">
+        <div class="progress-label">Historial del Docente</div>
+        <div class="progress-boxes">
+            <div class="box">2 años</div>
+            <div class="box">4 años</div>
+        </div>
+    </div>
+
+    <div class="progress-item">
+        <div class="progress-label">Cursos</div>
+        <div class="progress-boxes">
+            <div class="box">4</div>
+            <div class="box">5</div>
+        </div>
+    </div>
+
+    <div class="progress-item">
+        <div class="progress-label">Investigaciones</div>
+        <div class="progress-boxes">
+            <div class="box">3</div>
+            <div class="box">6</div>
+        </div>
+    </div>
+
+    <div class="progress-item">
+        <div class="progress-label">Artículos</div>
+        <div class="progress-boxes">
+            <div class="box">2</div>
+            <div class="box">4</div>
+        </div>
+    </div>
+
+    <div class="progress-item">
+        <div class="progress-label">Calificación de la Evaluación</div>
+        <div class="progress-boxes">
+            <div class="box percentage">70%</div>
+            <div class="box percentage">80%</div>
+        </div>
+    </div>
+</div>
+
