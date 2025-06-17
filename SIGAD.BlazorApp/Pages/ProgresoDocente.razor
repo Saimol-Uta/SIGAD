@@ -1,0 +1,231 @@
+﻿@page "/progreso-docente"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
+<style>
+    .progress-container {
+        max-width: 600px;
+        margin: auto;
+        background-color: #fff;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-family: "Segoe UI", sans-serif;
+    }
+
+    .progress-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: #1f2937;
+    }
+
+    .progress-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 6px solid #3b82f6;
+        background-color: #f9fafb;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        transition: transform 0.2s;
+    }
+
+        .progress-item:hover {
+            transform: scale(1.01);
+        }
+
+    .progress-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .progress-boxes {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .box {
+        padding: 0.4rem 0.8rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        min-width: 70px;
+        text-align: center;
+        color: white;
+    }
+
+    .progreso-bajo {
+        background-color: #ea0136; /* rojo */
+    }
+    .progreso-medio-bajo{
+        background-color: #b3e9ff;
+    }
+
+    .progreso-medio {
+        background-color: #9dc5ff; /* amarillo */
+        color: #1e293b;
+    }
+
+    .progreso-medio-alto {
+        background-color: #5c8afc;
+    }
+
+    .progreso-alto {
+        background-color: #2e63e8; /* verde claro */
+    }
+
+    .completo {
+        background-color: #0033b1; /* verde */
+    }
+
+    .check {
+        font-size: 1.2rem;
+        color: #042b8a;
+        margin-left: 0.5rem;
+    }
+
+    .progress-bar-outer {
+        height: 20px;
+        background-color: #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+
+    .progress-bar-inner {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease-in-out;
+    }
+
+    .check-box {
+        background-color: #042b8a;
+        font-size: 1rem;
+        padding: 0.4rem;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .check-circle {
+        background-color: white; /* morado claro */
+        width: 36px;
+        height: 36px;
+        border-radius: 10%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: #01040c;
+        box-shadow: 0 4px 8px rgba(124, 58, 237, 0.2); /* sombra morada */
+        transition: all 0.3s ease-in-out;
+    }
+
+</style>
+
+<div class="progress-container">
+
+    <div class="progress-title">Promotion Progress</div>
+
+    <!-- Barra de progreso global -->
+    <div class="progress-bar-outer">
+        <div class="progress-bar-inner @GetProgressClass(GetOverallProgress())" style="width: @(GetOverallProgress() * 100)%"></div>
+    </div>
+
+    @foreach (var req in requisitos)
+    {
+        <div class="progress-item">
+            <div class="progress-label">@req.Nombre</div>
+            <div class="progress-boxes">
+                <div class="@GetBoxClass(req)">
+                    @if (req.EsPorcentaje)
+                    {
+                        @($"{req.Actual}%")
+                    }
+                    else
+                    {
+                        @($"{req.Actual} / {req.Total}")
+                    }
+                </div>
+                <div class="check-circle">
+                    @if (Cumplido(req))
+                    {
+                        <span>✔️</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+@code {
+    public class Requisito
+    {
+        public string Nombre { get; set; } = "";
+        public double Actual { get; set; }
+        public double Total { get; set; }
+        public bool EsPorcentaje { get; set; }
+    }
+
+    private List<Requisito> requisitos = new()
+    {
+        new Requisito { Nombre = "Historial del Docente", Actual = 2, Total = 4 },
+        new Requisito { Nombre = "Cursos", Actual = 4, Total = 5 },
+        new Requisito { Nombre = "Investigaciones", Actual = 3, Total = 6 },
+        new Requisito { Nombre = "Artículos", Actual = 4, Total = 4 },
+        new Requisito { Nombre = "Evaluación", Actual = 80, Total = 100, EsPorcentaje = true }
+    };
+
+    private bool Cumplido(Requisito req) => req.Actual >= req.Total;
+
+    private string GetBoxClass(Requisito req)
+    {
+        if (req.Actual >= req.Total)
+            return "box completo";
+
+        var progreso = req.Actual / req.Total;
+        return "box " + GetProgressClass(progreso);
+    }
+
+    private string GetProgressClass(double progreso)
+    {
+        if (progreso < 0.15)
+            return "progreso-bajo";
+        else if (progreso < 0.3)
+            return "progreso-medio-bajo";
+        else if (progreso < 0.55)
+            return "progreso-medio";
+        else if (progreso < 0.7)
+            return "progreso-medio-alto";
+        else
+            return "progreso-alto";
+    }
+
+    private double GetOverallProgress()
+    {
+        double total = 0;
+        double acumulado = 0;
+
+        foreach (var req in requisitos)
+        {
+            total += 1;
+            acumulado += Math.Min(req.Actual / req.Total, 1);
+        }
+
+        return acumulado / total;
+    }
+}

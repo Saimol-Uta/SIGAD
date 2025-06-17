@@ -257,6 +257,22 @@
         }
     }
 
+    void IrAProcesoPromocion()
+    {
+        Navigation.NavigateTo("/empezar-proceso-promocion", true);
+    }
+
+    void IrAGestionDocumentos()
+    {
+        Navigation.NavigateTo("/gestionar-documentacion", true);
+    }
+    void IrAVerProgreso()
+    {
+        Navigation.NavigateTo("/progreso-docente", true);
+    }
+    
+
+
     // Modelos para las respuestas de API
     public class VerifyTokenResponse
     {
@@ -309,6 +325,7 @@
         public decimal PromedioEvaluaciones { get; set; }
         public string? RangoNombre { get; set; }
     }
+
 }
 <style>
     * {
@@ -669,6 +686,15 @@
                 </div>
 
             <div class="buttons">
+
+                <button class="primary-btn" @onclick="IrAProcesoPromocion">
+                    Start New Promotion Process
+                </button>
+
+                <button class="secondary-btn" @onclick="IrAGestionDocumentos">
+                    Manage Documents
+                </button>
+
                 @if (tieneSolicitudActiva)
                 {
                     <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continue Promotion Process</button>
@@ -682,6 +708,7 @@
                     <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
                         Documents</button>
                 }
+
             </div>
         </div>
 
@@ -718,7 +745,12 @@
                     @(tieneSolicitudActiva ? "📊 Ver Detalles" : "🚀 Iniciar Proceso")
                 </button>
             </div>
+
+            <button @onclick="IrAVerProgreso">View Progress</button>
+        </div>
+
         }
+
     </div>
 
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />

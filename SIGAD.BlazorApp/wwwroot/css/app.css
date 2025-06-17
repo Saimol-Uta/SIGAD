@@ -17,7 +17,7 @@ a, .btn-link {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 .content {
@@ -112,3 +112,334 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem;
+    background-color: white;
+    width: 280px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status {
+    font-weight: bold;
+}
+
+.tag {
+    color: red;
+    border: 1px solid red;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.approved .status {
+    color: green;
+}
+
+.review .status {
+    color: blue;
+}
+
+.mimeus .status {
+    color: red;
+}
+
+.actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.upload {
+    background-color: #3B82F6;
+    color: white;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: #eee;
+    border-radius: 8px;
+    height: 10px;
+    margin-bottom: 1rem;
+}
+
+.progress {
+    height: 100%;
+    background-color: #3B82F6;
+    border-radius: 8px;
+}
+
+.card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.step-card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+    width: 320px;
+    background-color: #fff;
+}
+
+.step-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: green;
+    font-weight: bold;
+}
+
+.step-content p {
+    margin: 0.5rem 0;
+}
+
+.file {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.resolution {
+    background-color: #ccc;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.feedback-box {
+    width: 100%;
+    padding: 0.5rem;
+    resize: vertical;
+}
+
+.step-grid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: #eee;
+    border-radius: 8px;
+    height: 10px;
+    margin-bottom: 1rem;
+}
+
+.progress {
+    height: 100%;
+    background-color: #1E40AF;
+    border-radius: 8px;
+}
+
+.button-home {
+    background-color: #00155d;
+    color: white;
+    border: none;
+    padding: 12px;
+}
+
+.button-secondary {
+    background-color: #FFFFFF;
+    color: black;
+    border: 1px solid grey;
+    box-shadow: inherit;
+    padding: 12px;
+}
+
+p, i {
+    color: #00155d;
+    font-size: large;
+}
+
+
+.custom-input {
+    border: 0.7px solid #ccc;
+    padding: 8px 4px;
+    align-self: center;
+    margin: 10px 20px 30px 55px;
+    width: 80%;
+    font-size: 14px;
+    outline: none;
+}
+
+
+    .custom-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
+    }
+
+a {
+    color: dimgrey;
+    text-decoration: underline;
+}
+
+    a:hover {
+        color: black;
+        text-decoration: underline;
+    }
+
+
+.medium-box {
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin: 0 auto 2rem auto;
+}
+
+.etapas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.etapa-card {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.doc-card {
+    margin-top: 0.5rem;
+}
+
+.estado {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+    display: inline-block;
+}
+
+.estado-aprobado {
+    color: green;
+}
+
+.estado-revision {
+    color: #3b82f6;
+}
+
+.estado-reprobado {
+    color: red;
+}
+
+.estado-sinrevisar {
+    color: #6b7280;
+}
+/* gris */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.card {
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background-color: #f9f9f9;
+}
+
+.titulo {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.valor {
+    margin: 0.5rem 0;
+    font-size: 1.25rem;
+}
+
+.estado {
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.estado-aprobado {
+    color: #10b981;
+    background-color: #ecfdf5;
+}
+
+.estado-revision {
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.estado-reprobado {
+    color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.estado-sinrevisar {
+    color: #6b7280;
+    background-color: #f3f4f6;
+}
+.popup-container {
+    position: relative;
+    display: inline-block;
+}
+
+.popup-button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+    .popup-button:hover {
+        background-color: #0056b3;
+    }
+
+.popup-menu {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-width: 160px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.popup-item {
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+    .popup-item:hover {
+        background-color: #f0f0f0;
+    }

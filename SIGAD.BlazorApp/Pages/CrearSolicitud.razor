@@ -1,0 +1,120 @@
+﻿@page "/crear-solicitud"
+@inject HttpClient Http
+
+<h2>Nuevo Proceso de Solicitud</h2>
+
+<div class="form-group">
+    <label>Rango solicitado:</label>
+    <InputNumber @bind-Value="rangoSolicitadoId" class="form-control" />
+</div>
+
+@foreach (var categoria in categorias)
+{
+    <div class="upload-section mb-3">
+        <h4>@categoria.Titulo</h4>
+        <InputFile OnChange="@categoria.OnChange" multiple />
+        @if (categoria.Archivos.Any())
+        {
+            <ul>
+                @foreach (var file in categoria.Archivos)
+                {
+                    <li>@file.Name</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+<button class="btn btn-success" @onclick="EnviarSolicitud">Enviar Solicitud</button>
+
+@if (!string.IsNullOrWhiteSpace(mensajeEstado))
+{
+    <div class="alert alert-info mt-3">@mensajeEstado</div>
+}
+
+@code {
+    private int rangoSolicitadoId;
+    private Guid nuevaSolicitudId;
+    private string mensajeEstado;
+
+    private List<IBrowserFile> cursos = new();
+    private List<IBrowserFile> evaluaciones = new();
+    private List<IBrowserFile> investigaciones = new();
+    private List<IBrowserFile> articulos = new();
+    private List<IBrowserFile> historiales = new();
+
+    private List<CategoriaArchivo> categorias;
+
+    protected override void OnInitialized()
+    {
+        categorias = new()
+        {
+            new("Cursos", () => cursos, files => cursos = files),
+            new("Evaluaciones", () => evaluaciones, files => evaluaciones = files),
+            new("Investigaciones", () => investigaciones, files => investigaciones = files),
+            new("Artículos", () => articulos, files => articulos = files),
+            new("Historiales", () => historiales, files => historiales = files),
+        };
+    }
+
+    private async Task EnviarSolicitud()
+    {
+        mensajeEstado = "Enviando solicitud...";
+        StateHasChanged();
+
+        var response = await Http.PostAsJsonAsync("api/solicitudes", new { RangoSolicitadoId = rangoSolicitadoId });
+        if (!response.IsSuccessStatusCode)
+        {
+            mensajeEstado = "Error al crear la solicitud.";
+            return;
+        }
+
+        nuevaSolicitudId = await response.Content.ReadFromJsonAsync<Guid>();
+
+        foreach (var categoria in categorias)
+        {
+            if (categoria.Archivos.Any())
+            {
+                var form = new MultipartFormDataContent();
+                foreach (var archivo in categoria.Archivos)
+                {
+                    var stream = archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                    form.Add(new StreamContent(stream), "archivos", archivo.Name);
+                }
+
+                var url = $"api/solicitudes/{nuevaSolicitudId}/{categoria.Nombre.ToLower()}";
+                var uploadResponse = await Http.PostAsync(url, form);
+
+                if (!uploadResponse.IsSuccessStatusCode)
+                {
+                    mensajeEstado = $"Error al subir archivos de {categoria.Titulo}.";
+                    return;
+                }
+            }
+        }
+
+        mensajeEstado = "Solicitud enviada correctamente.";
+    }
+
+    class CategoriaArchivo
+    {
+        public string Nombre { get; }
+        public string Titulo => Nombre;
+        public Func<List<IBrowserFile>> ObtenerArchivos { get; }
+        public Action<List<IBrowserFile>> AsignarArchivos { get; }
+
+        public List<IBrowserFile> Archivos => ObtenerArchivos();
+
+        public CategoriaArchivo(string nombre, Func<List<IBrowserFile>> getter, Action<List<IBrowserFile>> setter)
+        {
+            Nombre = nombre;
+            ObtenerArchivos = getter;
+            AsignarArchivos = setter;
+        }
+
+        public void OnChange(InputFileChangeEventArgs e)
+        {
+            AsignarArchivos(e.GetMultipleFiles().ToList());
+        }
+    }
+}

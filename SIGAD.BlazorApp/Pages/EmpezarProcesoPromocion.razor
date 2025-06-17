@@ -1,0 +1,64 @@
+﻿@page "/empezar-proceso-promocion"
+@inject NavigationManager NavigationManager
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+
+<h3>Proceso de Promoción Docente</h3>
+
+@if (docente == null)
+{
+    <p>Cargando datos del docente...</p>
+}
+else
+{
+    <div class="card p-4 shadow rounded bg-light" style="max-width: 600px;">
+        <p><strong>Nombre del docente:</strong> @docente.NombreCompleto</p>
+        <p><strong>Rango actual:</strong> @rangoActual</p>
+        <p><strong>Próximo rango deseado:</strong> @proximoRango</p>
+
+        <h5>Requisitos para la promoción:</h5>
+        <ul>
+            @foreach (var requisito in requisitos)
+            {
+                <li>@requisito</li>
+            }
+        </ul>
+
+        <button class="btn btn-primary mt-3" @onclick="ComenzarProceso">
+            Comenzar
+        </button>
+    </div>
+}
+
+@code {
+    class DocenteInfoDto
+    {
+        public string NombreCompleto { get; set; } = "María González";
+    }
+
+    DocenteInfoDto? docente;
+    string rangoActual = "Auxiliar";
+    string proximoRango = "Asistente";
+
+    List<string> requisitos = new();
+
+    protected override void OnInitialized()
+    {
+        // Datos simulados
+        docente = new DocenteInfoDto { NombreCompleto = "María González" };
+
+        requisitos = new List<string>
+        {
+            "Contar con al menos 3 años en el rango actual.",
+            "Haber publicado al menos 2 artículos científicos.",
+            "Contar con evaluación docente promedio de 90.",
+            "Tener al menos 12 meses de participación en investigación.",
+            "Haber completado 80 horas de cursos de formación."
+        };
+    }
+
+    void ComenzarProceso()
+    {
+        NavigationManager.NavigateTo("/gestionar-documentacion");
+    }
+}
