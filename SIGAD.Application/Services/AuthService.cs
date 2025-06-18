@@ -375,5 +375,11 @@ namespace SIGAD.Application.Services
         {
             return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
         }
+
+        public async Task<bool> VerificarCodigoAsync(string email, string codigo)
+        {
+            return await _cuentaRepository.VerificarCodigoRecuperacionAsync(email, codigo);
+        }
+
     }
 }

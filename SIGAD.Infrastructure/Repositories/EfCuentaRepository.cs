@@ -56,6 +56,17 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cuentas.AnyAsync(c => c.DocenteCedula == cedula);
         }
 
+        public async Task<bool> VerificarCodigoRecuperacionAsync(string email, string codigo)
+        {
+            var cuenta = await _context.Cuentas
+                .FirstOrDefaultAsync(c => c.Correo == email);
+
+            return cuenta != null
+                && cuenta.CodigoRecuperacion == codigo
+                && cuenta.CodigoExpiracion > DateTime.UtcNow;
+        }
+
+
 
     }
 }
