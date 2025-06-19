@@ -11,8 +11,22 @@ namespace SIGAD.WebAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+
     public class AuthController : ControllerBase
     {
+        [HttpPost("verificar-codigo")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerificarCodigo([FromBody] VerificarCodigoDto dto)
+        {
+            var valido = await _authService.VerificarCodigoAsync(dto.Email, dto.Codigo);
+
+            if (!valido)
+            {
+                return BadRequest(new { Message = "El código ingresado es incorrecto o ha expirado." });
+            }
+
+            return Ok(new { Message = "Código verificado correctamente." });
+        }
 
         [HttpPost("solicitar-recuperacion")]
         [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Un usuario sin sesión debe poder usar esto

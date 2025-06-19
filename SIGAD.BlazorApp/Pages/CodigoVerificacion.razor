@@ -1,0 +1,201 @@
+﻿@page "/reestablecer"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+
+@code {
+    private string correo = "";
+    private bool codigoEnviado = false;
+    private string mensajeAPI = "";
+    private bool enProceso = false;
+
+    private string codigo = "";
+    private string mensajeVerificacion = "";
+    private bool verificacionExitosa = false;
+
+    private async Task EnviarCodigo()
+    {
+        if (enProceso || string.IsNullOrWhiteSpace(correo))
+            return;
+
+        enProceso = true;
+        mensajeAPI = "";
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/solicitar-recuperacion", new { email = correo });
+            var result = await response.Content.ReadFromJsonAsync<RespuestaApi>();
+            mensajeAPI = result?.Message ?? "Respuesta desconocida.";
+
+            if (response.IsSuccessStatusCode)
+            {
+                codigoEnviado = true;
+            }
+        }
+        catch
+        {
+            mensajeAPI = "Error de conexión con el servidor.";
+        }
+
+        enProceso = false;
+    }
+
+    private async Task VerificarCodigo()
+    {
+        if (codigo.Length != 6)
+        {
+            mensajeVerificacion = "Debes ingresar los 6 dígitos del código.";
+            verificacionExitosa = false;
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/verificar-codigo", new { Email = correo, Codigo = codigo });
+
+            if (response.IsSuccessStatusCode)
+            {
+                verificacionExitosa = true;
+                Navigation.NavigateTo($"/cambiar-contrasena/{correo}/{codigo}");
+            }
+            else
+            {
+                mensajeVerificacion = "El código ingresado es incorrecto o ha expirado.";
+                verificacionExitosa = false;
+            }
+        }
+        catch
+        {
+            mensajeVerificacion = "Error al verificar el código.";
+            verificacionExitosa = false;
+        }
+    }
+
+    public class RespuestaApi
+    {
+        public string Message { get; set; } = "";
+    }
+}
+
+<link href="/css/verificacion.css" rel="stylesheet" />
+
+<div class="recovery-container">
+    <div class="recovery-box">
+        <div class="logo-container">
+            <img src="/images/logoSIGAD.png" class="logo" />
+            <span class="logo-text">SIGAD</span>
+        </div>
+
+        <h2>REESTABLECER CONTRASEÑA</h2>
+
+        <p class="info-text">Ingresa tu correo electrónico para recuperar tu contraseña</p>
+
+        <input class="input"
+               @bind="correo"
+               placeholder="Correo electrónico"
+               type="email"
+               required />
+
+        <button class="btn" @onclick="EnviarCodigo" disabled="@enProceso">
+            Enviar Código de recuperación
+        </button>
+
+        @if (!string.IsNullOrWhiteSpace(mensajeAPI))
+        {
+            <p class="api-message">@mensajeAPI</p>
+        }
+
+        @if (codigoEnviado)
+        {
+            <p class="info-text" style="margin-top:1rem;">
+                Ingresa el código de 6 dígitos que fue enviado a tu correo
+            </p>
+
+            <input class="input-codigo"
+                   maxlength="6"
+                   @bind="codigo"
+                   placeholder="------"
+                   inputmode="numeric" />
+
+            <button class="btn" style="margin-top: 1rem;" @onclick="VerificarCodigo">
+                Verificar Código
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(mensajeVerificacion))
+            {
+                <div class="mensaje-verificacion @(verificacionExitosa ? "exito" : "error")">
+                    <span class="icono">
+                        @(verificacionExitosa ? "✔️" : "❌")
+                    </span>
+                    <span class="texto">@mensajeVerificacion</span>
+                </div>
+            }
+        }
+
+        <a href="/login" class="volver">Volver</a>
+    </div>
+</div>
+
+
+<style>
+.input-codigo {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    width: 100%;
+    max-width: 300px;
+    margin: 1rem auto 0 auto;
+    display: block;
+    background-color: #f9f9f9;
+    color: #1a1a1a;
+}
+
+.api-message {
+    color: gray;
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.mensaje-verificacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    margin-top: 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.mensaje-verificacion.exito {
+    background-color: #e6f7ed;
+    color: #207544;
+    border: 1px solid #a3d7b4;
+}
+
+.mensaje-verificacion.error {
+    background-color: #fdecea;
+    color: #d93025;
+    border: 1px solid #f5c6cb;
+}
+
+.mensaje-verificacion .icono {
+    font-size: 1.4rem;
+}
+
+.mensaje-verificacion .texto {
+    flex: 1;
+}
+</style>

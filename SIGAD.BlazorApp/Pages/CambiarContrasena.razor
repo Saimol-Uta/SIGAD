@@ -1,0 +1,90 @@
+﻿@page "/cambiar-contrasena/{email}/{codigo}"
+@using Microsoft.AspNetCore.Components
+@attribute [Layout(typeof(SIGAD.BlazorApp.Layout.EmptyLayout))]
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+@code {
+    [Parameter] public string? email { get; set; }
+    [Parameter] public string? codigo { get; set; }
+
+    private string nuevaContrasena = "";
+    private string confirmarContrasena = "";
+    private string mensaje = "";
+    private bool exito = false;
+
+    private async Task ProcesarCambioContrasena()
+    {
+        mensaje = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(nuevaContrasena) || string.IsNullOrWhiteSpace(confirmarContrasena))
+        {
+            mensaje = "Por favor complete todos los campos.";
+            exito = false;
+            return;
+        }
+
+        if (nuevaContrasena != confirmarContrasena)
+        {
+            mensaje = "Las contraseñas no coinciden.";
+            exito = false;
+            return;
+        }
+
+        try
+        {
+            var respuesta = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/restablecer-contrasena", new
+            {
+                email = email,
+                codigo = codigo,
+                nuevaContrasena = nuevaContrasena,
+                confirmarContrasena = confirmarContrasena
+            });
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Contraseña cambiada correctamente. Redirigiendo al login...";
+                exito = true;
+                await Task.Delay(2500);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                mensaje = "❌ Error: El código es incorrecto o la solicitud no es válida.";
+                exito = false;
+            }
+        }
+        catch
+        {
+            mensaje = "❌ Error de conexión con el servidor.";
+            exito = false;
+        }
+    }
+}
+
+<link href="/css/verificacion.css" rel="stylesheet" />
+
+<div class="recovery-container">
+    <div class="recovery-box">
+        <div class="logo-container">
+            <img src="/images/logoSIGAD.png" class="logo" />
+            <span class="logo-text">SIGAD</span>
+        </div>
+
+        <h2>REESTABLECER CONTRASEÑA</h2>
+
+        <input class="input" type="password" placeholder="Nueva Contraseña" @bind="nuevaContrasena" />
+        <input class="input" type="password" placeholder="Confirmar Nueva Contraseña" @bind="confirmarContrasena" />
+
+        <button class="btn" @onclick="ProcesarCambioContrasena">Cambiar Contraseña</button>
+
+        @if (!string.IsNullOrWhiteSpace(mensaje))
+        {
+            <p style="margin-top:1rem; color:@(exito ? "green" : "red");">
+                @mensaje
+            </p>
+        }
+
+        <a href="/login" class="volver">Volver</a>
+    </div>
+</div>
