@@ -80,8 +80,6 @@
     }
 }
 
-<link href="/css/verificacion.css" rel="stylesheet" />
-
 <div class="recovery-container">
     <div class="recovery-box">
         <div class="logo-container">
@@ -198,4 +196,103 @@
 .mensaje-verificacion .texto {
     flex: 1;
 }
+
+.recovery-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(-45deg, #ece9e6, #ffffff, #dee3ea, #f7f9fc);
+    background-size: 600% 600%;
+    animation: fondoSuave 20s ease infinite;
+}
+
+.recovery-box {
+    background-color: white;
+    padding: 3rem;
+    width: 700px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+    position: relative;
+    border-radius: 0.2rem;
+    text-align: center;
+}
+
+.recovery-box h2 {
+    font-size: 24px;
+    color: #0a1d44;
+    margin-bottom: 4rem;
+}
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.logo {
+    width: 35px;
+    height: 35px;
+}
+
+.logo-text {
+    font-size: 16px;
+    color: #0a1d44;
+}
+.info-text {
+    text-align: left;
+    color: #999;
+    font-size: 0.95rem;
+    margin: 55px 0 0px 2px;
+}
+.input {
+    width: 100%;
+    padding: 0.8rem;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.btn {
+    width: 60%;
+    background-color: #1a2c5b;
+    color: white;
+    border: none;
+    padding: 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+
+}
+
+.codigo-box {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 1rem;
+    flex-wrap: nowrap;
+}
+
+.code-input {
+    width: 40px;
+    height: 50px;
+    text-align: center;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color : gainsboro;
+}
+
+.volver {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    color: #888;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+
+
 </style>
