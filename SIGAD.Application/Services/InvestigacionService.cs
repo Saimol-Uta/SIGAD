@@ -163,6 +163,30 @@ namespace SIGAD.Application.Services
             return true;
         }
 
+        public async Task<bool> AsociarInvestigacionASolicitudAsync(AsociarInvestigacionSolicitudDto asociarDto)
+        {
+            var investigacionExists = await _investigacionRepository.ExistsAsync(asociarDto.InvestigacionId);
+            if (!investigacionExists)
+            {
+                return false;
+            }
+
+            var solicitudExists = await _solicitudRepository.ExistsAsync(asociarDto.SolicitudId);
+            if (!solicitudExists)
+            {
+                return false;
+            }
+
+            await _investigacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.InvestigacionId);
+            return true;
+        }
+
+        public async Task<bool> DesasociarInvestigacionDeSolicitudAsync(Guid solicitudId, int investigacionId)
+        {
+            await _investigacionRepository.RemoveFromSolicitudAsync(solicitudId, investigacionId);
+            return true;
+        }
+
         public async Task<(byte[] FileContent, string ContentType, string FileName)> DownloadInformeAsync(int id)
         {
             var investigacion = await _investigacionRepository.GetByIdAsync(id);

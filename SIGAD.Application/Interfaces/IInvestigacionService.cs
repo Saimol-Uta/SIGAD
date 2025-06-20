@@ -14,6 +14,10 @@ namespace SIGAD.Application.Interfaces
         Task<InvestigacionDto?> UpdateAsync(int id, ActualizarInvestigacionDto actualizarInvestigacionDto);
         Task<bool> DeleteAsync(int id);
 
+        // Operaciones de asociación con solicitudes
+        Task<bool> AsociarInvestigacionASolicitudAsync(AsociarInvestigacionSolicitudDto asociarDto);
+        Task<bool> DesasociarInvestigacionDeSolicitudAsync(Guid solicitudId, int investigacionId);
+
         // Vistas simplificadas
         Task<IEnumerable<VerInvestigacionDto>> GetVerInvestigacionesAsync();
 

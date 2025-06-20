@@ -138,5 +138,59 @@ namespace SIGAD.WebAPI.Controllers
                 return NotFound(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Asocia una investigación a una solicitud
+        /// </summary>
+        /// <param name="asociarDto">Datos de la asociación</param>
+        /// <returns>Resultado de la asociación</returns>
+        [HttpPost("asociar-solicitud")]
+        public async Task<ActionResult> AsociarInvestigacionASolicitud([FromBody] AsociarInvestigacionSolicitudDto asociarDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var result = await _investigacionService.AsociarInvestigacionASolicitudAsync(asociarDto);
+                if (!result)
+                {
+                    return BadRequest("No se pudo asociar la investigación a la solicitud. Verifique que ambos existan.");
+                }
+
+                return Ok("Investigación asociada a la solicitud exitosamente");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Desasocia una investigación de una solicitud
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud</param>
+        /// <param name="investigacionId">ID de la investigación</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{investigacionId}")]
+        public async Task<ActionResult> DesasociarInvestigacionDeSolicitud(Guid solicitudId, int investigacionId)
+        {
+            try
+            {
+                var result = await _investigacionService.DesasociarInvestigacionDeSolicitudAsync(solicitudId, investigacionId);
+                if (!result)
+                {
+                    return BadRequest("No se pudo desasociar la investigación de la solicitud.");
+                }
+
+                return Ok("Investigación desasociada de la solicitud exitosamente");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
     }
 }
