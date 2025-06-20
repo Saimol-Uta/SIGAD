@@ -248,17 +248,19 @@ namespace SIGAD.WebAPI.Controllers
         /// <summary>
         /// Desasocia un curso de una solicitud de ascenso
         /// </summary>
-        /// <param name="asociarDto">Datos de la desasociación</param>
+        /// <param name="solicitudId">ID de la solicitud</param>
+        /// <param name="cursoId">ID del curso</param>
         /// <returns>Resultado de la operación</returns>
-        [HttpPost("desasociar")]
-        public async Task<ActionResult> DesasociarDeSolicitud([FromBody] AsociarCursoSolicitudDto asociarDto)
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{cursoId}")]
+        public async Task<ActionResult> DesasociarDeSolicitud(Guid solicitudId, int cursoId)
         {
             try
             {
-                if (!ModelState.IsValid)
+                var asociarDto = new AsociarCursoSolicitudDto
                 {
-                    return BadRequest(ModelState);
-                }
+                    SolicitudId = solicitudId,
+                    CursoId = cursoId
+                };
 
                 var desasociado = await _cursoService.RemoveFromSolicitudAsync(asociarDto);
                 if (!desasociado)
@@ -271,7 +273,7 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al desasociar curso {CursoId} de solicitud {SolicitudId}", 
-                    asociarDto.CursoId, asociarDto.SolicitudId);
+                    cursoId, solicitudId);
                 return StatusCode(500, "Error interno del servidor");
             }
         }
