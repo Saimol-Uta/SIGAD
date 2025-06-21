@@ -256,6 +256,55 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error interno del servidor"
                 });
             }
+        }        /// <summary>
+                 /// Registra un usuario SOLO con cédula, correo y clave (flujo simplificado)
+                 /// </summary>
+                 /// <param name="model">Datos mínimos para registro</param>
+                 /// <returns>Resultado del registro</returns>
+        [HttpPost("register-simple")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RegisterSimple([FromBody] RegisterSimpleDto model)
+        {
+            // Validación básica
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .ToList();
+                return BadRequest(new { success = false, message = "Datos de entrada inválidos", errors });
+            }
+
+            // Verificar si ya existe la cuenta
+            var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.Correo == model.Correo || c.DocenteCedula == model.Cedula);
+            if (cuentaExiste)
+            {
+                return Conflict(new { success = false, message = "El correo o cédula ya están registrados" });
+            }
+
+            // Crear cuenta
+            var cuenta = new SIGAD.Domain.Entities.Cuenta
+            {
+                Correo = model.Correo,
+                ClaveHash = _authService.HashPassword(model.Clave),
+                DocenteCedula = model.Cedula,
+                // Puedes asignar un rol por defecto si lo necesitas
+                Rol = Domain.Enums.Rol.DOCENTE
+            };
+            _context.Cuentas.Add(cuenta);
+            await _context.SaveChangesAsync();
+
+            return StatusCode(StatusCodes.Status201Created, new
+            {
+                success = true,
+                message = "Usuario registrado exitosamente",
+                data = new
+                {
+                    correo = model.Correo,
+                    cedula = model.Cedula
+                }
+            });
         }
 
         /// <summary>
@@ -870,10 +919,10 @@ namespace SIGAD.WebAPI.Controllers
                 if (solicitudActiva != null)
                 {
                     var mensajeDetallado = GetMensajeEstadoSolicitud(solicitudActiva.Estado);
-                    return BadRequest(new 
-                    { 
-                        success = false, 
-                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}", 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}",
                         solicitudId = solicitudActiva.Id,
                         estado = solicitudActiva.Estado.ToString(),
                         rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre
@@ -1115,7 +1164,7 @@ namespace SIGAD.WebAPI.Controllers
             // 1. VERIFICAR ARTÍCULOS
             var articulosCount = await _context.ArticulosPorSolicitud
                 .CountAsync(aps => aps.SolicitudId == solicitudId);
-            
+
             // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
             var experienciasLaborales = await _context.ExperienciasPorSolicitud
                 .Where(eps => eps.SolicitudId == solicitudId)
@@ -1321,5 +1370,56 @@ namespace SIGAD.WebAPI.Controllers
                 return (null, "Error al obtener rango");
             }
         }
+
+        /// <summary>
+        /// Verifica si existe una cédula en la base de datos de docentes
+        /// </summary>
+        /// <param name="cedula">Cédula a verificar</param>
+        /// <returns>True si existe, False si no</returns>
+        [HttpGet("cedula-existe/{cedula}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CedulaExiste(string cedula)
+        {
+            if (string.IsNullOrWhiteSpace(cedula) || cedula.Length != 10)
+            {
+                return BadRequest(new { success = false, message = "La cédula debe tener exactamente 10 dígitos" });
+            }
+            var existe = await _context.Docentes.AnyAsync(d => d.Cedula == cedula);
+            return Ok(existe);
+        }
+
+        /// <summary>
+        /// (Opcional) Crea un usuario temporal si la cédula no existe (descomentar para habilitar)
+        /// </summary>
+        /// <param name="model">Datos mínimos para usuario temporal</param>
+        /// <returns>Resultado del registro temporal</returns>
+        /*
+        [HttpPost("registrar-usuario-temporal")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RegistrarUsuarioTemporal([FromBody] RegisterRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .ToList();
+                return BadRequest(new { success = false, message = "Datos de entrada inválidos", errors });
+            }
+            // Aquí puedes crear un usuario temporal en la tabla que corresponda
+            // Ejemplo:
+            var usuarioTemporal = new SIGAD.Domain.Entities.Docente
+            {
+                Cedula = model.Cedula,
+                Nombre1 = "TEMPORAL",
+                Apellido1 = "TEMPORAL",
+                Correo = model.Correo
+            };
+            _context.Docentes.Add(usuarioTemporal);
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "Usuario temporal creado" });
+        }
+        */
     }
 }
