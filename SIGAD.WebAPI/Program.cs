@@ -93,12 +93,15 @@ builder.Services.AddScoped<ICursoService, CursoService>();
 builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
 builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
 
-// builder.Services.AddScoped<GestionArticulosAppService>();
-// builder.Services.AddScoped<GestionInvestigacionesAppService>();
-// builder.Services.AddScoped<ConsultaRangoAppService>();
-// builder.Services.AddScoped<GestionRangoAppService>();
-// builder.Services.AddScoped<ActualizarRangoService>();
-//builder.Services.AddScoped<GestionSolicitudesAppService>();
+// Servicios de aplicación específicos para SIGAD
+builder.Services.AddScoped<GestionArticulosAppService>();
+builder.Services.AddScoped<GestionInvestigacionesAppService>();
+builder.Services.AddScoped<ConsultaRangoAppService>();
+builder.Services.AddScoped<GestionRangoAppService>();
+builder.Services.AddScoped<ActualizarRangoService>();
+builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<ValidacionRequisitosService>();
+builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 // 4. Agregar servicios para controladores de API
