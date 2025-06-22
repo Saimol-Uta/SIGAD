@@ -103,5 +103,50 @@ namespace SIGAD.Infrastructure.Repositories
         {
             await _context.EvaluacionesDocentes.AddAsync(evaluacion);
         }
+
+        // Métodos específicos del reglamento
+        public async Task<decimal> GetPromedioUltimas4EvaluacionesAsync(string docenteCedula)
+        {
+            var ultimas4 = await GetUltimas4EvaluacionesAsync(docenteCedula);
+            if (!ultimas4.Any())
+                return 0;
+
+            return ultimas4.Average(e => e.PuntajePorcentual);
+        }
+
+        public async Task<IEnumerable<EvaluacionDocente>> GetUltimas4EvaluacionesAsync(string docenteCedula)
+        {
+            return await _context.EvaluacionesDocentes
+                .Include(e => e.Docente)
+                .Where(e => e.DocenteCedula == docenteCedula)
+                .OrderByDescending(e => e.FechaEvaluacion)
+                .Take(4)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<EvaluacionDocente>> GetUltimas2EvaluacionesAsync(string docenteCedula)
+        {
+            return await _context.EvaluacionesDocentes
+                .Include(e => e.Docente)
+                .Where(e => e.DocenteCedula == docenteCedula)
+                .OrderByDescending(e => e.FechaEvaluacion)
+                .Take(2)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CumpleRequisitoEvaluacionParaRangoAsync(string docenteCedula, decimal puntajeMinimo = 75)
+        {
+            var promedio = await GetPromedioUltimas4EvaluacionesAsync(docenteCedula);
+            return promedio >= puntajeMinimo;
+        }
+
+        public async Task<bool> TieneEvaluacionesSuficientesAsync(string docenteCedula, int cantidadMinima = 4)
+        {
+            var cantidadEvaluaciones = await _context.EvaluacionesDocentes
+                .Where(e => e.DocenteCedula == docenteCedula)
+                .CountAsync();
+
+            return cantidadEvaluaciones >= cantidadMinima;
+        }
     }
-} 
+}

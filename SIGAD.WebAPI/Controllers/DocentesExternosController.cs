@@ -41,18 +41,16 @@ namespace SIGAD.WebAPI.Controllers
                 var docenteExistente = await _unitOfWork.Docentes.ObtenerPorCedulaAsync(dto.Cedula);
                 if (docenteExistente == null)
                 {
-                    var partes = dto.NombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                    var nuevoDocente = new Docente
+                    var partes = dto.NombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries); var nuevoDocente = new Docente
                     {
                         Cedula = dto.Cedula,
-                        Nombre1 = partes.ElementAtOrDefault(0),
+                        Nombre1 = partes.ElementAtOrDefault(0) ?? "",
                         Nombre2 = partes.ElementAtOrDefault(1),
-                        Apellido1 = partes.ElementAtOrDefault(2),
+                        Apellido1 = partes.ElementAtOrDefault(2) ?? "",
                         Apellido2 = partes.ElementAtOrDefault(3)
                     };
 
-                    await _unitOfWork.Docentes.AgregarAsync(nuevoDocente);
+                    await _unitOfWork.Docentes.AddAsync(nuevoDocente);
                 }
 
                 var cuenta = new Cuenta
@@ -63,7 +61,7 @@ namespace SIGAD.WebAPI.Controllers
                     DocenteCedula = dto.Cedula
                 };
 
-                await _unitOfWork.Cuentas.AgregarAsync(cuenta);
+                await _unitOfWork.Cuentas.AddAsync(cuenta);
                 insertados++;
             }
 

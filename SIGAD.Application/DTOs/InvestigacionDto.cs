@@ -34,5 +34,10 @@ namespace SIGAD.Application.DTOs
 
         [Display(Name = "Hash del Contenido")]
         public string ContenidoHash { get; set; } = string.Empty;
+
+        public string TipoProyecto { get; set; } = string.Empty;
+        public int MesesDeParticipacion { get; set; }
+        public string UnidadVerificadora { get; set; } = string.Empty;
+
     }
 } 

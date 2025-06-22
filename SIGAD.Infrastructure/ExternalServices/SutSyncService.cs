@@ -1,9 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using SIGAD.Application.DTOs.IntegracionesExternas;
 using SIGAD.Application.Interfaces.Integraciones;
-using System.Collections.Generic;
-using System.Data;
-using System.Threading.Tasks;
+
 
 namespace SIGAD.Infrastructure.ExternalServices
 {
@@ -37,8 +35,18 @@ namespace SIGAD.Infrastructure.ExternalServices
                     AnioPublicacion = (int)reader["AnioPublicacion"],
                     ArchivoRuta = reader["ArchivoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
-                    DocenteCedula = reader["DocenteCedula"].ToString()!
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+                    UnidadVerificadora = reader["UnidadVerificadora"] != DBNull.Value
+         ? reader["UnidadVerificadora"].ToString()!
+         : string.Empty,
+                    Verificado = reader["Verificado"] != DBNull.Value
+         ? Convert.ToBoolean(reader["Verificado"])
+         : false,
+                    FechaVerificacion = reader["FechaVerificacion"] != DBNull.Value
+         ? (DateTime?)reader["FechaVerificacion"]
+         : null
                 });
+
             }
 
             return articulos;
@@ -65,7 +73,10 @@ namespace SIGAD.Infrastructure.ExternalServices
                     FechaFinalizacion = (DateTime)reader["FechaFinalizacion"],
                     CertificadoRuta = reader["CertificadoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
-                    DocenteCedula = reader["DocenteCedula"].ToString()!
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+                    TipoCurso = reader["TipoCurso"].ToString()!,
+                    ImpartidoPorDocente = (bool)reader["ImpartidoPorDocente"],
+
                 });
             }
 
@@ -121,8 +132,22 @@ namespace SIGAD.Infrastructure.ExternalServices
                     MesesDeInvestigacion = (int)reader["MesesDeInvestigacion"],
                     InformeRuta = reader["InformeRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
-                    DocenteCedula = reader["DocenteCedula"].ToString()!
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+
+                    // Con manejo de NULL:
+                    MesesDeParticipacion = reader["MesesParticipacion"] != DBNull.Value
+        ? (int)reader["MesesParticipacion"]
+        : 0,
+
+                    TipoProyecto = reader["TipoProyecto"] != DBNull.Value
+        ? reader["TipoProyecto"].ToString()!
+        : string.Empty,
+
+                    UnidadVerificadora = reader["UnidadVerificadora"] != DBNull.Value
+        ? reader["UnidadVerificadora"].ToString()!
+        : string.Empty
                 });
+
             }
 
             return investigaciones;
@@ -155,5 +180,35 @@ namespace SIGAD.Infrastructure.ExternalServices
 
             return experiencias;
         }
+        public async Task<IEnumerable<TesisDirigidaExternaDto>> ObtenerTesisDirigidasAsync(string cedula)
+        {
+            var tesis = new List<TesisDirigidaExternaDto>();
+
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            var cmd = new SqlCommand("SELECT * FROM TesisDirigidas WHERE DocenteCedula = @Cedula", conn);
+            cmd.Parameters.AddWithValue("@Cedula", cedula);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                tesis.Add(new TesisDirigidaExternaDto
+                {
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+                    NivelAcademico = reader["NivelAcademico"].ToString()!,
+                    TituloTesis = reader["TituloTesis"].ToString()!,
+                    Estado = reader["Estado"].ToString()!,
+                    FechaInicio = (DateTime)reader["FechaInicio"],
+                    FechaFin = reader["FechaFin"] as DateTime?,
+                    Institucion = reader["Institucion"].ToString()!,
+                    CertificacionRuta = reader["CertificacionRuta"].ToString()!,
+                    ContenidoHash = reader["ContenidoHash"].ToString()!
+                });
+            }
+
+            return tesis;
+        }
+
     }
 }

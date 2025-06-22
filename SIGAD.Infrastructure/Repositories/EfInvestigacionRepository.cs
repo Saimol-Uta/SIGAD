@@ -105,5 +105,75 @@ namespace SIGAD.Infrastructure.Repositories
         {
             await _context.Investigaciones.AddAsync(investigacion);
         }
+
+        // Métodos específicos para el reglamento de promoción
+        public async Task<int> GetTotalMesesInvestigacionAsync(string docenteCedula)
+        {
+            var investigaciones = await _context.Investigaciones
+                .Where(i => i.DocenteCedula == docenteCedula)
+                .ToListAsync();
+
+            return investigaciones.Sum(i => i.MesesDeInvestigacion);
+        }
+        public async Task<int> GetMesesInvestigacionEnPeriodoAsync(string docenteCedula, DateTime fechaInicio, DateTime fechaFin)
+        {
+            var investigaciones = await _context.Investigaciones
+                .Where(i => i.DocenteCedula == docenteCedula &&
+                           i.FechaInicio >= fechaInicio &&
+                           i.FechaFinalizacion <= fechaFin)
+                .ToListAsync();
+
+            return investigaciones.Sum(i => i.MesesDeParticipacion > 0 ? i.MesesDeParticipacion : i.MesesDeInvestigacion);
+        }
+
+        public async Task<bool> CumpleRequisitoInvestigacionParaRangoAsync(string docenteCedula, int rangoSolicitadoId)
+        {
+            // Obtener el rango solicitado para ver los meses requeridos
+            var rango = await _context.Rangos.FindAsync(rangoSolicitadoId);
+            if (rango == null) return false;
+
+            var totalMeses = await GetTotalMesesInvestigacionAsync(docenteCedula);
+            return totalMeses >= rango.MesesInvestigacionRequeridos;
+        }
+
+        public async Task<IEnumerable<Investigacion>> GetInvestigacionesConFilacionUTAAsync(string docenteCedula)
+        {
+            return await _context.Investigaciones
+                .Include(i => i.Docente)
+                .Where(i => i.DocenteCedula == docenteCedula &&
+                           (i.Titulo.Contains("UTA") ||
+                            i.Titulo.Contains("Universidad Técnica de Ambato") ||
+                            i.UnidadVerificadora != null && i.UnidadVerificadora.Contains("UTA")))
+                .OrderByDescending(i => i.FechaInicio)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Investigacion>> GetInvestigacionesComoCoordinadorAsync(string docenteCedula)
+        {
+            return await _context.Investigaciones
+                .Include(i => i.Docente)
+                .Where(i => i.DocenteCedula == docenteCedula &&
+                           (i.RolEnInvestigacion.ToLower().Contains("coordinador") ||
+                            i.RolEnInvestigacion.ToLower().Contains("director") ||
+                            i.RolEnInvestigacion.ToLower().Contains("líder")))
+                .OrderByDescending(i => i.FechaInicio)
+                .ToListAsync();
+        }
+
+        public async Task<decimal> CalcularTiempoEquivalenteCoordinacionAsync(string docenteCedula)
+        {
+            var investigacionesCoordinador = await GetInvestigacionesComoCoordinadorAsync(docenteCedula);
+
+            decimal tiempoEquivalente = 0; foreach (var investigacion in investigacionesCoordinador)
+            {
+                // Según reglamento UTA: coordinación de proyecto equivale a tiempo específico
+                // Por ahora, usamos una fórmula básica: 1.5x los meses de participación
+                var mesesParticipacion = investigacion.MesesDeParticipacion > 0 ?
+                    investigacion.MesesDeParticipacion : investigacion.MesesDeInvestigacion;
+                tiempoEquivalente += mesesParticipacion * 1.5m;
+            }
+
+            return tiempoEquivalente;
+        }
     }
 }

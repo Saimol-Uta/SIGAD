@@ -36,5 +36,9 @@ namespace SIGAD.Application.DTOs
 
         // Propiedades adicionales para el DTO
         public int OrganizacionId { get; set; }
+
+        public string TipoCurso { get; set; } = string.Empty;
+        public bool ImpartidoPorDocente { get; set; }
+
     }
 } 

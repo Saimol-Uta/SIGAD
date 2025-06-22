@@ -589,6 +589,26 @@
                         </button>
                     </div>
                 </div>
+                <!-- Tesis Asignadas -->
+<div class="document-card">
+    <h3>
+        <span class="icon">📘</span>
+        Tesis Asignadas
+        <span class="document-count">@conteoTesis</span>
+    </h3>
+    <p class="description">
+        Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas oficialmente.
+    </p>
+    <div class="document-actions">
+        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("tesis"))" disabled="@operacionEnProceso">
+            📥 Importar
+        </button>
+        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-tesis"))" disabled="@operacionEnProceso">
+            📤 Agregar
+        </button>
+    </div>
+</div>
+
             </div>
 
             @if (operacionEnProceso)
@@ -784,6 +804,7 @@
     private string? solicitudId;
     private bool tieneDocumentosCompletos = false;
     private bool enviandoSolicitud = false;
+    private int conteoTesis = 0;
     
     // Variables para verificación de requisitos
     private bool mostrarDetallesRequisitos = false;
@@ -1003,7 +1024,8 @@
                 CargarConteoArticulos(),
                 CargarConteoExperiencias(),
                 CargarConteoEvaluaciones(),
-                CargarConteoCursos()
+                CargarConteoCursos(),
+                CargarConteoTesis()
             );
 
             // Verificar si todos los documentos están completos
@@ -1066,6 +1088,23 @@
             conteoExperiencias = 0;
         }
     }
+    private async Task CargarConteoTesis()
+{
+    try
+    {
+        var response = await Http.GetAsync($"api/tesis/docente/{cedula}");
+        if (response.IsSuccessStatusCode)
+        {
+            var tesis = await response.Content.ReadFromJsonAsync<List<object>>();
+            conteoTesis = tesis?.Count ?? 0;
+        }
+    }
+    catch
+    {
+        conteoTesis = 0;
+    }
+}
+
 
     private async Task CargarConteoEvaluaciones()
     {
@@ -1112,14 +1151,16 @@
     try
     {
         string endpoint = tipoDocumento switch
-        {
-            "investigaciones" => $"api/investigaciones/externa/importar/{cedula}",
-            "articulos" => $"api/articulos/externos/importar/{cedula}",
-            "experiencias" => $"api/experiencia/externa/importar/{cedula}",
-            "evaluaciones" => $"api/evaluaciones/externas/importar/{cedula}",
-            "cursos" => $"api/cursos/externos/importar/{cedula}",
-            _ => null
-        };
+{
+    "investigaciones" => $"api/investigaciones/externa/importar/{cedula}",
+    "articulos" => $"api/articulos/externos/importar/{cedula}",
+    "experiencias" => $"api/experiencia/externa/importar/{cedula}",
+    "evaluaciones" => $"api/evaluaciones/externas/importar/{cedula}",
+    "cursos" => $"api/cursos/externos/importar/{cedula}",
+    "tesis" => $"api/tesis/externas/importar/{cedula}",
+    _ => null
+};
+
 
         if (string.IsNullOrEmpty(endpoint))
         {

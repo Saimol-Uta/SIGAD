@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.Interfaces;
 using SIGAD.Application.Interfaces.Integraciones;
-
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
+using SIGAD.Domain.Enums;
 
 namespace SIGAD.WebAPI.Controllers
 {

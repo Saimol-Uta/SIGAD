@@ -9,5 +9,8 @@
         public string CertificadoRuta { get; set; } = default!;
         public string ContenidoHash { get; set; } = default!;
         public string DocenteCedula { get; set; } = default!;
+        public string TipoCurso { get; set; } = string.Empty;
+        public bool ImpartidoPorDocente { get; set; }
+
     }
 }
