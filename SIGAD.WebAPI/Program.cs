@@ -92,10 +92,9 @@ builder.Services.AddScoped<IArticuloService, ArticuloService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
 builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
 builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
+builder.Services.AddScoped<ITesisDirigidaService, TesisDirigidaService>();
 
 // Servicios de aplicación específicos para SIGAD
-builder.Services.AddScoped<GestionArticulosAppService>();
-builder.Services.AddScoped<GestionInvestigacionesAppService>();
 builder.Services.AddScoped<ConsultaRangoAppService>();
 builder.Services.AddScoped<GestionRangoAppService>();
 builder.Services.AddScoped<ActualizarRangoService>();
