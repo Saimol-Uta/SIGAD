@@ -13,6 +13,7 @@ using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
 using SIGAD.Infrastructure.Services;
+using SIGAD.WebAPI.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,6 +84,7 @@ builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
 builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
 builder.Services.AddScoped<IExperienciaLaboralRepository, ExperienciaLaboralRepository>();
+builder.Services.AddScoped<ITesisDirigidaRepository, EfTesisDirigidaRepository>();
 builder.Services.AddScoped<IOrganizacionRepository, EfOrganizacionRepository>();
 
 // Servicios de aplicación
@@ -157,18 +159,6 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next.Invoke();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"🔥 ERROR: {ex.Message}\n{ex.StackTrace}");
-        throw;
-    }
-});
 
 // 1. Configurar el pipeline de solicitudes HTTP
 if (app.Environment.IsDevelopment())
@@ -177,6 +167,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 2. Middleware personalizado de validación y manejo de errores
+app.UseValidationMiddleware();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

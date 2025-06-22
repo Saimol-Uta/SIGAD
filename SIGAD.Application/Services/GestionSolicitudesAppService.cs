@@ -256,5 +256,44 @@ namespace SIGAD.Application.Services
             await _unitOfWork.CompleteAsync();
             return solicitud;
         }
+        public async Task<IEnumerable<Rango>> ObtenerRangosDisponiblesAsync(string docenteCedula)
+        {
+            var docente = await _docenteRepository.GetByIdWithDetailsAsync(docenteCedula);
+            if (docente == null)
+                throw new KeyNotFoundException("Docente no encontrado.");
+
+            // Obtener todos los rangos
+            var rangos = await _unitOfWork.Rangos.GetAllAsync();
+            var rangoActual = rangos.FirstOrDefault(r => r.Id == docente.RangoActualId);
+
+            if (rangoActual == null)
+                return new List<Rango>();
+
+            // Mapeo de progresión de rangos según el reglamento UTA
+            var progresionRangos = new Dictionary<string, List<string>>
+            {
+                ["Auxiliar 1"] = new List<string> { "Auxiliar 2" },
+                ["Auxiliar 2"] = new List<string> { "Agregado 1" },
+                ["Agregado 1"] = new List<string> { "Agregado 2" },
+                ["Agregado 2"] = new List<string> { "Agregado 3" },
+                ["Agregado 3"] = new List<string> { "Principal 1" },
+                ["Principal 1"] = new List<string> { "Principal 2" },
+                ["Principal 2"] = new List<string> { "Principal 3" }
+            };
+
+            // Obtener rangos disponibles para el rango actual
+            if (progresionRangos.ContainsKey(rangoActual.Nombre))
+            {
+                var nombresDisponibles = progresionRangos[rangoActual.Nombre];
+                return rangos.Where(r => nombresDisponibles.Contains(r.Nombre));
+            }
+
+            return new List<Rango>();
+        }
+
+        public async Task<Docente?> ObtenerDocentePorCedulaAsync(string cedula)
+        {
+            return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
+        }
     }
 }

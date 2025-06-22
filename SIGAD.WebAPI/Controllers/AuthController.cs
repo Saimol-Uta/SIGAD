@@ -435,15 +435,15 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// TEMPORAL: Crea rangos de prueba (SOLO DESARROLLO)
+        /// TEMPORAL: Crea los rangos académicos oficiales según el Reglamento UTA Resolución 0677-CU-P-2023 (SOLO DESARROLLO)
         /// </summary>
-        /// <returns>Resultado de la creación</returns>
+        /// <returns>Resultado de la creación de rangos oficiales según el reglamento UTA</returns>
         [HttpPost("create-test-rangos")]
         public async Task<IActionResult> CreateTestRangos()
         {
             try
             {
-                _logger.LogInformation("Iniciando creación de rangos de prueba...");
+                _logger.LogInformation("Iniciando creación de rangos académicos según Reglamento UTA Resolución 0677-CU-P-2023...");
 
                 // Limpiar rangos existentes si existen
                 var existingRangos = await _context.Rangos.ToListAsync();
@@ -452,24 +452,104 @@ namespace SIGAD.WebAPI.Controllers
                     _context.Rangos.RemoveRange(existingRangos);
                     _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
                     await _context.SaveChangesAsync();
-                }
-
-                // Crear rangos de prueba (sin IDs específicos - dejar que la DB los genere)
-                var testRangos = new[]
+                }                // Crear rangos según el Reglamento para la Promoción del Personal Académico Titular de la UTA
+                // Resolución 0677-CU-P-2023
+                var rangosReglamento = new[]
                 {
-                    new { Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0.0m },
-                    new { Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70.0m },
-                    new { Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75.0m },
-                    new { Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80.0m }
+                    // TITULAR AUXILIAR 1 - Rango inicial (sin requisitos previos para promoción)
+                    new {
+                        Nombre = "Titular Auxiliar 1",
+                        ArticulosRequeridos = 0,
+                        AniosExperienciaRequeridos = 0,
+                        HorasCursoRequeridas = 0,
+                        MesesInvestigacionRequeridos = 0,
+                        TesisDirigidasRequeridas = 0,
+                        PuntajePromedioEvaluacionesRequerido = 0.0m
+                    },
+                    
+                    // TITULAR AUXILIAR 2 - Anexo 1, Página 7
+                    new {
+                        Nombre = "Titular Auxiliar 2",
+                        ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 1
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        MesesInvestigacionRequeridos = 0,  // No especifica proyectos de investigación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 1 - Anexo 1, Página 8  
+                    new {
+                        Nombre = "Titular Agregado 1",
+                        ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 2
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        MesesInvestigacionRequeridos = 12,  // 12 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 2 - Anexo 1, Página 9
+                    new {
+                        Nombre = "Titular Agregado 2",
+                        ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 1
+                        HorasCursoRequeridas = 128,  // 128 horas de capacitación (25% pedagógica = 32h)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 3 - Anexo 1, Página 10
+                    new {
+                        Nombre = "Titular Agregado 3",
+                        ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 2
+                        HorasCursoRequeridas = 160,  // 160 horas de capacitación (25% pedagógica = 40h)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 1 - Anexo 1, Página 11
+                    new {
+                        Nombre = "Titular Principal 1",
+                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (1 en idioma extranjero)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
+                        HorasCursoRequeridas = 224,  // 224 horas de capacitación (25% pedagógica = 56h) + 40h impartidas
+                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 2 - Anexo 1, Página 12
+                    new {
+                        Nombre = "Titular Principal 2",
+                        ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 2
+                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (25% pedagógica = 64h) + 80h impartidas
+                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas/codirigidas
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 3 - Rango máximo (sin promoción posterior)
+                    new {
+                        Nombre = "Titular Principal 3",
+                        ArticulosRequeridos = 15,  // Estimado para el rango máximo
+                        AniosExperienciaRequeridos = 25,  // Estimado para el rango máximo
+                        HorasCursoRequeridas = 300,  // Estimado para el rango máximo
+                        MesesInvestigacionRequeridos = 48,  // Estimado para el rango máximo
+                        TesisDirigidasRequeridas = 5,  // Estimado para el rango máximo
+                        PuntajePromedioEvaluacionesRequerido = 80.0m  // Estimado para el rango máximo
+                    }
                 };
 
                 var rangosCreados = new List<object>();
 
-                foreach (var rango in testRangos)
+                foreach (var rango in rangosReglamento)
                 {
-                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre);
-
-                    var newRango = new SIGAD.Domain.Entities.Rango
+                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre); var newRango = new SIGAD.Domain.Entities.Rango
                     {
                         // No establecemos Id - dejar que Entity Framework lo genere automáticamente
                         Nombre = rango.Nombre,
@@ -477,6 +557,7 @@ namespace SIGAD.WebAPI.Controllers
                         AniosExperienciaRequeridos = rango.AniosExperienciaRequeridos,
                         HorasCursoRequeridas = rango.HorasCursoRequeridas,
                         MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
+                        TesisDirigidasRequeridas = rango.TesisDirigidasRequeridas,
                         PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
                     };
 
@@ -486,8 +567,7 @@ namespace SIGAD.WebAPI.Controllers
                 var savedRecords = await _context.SaveChangesAsync();
 
                 // Obtener los rangos creados con sus IDs generados
-                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync();
-                rangosCreados = rangosEnDb.Select(r => new
+                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync(); rangosCreados = rangosEnDb.Select(r => new
                 {
                     id = r.Id,
                     nombre = r.Nombre,
@@ -495,28 +575,32 @@ namespace SIGAD.WebAPI.Controllers
                     aniosExperiencia = r.AniosExperienciaRequeridos,
                     horasCurso = r.HorasCursoRequeridas,
                     mesesInvestigacion = r.MesesInvestigacionRequeridos,
+                    tesisDirigidas = r.TesisDirigidasRequeridas,
                     puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
-                }).ToList<object>();
-                _logger.LogInformation("Rangos creados exitosamente. Registros guardados: {Count}", savedRecords);
+                }).ToList<object>(); _logger.LogInformation("Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023. Registros guardados: {Count}", savedRecords);
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Rangos de prueba creados exitosamente",
+                    message = "Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023",
                     data = new
                     {
                         rangosCreados = savedRecords,
-                        rangos = rangosCreados
+                        rangos = rangosCreados,
+                        reglamento = "Reglamento para la Promoción del Personal Académico Titular de la UTA",
+                        resolucion = "0677-CU-P-2023",
+                        fechaAprobacion = "15 de junio de 2023",
+                        fechaCreacion = DateTime.UtcNow
                     }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al crear rangos de prueba");
+                _logger.LogError(ex, "Error al crear rangos académicos UTA");
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "Error al crear rangos de prueba",
+                    message = "Error al crear rangos académicos UTA",
                     error = ex.Message
                 });
             }
