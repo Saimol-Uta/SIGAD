@@ -18,6 +18,10 @@ namespace SIGAD.Domain.Entities
         public string ContenidoHash { get; set; }
         public string DocenteCedula { get; set; }
 
+        public string TipoProyecto { get; set; } = string.Empty;
+        public int MesesDeParticipacion { get; set; }
+        public string UnidadVerificadora { get; set; } = string.Empty;
+
         public virtual Docente Docente { get; set; }
     }
 }

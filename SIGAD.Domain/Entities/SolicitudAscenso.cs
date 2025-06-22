@@ -14,6 +14,7 @@ namespace SIGAD.Domain.Entities
         public EstadoSolicitud Estado { get; set; }
         public string? ObservacionesAdmin { get; set; }
 
+
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = null!;
         public virtual Rango? RangoActual { get; set; }
@@ -25,6 +26,9 @@ namespace SIGAD.Domain.Entities
         public virtual ICollection<InvestigacionesPorSolicitud> InvestigacionesPorSolicitud { get; set; } = new List<InvestigacionesPorSolicitud>();
         public virtual ICollection<ExperienciaPorSolicitud> ExperienciaPorSolicitud { get; set; } = new List<ExperienciaPorSolicitud>();
         public virtual ICollection<EvaluacionesPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionesPorSolicitud>();
+
+        public ICollection<TesisPorSolicitud> TesisPorSolicitud { get; set; } = new List<TesisPorSolicitud>();
+
 
 
         public void Aprobar(string? observaciones)

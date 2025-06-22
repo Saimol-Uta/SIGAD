@@ -190,5 +190,39 @@ namespace SIGAD.WebAPI.Controllers
 
             return Ok(userInfo);
         }
+
+
+        // GET: api/solicitudes/verif-solicitud-activa
+        [HttpGet("verif-solicitud-activa")]
+        public async Task<IActionResult> VerificarSolicitudActiva()
+        {
+            var docenteCedula = User.FindFirst("cedula")?.Value;
+            if (string.IsNullOrEmpty(docenteCedula))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "No se pudo obtener la cédula del docente desde el token."
+                });
+            }
+
+            var solicitud = await _solicitudesService.ObtenerBorradorActivoAsync(docenteCedula);
+
+            if (solicitud == null)
+            {
+                return Ok(new
+                {
+                    tieneBorrador = false
+                });
+            }
+
+            return Ok(new
+            {
+                tieneBorrador = true,
+                solicitudId = solicitud.Id,
+                fechaCreacion = solicitud.FechaCreacion
+            });
+        }
+
     }
 }

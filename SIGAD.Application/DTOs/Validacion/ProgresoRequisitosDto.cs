@@ -12,7 +12,9 @@ namespace SIGAD.Application.DTOs.Validacion
         public RequisitoProgresoDto PromedioEvaluacion { get; set; }
         public RequisitoProgresoDto Articulos { get; set; } 
         public RequisitoProgresoDto Investigaciones { get; set; } 
-        public RequisitoProgresoDto Cursos { get; set; } 
+        public RequisitoProgresoDto Cursos { get; set; }
+        public RequisitoProgresoDto Tesis { get; set; } = new();
+
         public bool PuedeAscender { get; set; }
     }
 }

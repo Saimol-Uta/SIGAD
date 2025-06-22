@@ -13,6 +13,10 @@ namespace SIGAD.Application.DTOs
         public string? RangoActualNombre { get; set; }
         public string RangoSolicitadoNombre { get; set; } = string.Empty;
 
+        public List<VerTesisDirigidaDto> TesisDirigidas { get; set; } = new();
+
+
+
         // La evidencia que se presentó en esta solicitud específica
         public List<VerArticuloDto> ArticulosPresentados { get; set; } = new();
         public List<VerInvestigacionDto> InvestigacionesPresentadas { get; set; } = new();

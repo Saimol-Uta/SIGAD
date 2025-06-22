@@ -65,6 +65,10 @@ namespace SIGAD.Infrastructure.Repositories
                         .ThenInclude(el => el.Docente)
                 .Include(s => s.EvaluacionesPorSolicitud)
                     .ThenInclude(evps => evps.Evaluacion)
+
+                 .Include(s => s.TesisPorSolicitud)
+            .ThenInclude(tps => tps.TesisDirigida)
+
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 

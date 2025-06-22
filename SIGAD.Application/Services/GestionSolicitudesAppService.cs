@@ -11,7 +11,7 @@ namespace SIGAD.Application.Services
     public class GestionSolicitudesAppService
     {
         private readonly ISolicitudAscensoRepository _solicitudRepository;
-        private readonly IDocenteRepository _docenteRepository; // Necesario para obtener el rango actual
+        private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public GestionSolicitudesAppService(
@@ -24,37 +24,30 @@ namespace SIGAD.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        // Método para crear y enviar la solicitud con su evidencia
         public async Task<Guid> EnviarSolicitudConEvidenciaAsync(EnviarSolicitudDto dto, string docenteCedula)
         {
-            // Aquí se implementaría la lógica de negocio, como la regla de los 4 años.
-            // Por ahora, implementamos la creación directa.
-
             var docente = await _docenteRepository.GetByIdWithDetailsAsync(docenteCedula);
             if (docente == null) throw new KeyNotFoundException("Docente no encontrado.");
 
-            // Creamos la entidad del dominio
             var nuevaSolicitud = new SolicitudAscenso(
                 docenteCedula,
                 dto.RangoSolicitadoId,
-                docente.RangoActualId // Obtenemos el rango actual del docente
+                docente.RangoActualId
             );
 
-            // Vincular la evidencia seleccionada a la solicitud
             dto.ArticulosDOI.ForEach(doi => nuevaSolicitud.ArticulosPorSolicitud.Add(new ArticulosPorSolicitud { ArticuloDOI = doi }));
             dto.CursosId.ForEach(id => nuevaSolicitud.CursosPorSolicitud.Add(new CursosPorSolicitud { CursoId = id }));
             dto.InvestigacionesId.ForEach(id => nuevaSolicitud.InvestigacionesPorSolicitud.Add(new InvestigacionesPorSolicitud { InvestigacionId = id }));
             dto.ExperienciasId.ForEach(id => nuevaSolicitud.ExperienciaPorSolicitud.Add(new ExperienciaPorSolicitud { ExperienciaId = id }));
             dto.EvaluacionesId.ForEach(id => nuevaSolicitud.EvaluacionesPorSolicitud.Add(new EvaluacionesPorSolicitud { EvaluacionId = id }));
+            dto.TesisId.ForEach(id => nuevaSolicitud.TesisPorSolicitud.Add(new TesisPorSolicitud { TesisDirigidaId = id }));
 
-            // Guardar en la base de datos
             await _solicitudRepository.AddAsync(nuevaSolicitud);
             await _unitOfWork.SaveChangesAsync();
 
             return nuevaSolicitud.Id;
         }
 
-        // Método para obtener la lista para el panel de admin
         public async Task<IEnumerable<VerSolicitudDto>> GetAllParaAdminAsync()
         {
             var solicitudes = await _solicitudRepository.GetAllWithDetailsAsync();
@@ -64,15 +57,15 @@ namespace SIGAD.Application.Services
                 DocenteNombreCompleto = $"{s.Docente.Nombre1} {s.Docente.Apellido1}",
                 RangoSolicitadoNombre = s.RangoSolicitado.Nombre,
                 Estado = s.Estado.ToString(),
-                FechaEnvio = s.FechaEnvio ?? s.FechaCreacion // Usar FechaCreacion si FechaEnvio es nula
+                FechaEnvio = s.FechaEnvio ?? s.FechaCreacion
             });
         }
 
-        // Método para obtener el detalle completo de una solicitud
         public async Task<SolicitudDetalleDto?> GetDetalleParaAdminAsync(Guid id)
         {
             var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
-            if (solicitud == null) return null;            // Mapeo de la entidad completa al DTO de detalle
+            if (solicitud == null) return null;
+
             return new SolicitudDetalleDto
             {
                 Id = solicitud.Id,
@@ -87,6 +80,7 @@ namespace SIGAD.Application.Services
                     : "N/A",
                 RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
                 RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
+
                 ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
                 {
                     DOI = a.Articulo?.DOI ?? "",
@@ -98,6 +92,7 @@ namespace SIGAD.Application.Services
                         ? $"{a.Articulo.Docente.Nombre1} {a.Articulo.Docente.Apellido1}".Trim()
                         : "N/A"
                 }).ToList(),
+
                 InvestigacionesPresentadas = solicitud.InvestigacionesPorSolicitud.Select(i => new VerInvestigacionDto
                 {
                     Id = i.Investigacion?.Id ?? 0,
@@ -107,6 +102,7 @@ namespace SIGAD.Application.Services
                     FechaFinalizacion = i.Investigacion?.FechaFinalizacion ?? DateTime.MinValue,
                     NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim()
                 }).ToList(),
+
                 CursosPresentados = solicitud.CursosPorSolicitud.Select(c => new VerCursoDto
                 {
                     Id = c.Curso?.Id ?? 0,
@@ -120,6 +116,7 @@ namespace SIGAD.Application.Services
                         : "N/A",
                     TieneCertificado = !string.IsNullOrEmpty(c.Curso?.CertificadoRuta)
                 }).ToList(),
+
                 ExperienciasLaborales = solicitud.ExperienciaPorSolicitud.Select(e => new VerExperienciaLaboralDto
                 {
                     Id = e.ExperienciaLaboral?.Id ?? 0,
@@ -130,6 +127,7 @@ namespace SIGAD.Application.Services
                     FechaFin = e.ExperienciaLaboral?.FechaFin,
                     CertificadoRuta = e.ExperienciaLaboral?.CertificadoRuta ?? ""
                 }).ToList(),
+
                 EvaluacionesDocente = solicitud.EvaluacionesPorSolicitud.Select(ev => new VerEvaluacionDocenteDto
                 {
                     Id = ev.Evaluacion?.Id ?? 0,
@@ -137,28 +135,83 @@ namespace SIGAD.Application.Services
                     FechaEvaluacion = ev.Evaluacion?.FechaEvaluacion ?? DateTime.MinValue,
                     PuntajePorcentual = ev.Evaluacion?.PuntajePorcentual ?? 0,
                     InformeRuta = ev.Evaluacion?.InformeRuta ?? ""
+                }).ToList(),
+
+                TesisDirigidas = solicitud.TesisPorSolicitud.Select(t => new VerTesisDirigidaDto
+                {
+                    Id = t.TesisDirigida?.Id ?? 0,
+                    Titulo = t.TesisDirigida?.TituloTesis ?? "",
+                    FechaInicio = t.TesisDirigida?.FechaInicio ?? DateTime.MinValue,
+                    FechaFin = t.TesisDirigida?.FechaFin,
+                    Nivel = t.TesisDirigida?.NivelAcademico ?? ""
                 }).ToList()
+
+
             };
         }
 
-        // Métodos para cambiar el estado de la solicitud
         public async Task AprobarSolicitudAsync(Guid id, string observaciones)
         {
             var solicitud = await _solicitudRepository.GetByIdAsync(id);
             if (solicitud != null)
             {
-                solicitud.Aprobar(observaciones); // Asumiendo un método en la entidad SolicitudAscenso
+                solicitud.Aprobar(observaciones);
                 await _unitOfWork.SaveChangesAsync();
             }
         }
+
         public async Task RechazarSolicitudAsync(Guid id, string observaciones)
         {
             var solicitud = await _solicitudRepository.GetByIdAsync(id);
             if (solicitud != null)
             {
-                solicitud.Rechazar(observaciones); // Asumiendo un método en la entidad SolicitudAscenso
+                solicitud.Rechazar(observaciones);
                 await _unitOfWork.SaveChangesAsync();
             }
         }
+        public async Task<SolicitudAscenso?> ObtenerBorradorActivoAsync(string docenteCedula)
+        {
+            var solicitudes = await _solicitudRepository.GetAllAsync();
+            return solicitudes
+                .Where(s => s.DocenteCedula == docenteCedula && s.Estado == Domain.Enums.EstadoSolicitud.Borrador)
+                .OrderByDescending(s => s.FechaCreacion)
+                .FirstOrDefault();
+        }
+
+        // Verifica si el docente tiene una solicitud activa
+        public async Task<bool> TieneSolicitudActivaAsync(string docenteCedula)
+        {
+            var solicitudes = await _solicitudRepository.GetAllAsync();
+            return solicitudes.Any(s =>
+                s.DocenteCedula == docenteCedula &&
+                s.Estado == Domain.Enums.EstadoSolicitud.EnProceso);
+        }
+
+        // Crea una solicitud simple si no hay una activa
+        public async Task<SolicitudAscenso> CrearSolicitudSimpleAsync(string docenteCedula, int rangoSolicitadoId)
+        {
+            if (await TieneSolicitudActivaAsync(docenteCedula))
+                throw new InvalidOperationException("Ya existe una solicitud activa.");
+
+            var docente = await _docenteRepository.GetByIdAsync(docenteCedula);
+            if (docente == null)
+                throw new KeyNotFoundException("Docente no encontrado.");
+
+            var solicitud = new SolicitudAscenso
+            {
+                Id = Guid.NewGuid(),
+                DocenteCedula = docenteCedula,
+                Estado = Domain.Enums.EstadoSolicitud.EnProceso,
+                FechaCreacion = DateTime.UtcNow,
+                RangoActualId = docente.RangoActualId,
+                RangoSolicitadoId = rangoSolicitadoId
+            };
+
+            await _solicitudRepository.AddAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+            return solicitud;
+        }
+
+
     }
 }

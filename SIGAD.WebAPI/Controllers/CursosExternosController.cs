@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SIGAD.Application.Interfaces;
 using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
@@ -55,8 +54,14 @@ namespace SIGAD.WebAPI.Controllers
                         CertificadoRuta = dto.CertificadoRuta,
                         ContenidoHash = dto.ContenidoHash,
                         DocenteCedula = docente.Cedula,
-                        OrganizacionId = organizacion.Id
+                        OrganizacionId = organizacion.Id,
+
+                        TipoCurso = dto.TipoCurso,
+                        ImpartidoPorDocente = dto.ImpartidoPorDocente
+                       
                     };
+
+
 
                     await _unitOfWork.Cursos.AgregarAsync(curso);
                     insertados++;

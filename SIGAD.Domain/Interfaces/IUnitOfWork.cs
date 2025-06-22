@@ -17,6 +17,8 @@ namespace SIGAD.Domain.Interfaces
          IOrganizacionRepository Organizaciones { get; }
 
         ICuentaRepository Cuentas { get; }
+        ITesisDirigidaRepository TesisDirigidas { get; }
+
 
 
 

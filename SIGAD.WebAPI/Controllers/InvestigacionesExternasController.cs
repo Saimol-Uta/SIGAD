@@ -50,7 +50,10 @@ namespace SIGAD.WebAPI.Controllers
                         MesesDeInvestigacion = dto.MesesDeInvestigacion,
                         InformeRuta = dto.InformeRuta,
                         ContenidoHash = dto.ContenidoHash,
-                        DocenteCedula = docente.Cedula
+                        DocenteCedula = docente.Cedula,
+                        TipoProyecto = dto.TipoProyecto,
+                        MesesDeParticipacion = dto.MesesDeParticipacion,
+                        UnidadVerificadora = dto.UnidadVerificadora
                     };
 
                     await _unitOfWork.Investigaciones.AgregarAsync(nueva);

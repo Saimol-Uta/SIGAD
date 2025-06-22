@@ -48,8 +48,12 @@ namespace SIGAD.WebAPI.Controllers
                         AnioPublicacion = dto.AnioPublicacion,
                         ArchivoRuta = dto.ArchivoRuta,
                         ContenidoHash = dto.ContenidoHash,
-                        DocenteCedula = docente.Cedula
+                        DocenteCedula = docente.Cedula,
+                        UnidadVerificadora = dto.UnidadVerificadora,
+                        Verificado = dto.Verificado,
+                        FechaVerificacion = dto.FechaVerificacion
                     };
+
 
                     await _unitOfWork.Articulos.AgregarAsync(articulo);
                     insertados++;

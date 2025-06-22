@@ -24,6 +24,9 @@ namespace SIGAD.Infrastructure.Persistence
         public DbSet<CursosPorSolicitud> CursosPorSolicitud { get; set; }
         public DbSet<ExperienciaPorSolicitud> ExperienciasPorSolicitud { get; set; }
         public DbSet<InvestigacionesPorSolicitud> InvestigacionesPorSolicitud { get; set; }
+        public DbSet<TesisDirigida> TesisDirigidas { get; set; } = default!;
+        public DbSet<TesisPorSolicitud> TesisPorSolicitud { get; set; } = default!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -294,6 +297,21 @@ namespace SIGAD.Infrastructure.Persistence
                     .HasForeignKey(e => e.InvestigacionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+            modelBuilder.Entity<TesisPorSolicitud>(entity =>
+            {
+                entity.HasKey(e => new { e.SolicitudId, e.TesisDirigidaId });
+
+                entity.HasOne(e => e.Solicitud)
+                    .WithMany(s => s.TesisPorSolicitud)
+                    .HasForeignKey(e => e.SolicitudId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.TesisDirigida)
+                    .WithMany(t => t.TesisPorSolicitud)
+                    .HasForeignKey(e => e.TesisDirigidaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
         }
     }
 } 

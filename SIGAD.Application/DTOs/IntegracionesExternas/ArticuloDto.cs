@@ -9,5 +9,10 @@
         public string ArchivoRuta { get; set; } = default!;
         public string ContenidoHash { get; set; } = default!;
         public string DocenteCedula { get; set; } = default!;
+
+        public string UnidadVerificadora { get; set; } = string.Empty;
+        public bool Verificado { get; set; }
+        public DateTime? FechaVerificacion { get; set; }
+
     }
 }

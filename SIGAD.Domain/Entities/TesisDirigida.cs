@@ -1,0 +1,28 @@
+﻿namespace SIGAD.Domain.Entities
+{
+    public class TesisDirigida
+    {
+        public int Id { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string NivelAcademico { get; set; } = string.Empty;
+        public string TituloTesis { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string Institucion { get; set; } = string.Empty;
+        public string CertificacionRuta { get; set; } = string.Empty;
+        public string ContenidoHash { get; set; } = string.Empty;
+
+        public Docente? Docente { get; set; }
+        public ICollection<TesisPorSolicitud>? TesisPorSolicitud { get; set; }
+    }
+
+    public class TesisPorSolicitud
+    {
+        public Guid SolicitudId { get; set; }
+        public SolicitudAscenso? Solicitud { get; set; }
+
+        public int TesisDirigidaId { get; set; }
+        public TesisDirigida? TesisDirigida { get; set; }
+    }
+}

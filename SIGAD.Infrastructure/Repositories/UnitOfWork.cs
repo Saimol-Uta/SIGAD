@@ -21,6 +21,8 @@ namespace SIGAD.Infrastructure.Repositories
             Docentes = new EfDocenteRepository(context);
             Organizaciones = new EfOrganizacionRepository(context);
             Cuentas = new EfCuentaRepository(context);
+            TesisDirigidas = new EfTesisDirigidaRepository(context);
+
 
 
 
@@ -70,6 +72,8 @@ namespace SIGAD.Infrastructure.Repositories
         public IDocenteRepository Docentes { get; }
         public IOrganizacionRepository Organizaciones { get; }
         public ICuentaRepository Cuentas { get; }
+        public ITesisDirigidaRepository TesisDirigidas { get; }
+
 
 
 

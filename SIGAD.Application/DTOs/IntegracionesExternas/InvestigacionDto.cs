@@ -10,5 +10,10 @@
         public string InformeRuta { get; set; } = default!;
         public string ContenidoHash { get; set; } = default!;
         public string DocenteCedula { get; set; } = default!;
+
+        public string TipoProyecto { get; set; } = string.Empty;
+        public int MesesDeParticipacion { get; set; }
+        public string UnidadVerificadora { get; set; } = string.Empty;
+
     }
 }
