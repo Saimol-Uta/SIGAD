@@ -74,6 +74,7 @@ namespace SIGAD.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Cargo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    TipoCargo = table.Column<int>(type: "int", nullable: false),
                     FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DocumentoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -103,8 +104,11 @@ namespace SIGAD.Infrastructure.Migrations
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Verificado = table.Column<bool>(type: "bit", nullable: false),
-                    FechaVerificacion = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    EsVerificado = table.Column<bool>(type: "bit", nullable: false),
+                    FechaVerificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ObservacionesVerificacion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    EsIndexado = table.Column<bool>(type: "bit", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -153,7 +157,7 @@ namespace SIGAD.Infrastructure.Migrations
                     CertificadoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    TipoCurso = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TipoCurso = table.Column<int>(type: "int", nullable: false),
                     ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -242,7 +246,7 @@ namespace SIGAD.Infrastructure.Migrations
                     InformeRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    TipoProyecto = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TipoProyecto = table.Column<int>(type: "int", nullable: false),
                     MesesDeParticipacion = table.Column<int>(type: "int", nullable: false),
                     UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
                 },
@@ -305,9 +309,9 @@ namespace SIGAD.Infrastructure.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    NivelAcademico = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    NivelAcademico = table.Column<int>(type: "int", nullable: false),
                     TituloTesis = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Estado = table.Column<int>(type: "int", nullable: false),
                     FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Institucion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),

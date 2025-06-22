@@ -8,9 +8,7 @@ namespace SIGAD.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly SigadDbContext _context;
-        private IDbContextTransaction? _transaction;
-
-        public UnitOfWork(SigadDbContext context)
+        private IDbContextTransaction? _transaction; public UnitOfWork(SigadDbContext context)
         {
             _context = context;
             Articulos = new EfArticuloRepository(context);
@@ -22,11 +20,12 @@ namespace SIGAD.Infrastructure.Repositories
             Organizaciones = new EfOrganizacionRepository(context);
             Cuentas = new EfCuentaRepository(context);
             TesisDirigidas = new EfTesisDirigidaRepository(context);
+            SolicitudesAscenso = new EfSolicitudAscensoRepository(context);
+            Rangos = new EfRangoRepository(context);
 
-
-
-
-
+            // TODO: Implementar AccionesDePersonalRepository y PromocionService
+            // AccionesDePersonal = new EfAccionesDePersonalRepository(context);
+            // PromocionService = new PromocionService(this);
         }
 
         public async Task<int> SaveChangesAsync()
@@ -73,6 +72,12 @@ namespace SIGAD.Infrastructure.Repositories
         public IOrganizacionRepository Organizaciones { get; }
         public ICuentaRepository Cuentas { get; }
         public ITesisDirigidaRepository TesisDirigidas { get; }
+        public ISolicitudAscensoRepository SolicitudesAscenso { get; }
+        public IRangoRepository Rangos { get; }
+
+        // TODO: Implementar estos repositorios/servicios
+        public IAccionesDePersonalRepository AccionesDePersonal => throw new NotImplementedException("AccionesDePersonalRepository no implementado aún");
+        public IPromocionService PromocionService => throw new NotImplementedException("PromocionService no implementado aún");
 
 
 
@@ -86,4 +91,4 @@ namespace SIGAD.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
     }
-} 
+}

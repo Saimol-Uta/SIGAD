@@ -12,7 +12,7 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    [Migration("20250622145055_InitialSchema")]
+    [Migration("20250622162626_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -62,6 +62,9 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<DateTime>("FechaInicio")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("TipoCargo")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DocenteCedula");
@@ -107,8 +110,21 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<bool>("EsIndexado")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EsVerificado")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("FechaVerificacion")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ObservacionesVerificacion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Revista")
                         .IsRequired()
@@ -124,9 +140,6 @@ namespace SIGAD.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("Verificado")
-                        .HasColumnType("bit");
 
                     b.HasKey("DOI");
 
@@ -227,10 +240,8 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("OrganizacionId")
                         .HasColumnType("int");
 
-                    b.Property<string>("TipoCurso")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("TipoCurso")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -450,10 +461,8 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("TipoProyecto")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("TipoProyecto")
+                        .HasColumnType("int");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
@@ -630,10 +639,8 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("FechaFin")
                         .HasColumnType("datetime2");
@@ -646,10 +653,8 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("NivelAcademico")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("NivelAcademico")
+                        .HasColumnType("int");
 
                     b.Property<string>("TituloTesis")
                         .IsRequired()

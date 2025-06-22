@@ -165,8 +165,14 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
-                entity.Property(e => e.Verificado);
+                entity.Property(e => e.EsVerificado);
                 entity.Property(e => e.FechaVerificacion);
+                entity.Property(e => e.ObservacionesVerificacion).HasMaxLength(500);
+                entity.Property(e => e.EsIndexado);
+                entity.Property(e => e.FechaCreacion);
+
+                // Propiedad de compatibilidad (no mapear directamente)
+                entity.Ignore(e => e.Verificado);
 
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Articulos)
@@ -190,9 +196,8 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.NumeroHoras).IsRequired();
                 entity.Property(e => e.FechaFinalizacion).IsRequired();
                 entity.Property(e => e.CertificadoRuta).IsRequired();
-                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
-                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
-                entity.Property(e => e.TipoCurso).HasMaxLength(50);
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.TipoCurso).HasConversion<int>();
                 entity.Property(e => e.ImpartidoPorDocente);
 
                 entity.HasOne(e => e.Organizacion)
@@ -238,9 +243,8 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.RolEnInvestigacion).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.MesesDeInvestigacion).IsRequired();
                 entity.Property(e => e.InformeRuta).IsRequired();
-                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
-                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
-                entity.Property(e => e.TipoProyecto).HasMaxLength(50);
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.TipoProyecto).HasConversion<int>();
                 entity.Property(e => e.MesesDeParticipacion);
                 entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
 
@@ -331,6 +335,7 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.Cargo).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.TipoCargo).HasConversion<int>();
                 entity.Property(e => e.FechaInicio).IsRequired();
                 entity.Property(e => e.FechaFin);
                 entity.Property(e => e.DocumentoRuta);
@@ -363,11 +368,10 @@ namespace SIGAD.Infrastructure.Persistence
             modelBuilder.Entity<TesisDirigida>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
-                entity.Property(e => e.NivelAcademico).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Id).ValueGeneratedOnAdd(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.NivelAcademico).HasConversion<int>();
                 entity.Property(e => e.TituloTesis).HasMaxLength(200).IsRequired();
-                entity.Property(e => e.Estado).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Estado).HasConversion<int>();
                 entity.Property(e => e.FechaInicio).IsRequired();
                 entity.Property(e => e.FechaFin);
                 entity.Property(e => e.Institucion).HasMaxLength(100).IsRequired();
