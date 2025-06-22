@@ -184,7 +184,7 @@ namespace SIGAD.Application.Services
             var solicitudes = await _solicitudRepository.GetAllAsync();
             return solicitudes.Any(s =>
                 s.DocenteCedula == docenteCedula &&
-                s.Estado == Domain.Enums.EstadoSolicitud.EnProceso);
+                s.Estado == Domain.Enums.EstadoSolicitud.EnRevision);
         }
 
         // Crea una solicitud simple si no hay una activa
@@ -193,15 +193,15 @@ namespace SIGAD.Application.Services
             if (await TieneSolicitudActivaAsync(docenteCedula))
                 throw new InvalidOperationException("Ya existe una solicitud activa.");
 
-            var docente = await _docenteRepository.GetByIdAsync(docenteCedula);
+            var docente = await _docenteRepository.GetByIdWithDetailsAsync(docenteCedula);
             if (docente == null)
                 throw new KeyNotFoundException("Docente no encontrado.");
 
-            var solicitud = new SolicitudAscenso
+            var solicitud = new SolicitudAscenso 
             {
                 Id = Guid.NewGuid(),
                 DocenteCedula = docenteCedula,
-                Estado = Domain.Enums.EstadoSolicitud.EnProceso,
+                Estado = Domain.Enums.EstadoSolicitud.EnRevision,
                 FechaCreacion = DateTime.UtcNow,
                 RangoActualId = docente.RangoActualId,
                 RangoSolicitadoId = rangoSolicitadoId

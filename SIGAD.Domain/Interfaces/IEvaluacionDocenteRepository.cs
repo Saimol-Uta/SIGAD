@@ -16,5 +16,12 @@ namespace SIGAD.Domain.Interfaces
         Task RemoveFromSolicitudAsync(Guid solicitudId, int evaluacionId);
         Task<bool> ExistePorHashAsync(string hash);
         Task AgregarAsync(EvaluacionDocente evaluacion);
+
+        // Métodos específicos del reglamento:
+        Task<decimal> GetPromedioUltimas4EvaluacionesAsync(string docenteCedula);
+        Task<IEnumerable<EvaluacionDocente>> GetUltimas4EvaluacionesAsync(string docenteCedula);
+        Task<IEnumerable<EvaluacionDocente>> GetUltimas2EvaluacionesAsync(string docenteCedula); // Para excepcionalidades Art. 7
+        Task<bool> CumpleRequisitoEvaluacionParaRangoAsync(string docenteCedula, decimal puntajeMinimo = 75);
+        Task<bool> TieneEvaluacionesSuficientesAsync(string docenteCedula, int cantidadMinima = 4);
     }
-} 
+}

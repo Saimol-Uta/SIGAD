@@ -36,6 +36,7 @@ namespace SIGAD.Infrastructure.Migrations
                     AniosExperienciaRequeridos = table.Column<int>(type: "int", nullable: false),
                     HorasCursoRequeridas = table.Column<int>(type: "int", nullable: false),
                     MesesInvestigacionRequeridos = table.Column<int>(type: "int", nullable: false),
+                    TesisDirigidasRequeridas = table.Column<int>(type: "int", nullable: false),
                     PuntajePromedioEvaluacionesRequerido = table.Column<decimal>(type: "decimal(5,2)", nullable: false)
                 },
                 constraints: table =>
@@ -61,7 +62,33 @@ namespace SIGAD.Infrastructure.Migrations
                         name: "FK_Docentes_Rangos_RangoActualId",
                         column: x => x.RangoActualId,
                         principalTable: "Rangos",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AccionesDePersonal",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Cargo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DocumentoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CertificadoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AccionesDePersonal", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AccionesDePersonal_Docentes_DocenteCedula",
+                        column: x => x.DocenteCedula,
+                        principalTable: "Docentes",
+                        principalColumn: "Cedula",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -74,7 +101,10 @@ namespace SIGAD.Infrastructure.Migrations
                     AnioPublicacion = table.Column<int>(type: "int", nullable: false),
                     ArchivoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false)
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Verificado = table.Column<bool>(type: "bit", nullable: false),
+                    FechaVerificacion = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -95,7 +125,7 @@ namespace SIGAD.Infrastructure.Migrations
                     ClaveHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Rol = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CodigoRecuperacion = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CodigoRecuperacion = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     CodigoExpiracion = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -122,7 +152,9 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaFinalizacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CertificadoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false)
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    TipoCurso = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -209,7 +241,10 @@ namespace SIGAD.Infrastructure.Migrations
                     MesesDeInvestigacion = table.Column<int>(type: "int", nullable: false),
                     InformeRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false)
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    TipoProyecto = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    MesesDeParticipacion = table.Column<int>(type: "int", nullable: false),
+                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -234,7 +269,10 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaEnvio = table.Column<DateTime>(type: "datetime2", nullable: true),
                     FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ObservacionesAdmin = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    ObservacionesAdmin = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FechaNotificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AceptacionODemanda = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    FechaResolucionApelacion = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -258,6 +296,57 @@ namespace SIGAD.Infrastructure.Migrations
                         principalTable: "Rangos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TesisDirigidas",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    NivelAcademico = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TituloTesis = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Estado = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Institucion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CertificacionRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TesisDirigidas", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TesisDirigidas_Docentes_DocenteCedula",
+                        column: x => x.DocenteCedula,
+                        principalTable: "Docentes",
+                        principalColumn: "Cedula",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AccionesDePersonalPorSolicitud",
+                columns: table => new
+                {
+                    SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AccionDePersonalId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AccionesDePersonalPorSolicitud", x => new { x.SolicitudId, x.AccionDePersonalId });
+                    table.ForeignKey(
+                        name: "FK_AccionesDePersonalPorSolicitud_AccionesDePersonal_AccionDePersonalId",
+                        column: x => x.AccionDePersonalId,
+                        principalTable: "AccionesDePersonal",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AccionesDePersonalPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
+                        principalTable: "SolicitudesAscenso",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -386,6 +475,40 @@ namespace SIGAD.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "TesisPorSolicitud",
+                columns: table => new
+                {
+                    SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TesisDirigidaId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TesisPorSolicitud", x => new { x.SolicitudId, x.TesisDirigidaId });
+                    table.ForeignKey(
+                        name: "FK_TesisPorSolicitud_SolicitudesAscenso_SolicitudId",
+                        column: x => x.SolicitudId,
+                        principalTable: "SolicitudesAscenso",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TesisPorSolicitud_TesisDirigidas_TesisDirigidaId",
+                        column: x => x.TesisDirigidaId,
+                        principalTable: "TesisDirigidas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AccionesDePersonal_DocenteCedula",
+                table: "AccionesDePersonal",
+                column: "DocenteCedula");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AccionesDePersonalPorSolicitud_AccionDePersonalId",
+                table: "AccionesDePersonalPorSolicitud",
+                column: "AccionDePersonalId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_Articulos_DocenteCedula",
                 table: "Articulos",
@@ -482,11 +605,24 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "IX_SolicitudesAscenso_RangoSolicitadoId",
                 table: "SolicitudesAscenso",
                 column: "RangoSolicitadoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TesisDirigidas_DocenteCedula",
+                table: "TesisDirigidas",
+                column: "DocenteCedula");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TesisPorSolicitud_TesisDirigidaId",
+                table: "TesisPorSolicitud",
+                column: "TesisDirigidaId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AccionesDePersonalPorSolicitud");
+
             migrationBuilder.DropTable(
                 name: "ArticulosPorSolicitud");
 
@@ -506,6 +642,12 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "InvestigacionesPorSolicitud");
 
             migrationBuilder.DropTable(
+                name: "TesisPorSolicitud");
+
+            migrationBuilder.DropTable(
+                name: "AccionesDePersonal");
+
+            migrationBuilder.DropTable(
                 name: "Articulos");
 
             migrationBuilder.DropTable(
@@ -522,6 +664,9 @@ namespace SIGAD.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "SolicitudesAscenso");
+
+            migrationBuilder.DropTable(
+                name: "TesisDirigidas");
 
             migrationBuilder.DropTable(
                 name: "Organizaciones");
