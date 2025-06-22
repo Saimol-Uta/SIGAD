@@ -13,18 +13,24 @@ namespace SIGAD.Domain.Entities
         public DateTime? FechaResolucion { get; set; }
         public EstadoSolicitud Estado { get; set; }
         public string? ObservacionesAdmin { get; set; }
+        public DateTime? FechaNotificacion { get; set; }
+        public string? AceptacionODemanda { get; set; }
+        public DateTime? FechaResolucionApelacion { get; set; }
+
 
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = null!;
         public virtual Rango? RangoActual { get; set; }
-        public virtual Rango RangoSolicitado { get; set; } = null!;
-
-        // Navegación a las tablas de vínculo
+        public virtual Rango RangoSolicitado { get; set; } = null!;        // Navegación a las tablas de vínculo
         public virtual ICollection<ArticulosPorSolicitud> ArticulosPorSolicitud { get; set; } = new List<ArticulosPorSolicitud>();
         public virtual ICollection<CursosPorSolicitud> CursosPorSolicitud { get; set; } = new List<CursosPorSolicitud>();
         public virtual ICollection<InvestigacionesPorSolicitud> InvestigacionesPorSolicitud { get; set; } = new List<InvestigacionesPorSolicitud>();
         public virtual ICollection<ExperienciaPorSolicitud> ExperienciaPorSolicitud { get; set; } = new List<ExperienciaPorSolicitud>();
         public virtual ICollection<EvaluacionesPorSolicitud> EvaluacionesPorSolicitud { get; set; } = new List<EvaluacionesPorSolicitud>();
+        public virtual ICollection<AccionesDePersonalPorSolicitud> AccionesDePersonalPorSolicitud { get; set; } = new List<AccionesDePersonalPorSolicitud>();
+
+        public ICollection<TesisPorSolicitud> TesisPorSolicitud { get; set; } = new List<TesisPorSolicitud>();
+
 
 
         public void Aprobar(string? observaciones)
@@ -40,7 +46,7 @@ namespace SIGAD.Domain.Entities
             this.ObservacionesAdmin = observaciones;
         }
 
-        private SolicitudAscenso() { }
+        public SolicitudAscenso() { }
 
 
         public SolicitudAscenso(string docenteCedula, int rangoSolicitadoId, int? rangoActualId)
@@ -53,12 +59,11 @@ namespace SIGAD.Domain.Entities
             Estado = EstadoSolicitud.Enviada; // O 'Borrador', según tu lógica inicial
             FechaEnvio = DateTime.UtcNow;
         }
-
         public SolicitudAscenso(
         string docenteCedula,
         int rangoActualId,
         int rangoSolicitadoId,
-        string observacionesAdmin = null)
+        string? observacionesAdmin = null)
         {
             Id = Guid.NewGuid();
             DocenteCedula = docenteCedula;
@@ -70,7 +75,6 @@ namespace SIGAD.Domain.Entities
             Estado = EstadoSolicitud.Borrador;
             ObservacionesAdmin = observacionesAdmin;
         }
-
         public SolicitudAscenso(
     string docenteCedula,
     int? rangoActualId,
@@ -79,7 +83,7 @@ namespace SIGAD.Domain.Entities
     DateTime? fechaEnvio,
     DateTime? fechaResolucion,
     SIGAD.Domain.Enums.EstadoSolicitud estado,
-    string observacionesAdmin = null)
+    string? observacionesAdmin = null)
         {
             Id = Guid.NewGuid();
             DocenteCedula = docenteCedula;

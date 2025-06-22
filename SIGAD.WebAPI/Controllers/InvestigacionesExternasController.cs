@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.Interfaces;
 using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
+using SIGAD.Domain.Enums;
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -50,7 +52,10 @@ namespace SIGAD.WebAPI.Controllers
                         MesesDeInvestigacion = dto.MesesDeInvestigacion,
                         InformeRuta = dto.InformeRuta,
                         ContenidoHash = dto.ContenidoHash,
-                        DocenteCedula = docente.Cedula
+                        DocenteCedula = docente.Cedula,
+                        TipoProyecto = Enum.Parse<TipoInvestigacion>(dto.TipoProyecto),
+                        MesesDeParticipacion = dto.MesesDeParticipacion,
+                        UnidadVerificadora = dto.UnidadVerificadora
                     };
 
                     await _unitOfWork.Investigaciones.AgregarAsync(nueva);

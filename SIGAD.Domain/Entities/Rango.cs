@@ -18,6 +18,7 @@ namespace SIGAD.Domain.Entities
         public int AniosExperienciaRequeridos { get; set; }
         public int HorasCursoRequeridas { get; set; }
         public int MesesInvestigacionRequeridos { get; set; }
+        public int TesisDirigidasRequeridas { get; set; }
         public decimal PuntajePromedioEvaluacionesRequerido { get; set; } // Mapea a: DECIMAL(5,2)
 
         // Propiedades de navegación
@@ -26,7 +27,7 @@ namespace SIGAD.Domain.Entities
         // Un Rango puede ser el RangoSolicitado en muchas solicitudes
         public virtual ICollection<SolicitudAscenso> SolicitudesComoRangoSolicitado { get; set; } = new List<SolicitudAscenso>();
 
-        public void ActualizarRequisitos(string nombre, int articulos, int anios, int horas, int meses, decimal puntaje)
+        public void ActualizarRequisitos(string nombre, int articulos, int anios, int horas, int meses, decimal puntaje, int tesis)
         {
             if (string.IsNullOrWhiteSpace(nombre))
                 throw new ArgumentException("El nombre del rango es requerido.", nameof(nombre));
@@ -37,6 +38,7 @@ namespace SIGAD.Domain.Entities
             HorasCursoRequeridas = horas;
             MesesInvestigacionRequeridos = meses;
             PuntajePromedioEvaluacionesRequerido = puntaje;
+            TesisDirigidasRequeridas = tesis; // NUEVO
         }
     }
 }

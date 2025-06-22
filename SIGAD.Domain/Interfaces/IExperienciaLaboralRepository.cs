@@ -16,5 +16,12 @@ namespace SIGAD.Domain.Interfaces
         Task RemoveFromSolicitudAsync(Guid solicitudId, int experienciaId);
         Task<bool> ExistePorHashAsync(string hash);
         Task AgregarAsync(ExperienciaLaboral experiencia);
+
+        // Métodos específicos del reglamento:
+        Task<int> GetAniosExperienciaDocenteAsync(string docenteCedula);
+        Task<int> GetAniosExperienciaEnUTAAsync(string docenteCedula);
+        Task<bool> CumpleRequisitoExperienciaParaRangoAsync(string docenteCedula, int rangoSolicitadoId);
+        Task<IEnumerable<ExperienciaLaboral>> GetExperienciaAcademicaAsync(string docenteCedula);
+        Task<DateTime?> GetFechaInicioEnUTAAsync(string docenteCedula);
     }
-} 
+}

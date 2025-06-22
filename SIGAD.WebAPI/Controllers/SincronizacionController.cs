@@ -3,8 +3,6 @@ using SIGAD.Application.Common;
 using SIGAD.Application.DTOs.IntegracionesExternas;
 using SIGAD.Application.Services;
 
-using System.Threading.Tasks;
-
 namespace SIGAD.WebAPI.Controllers
 {
     [ApiController]
@@ -24,6 +22,5 @@ namespace SIGAD.WebAPI.Controllers
             var historial = await _coordinador.SincronizarDesdeFuenteAsync(cedula, fuente == "SUT" ? Fuente.SUT : Fuente.SGTH);
             return Ok(historial);
         }
-
     }
 }

@@ -16,5 +16,7 @@ namespace SIGAD.Application.DTOs
         public List<int> InvestigacionesId { get; set; } = new();
         public List<int> ExperienciasId { get; set; } = new();
         public List<int> EvaluacionesId { get; set; } = new();
+        public List<int> TesisId { get; set; } = new();
+
     }
 }

@@ -6,7 +6,7 @@ namespace SIGAD.Infrastructure.Persistence
 {
     public class SigadDbContext : DbContext
     {
-        public SigadDbContext(DbContextOptions<SigadDbContext> options) : base(options)  { }
+        public SigadDbContext(DbContextOptions<SigadDbContext> options) : base(options) { }
 
         // DbSets para las entidades
         public DbSet<Docente> Docentes { get; set; }
@@ -24,6 +24,11 @@ namespace SIGAD.Infrastructure.Persistence
         public DbSet<CursosPorSolicitud> CursosPorSolicitud { get; set; }
         public DbSet<ExperienciaPorSolicitud> ExperienciasPorSolicitud { get; set; }
         public DbSet<InvestigacionesPorSolicitud> InvestigacionesPorSolicitud { get; set; }
+        public DbSet<TesisDirigida> TesisDirigidas { get; set; } = default!;
+        public DbSet<TesisPorSolicitud> TesisPorSolicitud { get; set; } = default!;
+        public DbSet<AccionesDePersonal> AccionesDePersonal { get; set; } = default!;
+        public DbSet<AccionesDePersonalPorSolicitud> AccionesDePersonalPorSolicitud { get; set; } = default!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +43,13 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.Nombre2).HasMaxLength(50);
                 entity.Property(e => e.Apellido1).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.Apellido2).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.RangoActualId); // ⚠️ AGREGAR ESTA LÍNEA
+
+                // Relación con RangoActual
+                entity.HasOne(e => e.RangoActual)
+                    .WithMany()
+                    .HasForeignKey(e => e.RangoActualId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configuración de la entidad Cuenta
@@ -48,6 +60,8 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ClaveHash).HasMaxLength(255).IsRequired();
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.Rol).HasConversion<string>().IsRequired();
+                entity.Property(e => e.CodigoRecuperacion).HasMaxLength(10);
+                entity.Property(e => e.CodigoExpiracion);
 
                 entity.HasIndex(e => e.DocenteCedula).IsUnique();
 
@@ -75,9 +89,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany(d => d.Evaluaciones)
                     .HasForeignKey(e => e.DocenteCedula)
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // Configuración de la entidad SolicitudAscenso
+            });            // Configuración de la entidad SolicitudAscenso
             modelBuilder.Entity<SolicitudAscenso>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -88,6 +100,7 @@ namespace SIGAD.Infrastructure.Persistence
                      .HasConversion<string>() // Esto convierte el enum a string en la base de datos
                         .HasMaxLength(20)
                         .IsRequired();
+                entity.Property(e => e.AceptacionODemanda).HasMaxLength(50);
 
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Solicitudes)
@@ -106,7 +119,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .HasForeignKey(e => e.RangoSolicitadoId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasCheckConstraint("CK_SolicitudesAscenso_Estado", 
+                entity.HasCheckConstraint("CK_SolicitudesAscenso_Estado",
                     "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
             });
 
@@ -136,12 +149,11 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.AniosExperienciaRequeridos).IsRequired();
                 entity.Property(e => e.HorasCursoRequeridas).IsRequired();
                 entity.Property(e => e.MesesInvestigacionRequeridos).IsRequired();
+                entity.Property(e => e.TesisDirigidasRequeridas).IsRequired(); // ⚠️ ESTA LÍNEA FALTA
                 entity.Property(e => e.PuntajePromedioEvaluacionesRequerido).HasColumnType("decimal(5,2)").IsRequired();
 
                 entity.HasIndex(e => e.Nombre).IsUnique();
-            });
-
-            // Configuración de la entidad Articulo
+            });            // Configuración de la entidad Articulo
             modelBuilder.Entity<Articulo>(entity =>
             {
                 entity.HasKey(e => e.DOI);
@@ -152,6 +164,15 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ArchivoRuta).IsRequired();
                 entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
+                entity.Property(e => e.EsVerificado);
+                entity.Property(e => e.FechaVerificacion);
+                entity.Property(e => e.ObservacionesVerificacion).HasMaxLength(500);
+                entity.Property(e => e.EsIndexado);
+                entity.Property(e => e.FechaCreacion);
+
+                // Propiedad de compatibilidad (no mapear directamente)
+                entity.Ignore(e => e.Verificado);
 
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Articulos)
@@ -166,9 +187,7 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Nombre).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.TipoOrganizacion).HasMaxLength(50).IsRequired();
-            });
-
-            // Configuración de la entidad Curso
+            });            // Configuración de la entidad Curso
             modelBuilder.Entity<Curso>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -177,8 +196,9 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.NumeroHoras).IsRequired();
                 entity.Property(e => e.FechaFinalizacion).IsRequired();
                 entity.Property(e => e.CertificadoRuta).IsRequired();
-                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
-                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.TipoCurso).HasConversion<int>();
+                entity.Property(e => e.ImpartidoPorDocente);
 
                 entity.HasOne(e => e.Organizacion)
                     .WithMany(o => o.Cursos)
@@ -212,9 +232,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany(d => d.ExperienciasLaborales)
                     .HasForeignKey(e => e.DocenteCedula)
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            // Configuración de la entidad Investigacion
+            });            // Configuración de la entidad Investigacion
             modelBuilder.Entity<Investigacion>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -225,8 +243,10 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.RolEnInvestigacion).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.MesesDeInvestigacion).IsRequired();
                 entity.Property(e => e.InformeRuta).IsRequired();
-                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
-                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.TipoProyecto).HasConversion<int>();
+                entity.Property(e => e.MesesDeParticipacion);
+                entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
 
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Investigaciones)
@@ -293,7 +313,76 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany()
                     .HasForeignKey(e => e.InvestigacionId)
                     .OnDelete(DeleteBehavior.Cascade);
+            }); modelBuilder.Entity<TesisPorSolicitud>(entity =>
+            {
+                entity.HasKey(e => new { e.SolicitudId, e.TesisDirigidaId });
+
+                entity.HasOne(e => e.Solicitud)
+                    .WithMany(s => s.TesisPorSolicitud)
+                    .HasForeignKey(e => e.SolicitudId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.TesisDirigida)
+                    .WithMany(t => t.TesisPorSolicitud)
+                    .HasForeignKey(e => e.TesisDirigidaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configuración de la entidad AccionesDePersonal
+            modelBuilder.Entity<AccionesDePersonal>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.Cargo).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.TipoCargo).HasConversion<int>();
+                entity.Property(e => e.FechaInicio).IsRequired();
+                entity.Property(e => e.FechaFin);
+                entity.Property(e => e.DocumentoRuta);
+                entity.Property(e => e.CertificadoRuta);
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
+
+                entity.HasOne(e => e.Docente)
+                    .WithMany(d => d.AccionesDePersonal)
+                    .HasForeignKey(e => e.DocenteCedula)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configuración de la tabla intermedia AccionesDePersonalPorSolicitud
+            modelBuilder.Entity<AccionesDePersonalPorSolicitud>(entity =>
+            {
+                entity.HasKey(e => new { e.SolicitudId, e.AccionDePersonalId });
+
+                entity.HasOne(e => e.SolicitudAscenso)
+                    .WithMany(s => s.AccionesDePersonalPorSolicitud)
+                    .HasForeignKey(e => e.SolicitudId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.AccionDePersonal)
+                    .WithMany(a => a.AccionesDePersonalPorSolicitud)
+                    .HasForeignKey(e => e.AccionDePersonalId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Agregar esta configuración en OnModelCreating
+            modelBuilder.Entity<TesisDirigida>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.NivelAcademico).HasConversion<int>();
+                entity.Property(e => e.TituloTesis).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Estado).HasConversion<int>();
+                entity.Property(e => e.FechaInicio).IsRequired();
+                entity.Property(e => e.FechaFin);
+                entity.Property(e => e.Institucion).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.CertificacionRuta).IsRequired();
+                entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired();
+
+                entity.HasOne(e => e.Docente)
+                    .WithMany(d => d.TesisDirigidas)
+                    .HasForeignKey(e => e.DocenteCedula)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }
-} 
+}
