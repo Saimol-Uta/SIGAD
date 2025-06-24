@@ -12,7 +12,7 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    [Migration("20250622162626_InitialSchema")]
+    [Migration("20250622202744_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
