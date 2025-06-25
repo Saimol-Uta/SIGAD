@@ -105,6 +105,8 @@ builder.Services.AddScoped<ValidacionRequisitosService>();
 builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
+builder.Services.AddScoped<ReporteBackendService>();
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();
 
