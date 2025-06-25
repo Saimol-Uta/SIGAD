@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Enums;
+using SIGAD.Application.Interfaces;
 
 namespace SIGAD.Infrastructure.Persistence
 {
-    public class SigadDbContext : DbContext
+    public class SigadDbContext : DbContext, IApplicationDbContext
     {
         public SigadDbContext(DbContextOptions<SigadDbContext> options) : base(options) { }
 
