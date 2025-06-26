@@ -1,0 +1,707 @@
+@page "/agregar-tesis"
+@using Microsoft.AspNetCore.Authorization
+@using System.IO
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISolicitudService SolicitudService
+
+<PageTitle>Agregar Tesis Dirigida - SIGAD</PageTitle>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .back-btn,
+    .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn {
+        background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    .main-content {
+        display: flex;
+        justify-content: center;
+        padding: 2rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .form-container {
+        background: white;
+        padding: 2rem;
+        max-width: 800px;
+        width: 100%;
+        border: 1px solid #0a1d44;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .form-container h1 {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .form-container .subtitle {
+        font-size: 1.1rem;
+        color: #666;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: bold;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0a1d44;
+        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .file-upload {
+        border: 2px dashed #ddd;
+        border-radius: 4px;
+        padding: 2rem;
+        text-align: center;
+        transition: border-color 0.3s ease;
+        cursor: pointer;
+    }
+
+    .file-upload:hover {
+        border-color: #0a1d44;
+    }
+
+    .file-upload.has-file {
+        border-color: #28a745;
+        background-color: #f8fff9;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-primary {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #081527;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+
+    .triangle-bg {
+        position: fixed;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0a1d44;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .required {
+        color: #dc3545;
+    }
+
+    .form-help {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    .file-upload {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+    }
+
+    .file-upload:hover {
+        border-color: #0a1d44;
+        background-color: #e9ecef;
+    }
+
+    .file-upload.has-file {
+        border-color: #28a745;
+        background-color: #d4edda;
+    }
+
+    .file-upload p {
+        margin: 0.5rem 0;
+        color: #666;
+    }
+
+    .file-upload.has-file p {
+        color: #155724;
+    }
+</style>
+
+<body>
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
+        </div>
+        <div class="user-profile">
+            <a href="/gestion-documentos" class="back-btn">← Volver a Documentos</a>
+            <span>@nombreUsuario</span>
+            <img src="@urlFotoPerfil" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="form-container">
+            <h1>📘 Agregar Tesis Dirigida</h1>
+            <p class="subtitle">Registre una nueva tesis dirigida o co-dirigida</p>
+
+            @if (!string.IsNullOrEmpty(mensajeOperacion))
+            {
+                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
+                    @mensajeOperacion
+                </div>
+            }
+
+            <EditForm Model="@nuevaTesis" OnValidSubmit="@GuardarTesis">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label class="form-label">Título de la Tesis <span class="required">*</span></label>
+                    <InputText @bind-Value="nuevaTesis.TituloTesis" class="form-control"
+                        placeholder="Ingrese el título de la tesis" />
+                    <ValidationMessage For="@(() => nuevaTesis.TituloTesis)" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nivel Académico <span class="required">*</span></label>
+                        <InputSelect @bind-Value="nuevaTesis.NivelAcademico" class="form-control">
+                            <option value="">Seleccione el nivel</option>
+                            <option value="Pregrado">Pregrado</option>
+                            <option value="Especializacion">Especialización</option>
+                            <option value="Maestria">Maestría</option>
+                            <option value="Doctorado">Doctorado</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => nuevaTesis.NivelAcademico)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Estado <span class="required">*</span></label>
+                        <InputSelect @bind-Value="nuevaTesis.Estado" class="form-control">
+                            <option value="">Seleccione el estado</option>
+                            <option value="EnProceso">En Proceso</option>
+                            <option value="Culminada">Culminada</option>
+                            <option value="Suspendida">Suspendida</option>
+                            <option value="AprobadaPendienteDefensa">Aprobada - Pendiente Defensa</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => nuevaTesis.Estado)" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Institución <span class="required">*</span></label>
+                    <InputText @bind-Value="nuevaTesis.Institucion" class="form-control"
+                        placeholder="Nombre de la institución" />
+                    <ValidationMessage For="@(() => nuevaTesis.Institucion)" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Inicio <span class="required">*</span></label>
+                        <InputDate @bind-Value="nuevaTesis.FechaInicio" class="form-control" />
+                        <ValidationMessage For="@(() => nuevaTesis.FechaInicio)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Finalización</label>
+                        <InputDate @bind-Value="nuevaTesis.FechaFin" class="form-control" />
+                        <div class="form-help">Solo completar si la tesis ya fue culminada</div>
+                        <ValidationMessage For="@(() => nuevaTesis.FechaFin)" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Certificación/Documento</label>
+                    <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx" />
+                    @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                    {
+                        <p>Archivo: @archivoSeleccionado</p>
+                    }
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancelar">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@guardandoTesis">
+                        @if (guardandoTesis)
+                        {
+                            <span class="loading-spinner"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <span>💾 Guardar Tesis</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>
+
+@code {
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+    private string urlFotoPerfil = "/images/IconoUser.png";
+
+    // Variables del formulario
+    private CreateTesisDirigidaDto nuevaTesis = new();
+    private bool guardandoTesis = false;
+    private bool operacionExitosa = false;
+    private string? mensajeOperacion;
+
+    // Variables para manejo de archivos
+    private IBrowserFile? archivoFormulario;
+    private string archivoSeleccionado = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionUsuario();
+        nuevaTesis.FechaInicio = DateTime.Today;
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                        nuevaTesis.DocenteCedula = result.Data.Cedula ?? "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = "Error al cargar información del usuario: " + ex.Message;
+            operacionExitosa = false;
+        }
+    }
+
+    private async Task GuardarTesis()
+    {
+        if (guardandoTesis) return;
+
+        guardandoTesis = true;
+        mensajeOperacion = null;
+
+        try
+        {
+            // Validar campos requeridos
+            if (string.IsNullOrWhiteSpace(nuevaTesis.TituloTesis))
+            {
+                mensajeOperacion = "El título de la tesis es requerido.";
+                operacionExitosa = false;
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(nuevaTesis.NivelAcademico))
+            {
+                mensajeOperacion = "El nivel académico es requerido.";
+                operacionExitosa = false;
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(nuevaTesis.Estado))
+            {
+                mensajeOperacion = "El estado es requerido.";
+                operacionExitosa = false;
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(nuevaTesis.Institucion))
+            {
+                mensajeOperacion = "La institución es requerida.";
+                operacionExitosa = false;
+                return;
+            }
+
+            // Validar fechas
+            if (nuevaTesis.FechaFin.HasValue && nuevaTesis.FechaFin.Value < nuevaTesis.FechaInicio)
+            {
+                mensajeOperacion = "La fecha de finalización no puede ser anterior a la fecha de inicio.";
+                operacionExitosa = false;
+                return;
+            }
+
+            // Subir archivo si existe (separadamente)
+            if (archivoFormulario != null)
+            {
+                var rutaArchivo = await SubirArchivo(archivoFormulario);
+                if (!string.IsNullOrEmpty(rutaArchivo))
+                {
+                    nuevaTesis.CertificacionRuta = rutaArchivo;
+                }
+            }
+
+            // Enviar al API como JSON
+            var response = await Http.PostAsJsonAsync("api/TesisDirigidas", nuevaTesis);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<TesisDirigidaDto>();
+
+                mensajeOperacion = "✅ Tesis dirigida guardada exitosamente.";
+                operacionExitosa = true;
+
+                // Redirigir después de 2 segundos
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/gestion-documentos");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                mensajeOperacion = $"❌ Error al guardar la tesis: {errorContent}";
+                operacionExitosa = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"❌ Error al guardar la tesis: {ex.Message}";
+            operacionExitosa = false;
+        }
+        finally
+        {
+            guardandoTesis = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        archivoFormulario = e.File;
+        archivoSeleccionado = e.File.Name;
+
+        // Validar tamaño del archivo (25MB)
+        if (archivoFormulario.Size > 25 * 1024 * 1024)
+        {
+            mensajeOperacion = "El archivo es demasiado grande. Máximo permitido: 25MB";
+            archivoFormulario = null;
+            archivoSeleccionado = "";
+            operacionExitosa = false;
+            return;
+        }
+
+        // Validar extensión
+        var extension = Path.GetExtension(archivoFormulario.Name).ToLower();
+        var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx" };
+
+        if (!extensionesPermitidas.Contains(extension))
+        {
+            mensajeOperacion = "Formato de archivo no permitido. Use: PDF, DOC o DOCX";
+            archivoFormulario = null;
+            archivoSeleccionado = "";
+            operacionExitosa = false;
+            return;
+        }
+
+        mensajeOperacion = null;
+        StateHasChanged();
+    }
+
+    private async Task<string?> SubirArchivo(IBrowserFile archivo)
+    {
+        try
+        {
+            const long maxFileSize = 25 * 1024 * 1024; // 25MB
+
+            if (archivo.Size > maxFileSize)
+            {
+                mensajeOperacion = "El archivo es muy grande. Tamaño máximo: 25MB";
+                operacionExitosa = false;
+                return null;
+            }
+
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(archivo.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivo.ContentType);
+
+            content.Add(fileContent, "file", archivo.Name);
+
+            var response = await Http.PostAsync("api/upload", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsStringAsync();
+                return result.Trim('"'); // Remover comillas si las hay
+            }
+            else
+            {
+                mensajeOperacion = "Error al subir el archivo.";
+                operacionExitosa = false;
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeOperacion = $"Error al subir archivo: {ex.Message}";
+            operacionExitosa = false;
+            return null;
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/gestion-documentos");
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    // Modelos para las respuestas de API
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Rol { get; set; }
+        public string? Cedula { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Nombre2 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Apellido2 { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
+    }
+
+    public class CreateTesisDirigidaDto
+    {
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string NivelAcademico { get; set; } = string.Empty;
+        public string TituloTesis { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string Institucion { get; set; } = string.Empty;
+        public string CertificacionRuta { get; set; } = string.Empty;
+    }
+
+    public class TesisDirigidaDto
+    {
+        public int Id { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string NivelAcademico { get; set; } = string.Empty;
+        public string TituloTesis { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string Institucion { get; set; } = string.Empty;
+        public string CertificacionRuta { get; set; } = string.Empty;
+    }
+}
