@@ -97,5 +97,122 @@ namespace SIGAD.Infrastructure.Repositories
                 _context.ArticulosPorSolicitud.Remove(articuloPorSolicitud);
             }
         }
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _context.Articulos.AnyAsync(a => a.ContenidoHash == hash);
+        }
+
+        public async Task AgregarAsync(Articulo articulo)
+        {
+            await _context.Articulos.AddAsync(articulo);
+        }
+
+        // Métodos específicos para el reglamento de promoción
+        public async Task<int> GetCantidadArticulosVerificadosAsync(string docenteCedula)
+        {
+            return await _context.Articulos
+                .Where(a => a.DocenteCedula == docenteCedula && a.EsVerificado)
+                .CountAsync();
+        }
+
+        public async Task<IEnumerable<Articulo>> GetArticulosVerificadosAsync(string docenteCedula)
+        {
+            return await _context.Articulos
+                .Include(a => a.Docente)
+                .Where(a => a.DocenteCedula == docenteCedula && a.EsVerificado)
+                .OrderByDescending(a => a.AnioPublicacion)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Articulo>> GetArticulosPendientesVerificacionAsync(string docenteCedula)
+        {
+            return await _context.Articulos
+                .Include(a => a.Docente)
+                .Where(a => a.DocenteCedula == docenteCedula && !a.EsVerificado && string.IsNullOrEmpty(a.ObservacionesVerificacion))
+                .OrderByDescending(a => a.AnioPublicacion)
+                .ToListAsync();
+        }
+
+        // Para validación de obras relevantes según reglamento
+        public async Task<bool> CumpleRequisitoArticulosParaRangoAsync(string docenteCedula, int rangoSolicitadoId)
+        {
+            // TODO: Implementar lógica específica según reglamento UTA
+            // Por ahora, validación básica de cantidad de artículos verificados
+            var cantidadArticulos = await GetCantidadArticulosVerificadosAsync(docenteCedula);
+
+            // Lógica básica: más artículos requeridos para rangos superiores
+            return rangoSolicitadoId switch
+            {
+                1 => cantidadArticulos >= 2, // Profesor Principal
+                2 => cantidadArticulos >= 1, // Profesor Agregado
+                3 => cantidadArticulos >= 0, // Profesor Auxiliar
+                _ => false
+            };
+        }
+
+        public async Task<IEnumerable<Articulo>> GetArticulosByPeriodoAsync(string docenteCedula, DateTime fechaInicio, DateTime fechaFin)
+        {
+            return await _context.Articulos
+                .Include(a => a.Docente)
+                .Where(a => a.DocenteCedula == docenteCedula &&
+                           a.AnioPublicacion >= fechaInicio.Year &&
+                           a.AnioPublicacion <= fechaFin.Year)
+                .OrderByDescending(a => a.AnioPublicacion)
+                .ToListAsync();
+        }
+
+        // Para verificación institucional (DIDE, DINNOVA, COMITÉ EDITORIAL)
+        public async Task VerificarArticuloAsync(string doi, string unidadVerificadora)
+        {
+            var articulo = await _context.Articulos.FindAsync(doi);
+            if (articulo != null)
+            {
+                articulo.EsVerificado = true;
+                articulo.UnidadVerificadora = unidadVerificadora;
+                articulo.FechaVerificacion = DateTime.UtcNow;
+                articulo.ObservacionesVerificacion = null; // Limpiar observaciones previas
+                _context.Articulos.Update(articulo);
+            }
+        }
+
+        public async Task RechazarVerificacionAsync(string doi, string observaciones)
+        {
+            var articulo = await _context.Articulos.FindAsync(doi);
+            if (articulo != null)
+            {
+                articulo.EsVerificado = false;
+                articulo.ObservacionesVerificacion = observaciones;
+                articulo.FechaVerificacion = DateTime.UtcNow;
+                _context.Articulos.Update(articulo);
+            }
+        }
+
+        public async Task<IEnumerable<Articulo>> GetArticulosPorVerificarAsync()
+        {
+            return await _context.Articulos
+                .Include(a => a.Docente)
+                .Where(a => !a.EsVerificado && string.IsNullOrEmpty(a.ObservacionesVerificacion))
+                .OrderBy(a => a.FechaCreacion)
+                .ToListAsync();
+        }
+
+        // Para indexación y relevancia
+        public async Task<IEnumerable<Articulo>> GetArticulosIndexadosAsync(string docenteCedula)
+        {
+            return await _context.Articulos
+                .Include(a => a.Docente)
+                .Where(a => a.DocenteCedula == docenteCedula && a.EsIndexado)
+                .OrderByDescending(a => a.AnioPublicacion)
+                .ToListAsync();
+        }
+        public async Task<bool> EsArticuloRelevante(string doi)
+        {
+            var articulo = await _context.Articulos.FindAsync(doi);
+            if (articulo == null) return false;
+
+            // TODO: Implementar lógica específica de relevancia según reglamento UTA
+            // Por ahora, consideramos relevante si está indexado y verificado
+            return articulo.EsIndexado && articulo.EsVerificado;
+        }
     }
 }

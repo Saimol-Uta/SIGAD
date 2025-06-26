@@ -17,9 +17,7 @@ namespace SIGAD.Domain.Entities
         public string NombreCompleto => $"{Nombre1} {Nombre2} {Apellido1} {Apellido2}".Replace("  ", " ").Trim();
         public int? RangoActualId { get; set; } // Clave foránea al rango actual
         public virtual Rango? RangoActual { get; set; } // Propiedad de navegación
-        // ---------------------------------------------
-
-        // Propiedades de navegación para relaciones
+        // ---------------------------------------------        // Propiedades de navegación para relaciones
         public virtual Cuenta? Cuenta { get; set; } // Un docente tiene una cuenta
         public virtual ICollection<SolicitudAscenso> Solicitudes { get; set; } = new List<SolicitudAscenso>();
         public virtual ICollection<Articulo> Articulos { get; set; } = new List<Articulo>();
@@ -27,5 +25,7 @@ namespace SIGAD.Domain.Entities
         public virtual ICollection<Curso> Cursos { get; set; } = new List<Curso>();
         public virtual ICollection<EvaluacionDocente> Evaluaciones { get; set; } = new List<EvaluacionDocente>();
         public virtual ICollection<Investigacion> Investigaciones { get; set; } = new List<Investigacion>();
+        public virtual ICollection<TesisDirigida> TesisDirigidas { get; set; } = new List<TesisDirigida>();
+        public virtual ICollection<AccionesDePersonal> AccionesDePersonal { get; set; } = new List<AccionesDePersonal>();
     }
 }

@@ -1,11 +1,9 @@
-﻿/*
+﻿// Servicio desde cero considerando TODOS los documentos y requisitos
 using Microsoft.Extensions.Logging;
 using SIGAD.Application.DTOs.Validacion;
-using SIGAD.Domain.Entities;
 using SIGAD.Domain.Enums;
 using SIGAD.Domain.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,97 +14,99 @@ namespace SIGAD.Application.Services
         private readonly ILogger<ValidacionRequisitosService> _logger;
         private readonly IRangoRepository _rangoRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
-        private readonly IEvaluacionDocenteRepository _evaluacionRepository;
         private readonly IArticuloRepository _articuloRepository;
-        private readonly IInvestigacionRepository _investigacionRepository;
         private readonly ICursoRepository _cursoRepository;
+        private readonly IInvestigacionRepository _investigacionRepository;
+        private readonly IEvaluacionDocenteRepository _evaluacionRepository;
+        private readonly ITesisDirigidaRepository _tesisRepository;
 
         public ValidacionRequisitosService(
             ILogger<ValidacionRequisitosService> logger,
             IRangoRepository rangoRepository,
             ISolicitudAscensoRepository solicitudRepository,
-            IEvaluacionDocenteRepository evaluacionRepository,
             IArticuloRepository articuloRepository,
+            ICursoRepository cursoRepository,
             IInvestigacionRepository investigacionRepository,
-            ICursoRepository cursoRepository)
+            IEvaluacionDocenteRepository evaluacionRepository,
+            ITesisDirigidaRepository tesisRepository)
         {
             _logger = logger;
             _rangoRepository = rangoRepository;
             _solicitudRepository = solicitudRepository;
-            _evaluacionRepository = evaluacionRepository;
             _articuloRepository = articuloRepository;
-            _investigacionRepository = investigacionRepository;
             _cursoRepository = cursoRepository;
+            _investigacionRepository = investigacionRepository;
+            _evaluacionRepository = evaluacionRepository;
+            _tesisRepository = tesisRepository;
         }
 
         public async Task<ProgresoRequisitosDto> VerificarProgresoAsync(string docenteCedula, int rangoId)
         {
-            _logger.LogInformation("Iniciando verificación de progreso para docente {Cedula} hacia rango {RangoId}", docenteCedula, rangoId);
-
             var resultado = new ProgresoRequisitosDto
             {
-                Antiguedad = new RequisitoProgresoDto(),
-                PromedioEvaluacion = new RequisitoProgresoDto(),
-                Articulos = new RequisitoProgresoDto(),
-                Investigaciones = new RequisitoProgresoDto(),
-                Cursos = new RequisitoProgresoDto()
+                Antiguedad = new(),
+                PromedioEvaluacion = new(),
+                Articulos = new(),
+                Investigaciones = new(),
+                Cursos = new(),
+                Tesis = new()
             };
 
-            var rangoRequisitos = await _rangoRepository.GetByIdAsync(rangoId);
-            if (rangoRequisitos == null)
-            {
-                throw new KeyNotFoundException($"Rango con ID {rangoId} no encontrado.");
-            }
+            var rango = await _rangoRepository.GetByIdAsync(rangoId);
+            if (rango == null) throw new Exception("Rango no encontrado");
 
-            var todasLasSolicitudes = await _solicitudRepository.GetAllAsync();
-            var ultimaSolicitudAprobada = todasLasSolicitudes
+            var solicitudes = await _solicitudRepository.GetAllAsync();
+            var ultimaAprobada = solicitudes
                 .Where(s => s.DocenteCedula == docenteCedula && s.Estado == EstadoSolicitud.Aprobada)
                 .OrderByDescending(s => s.FechaResolucion)
                 .FirstOrDefault();
 
-            DateTime fechaInicioPeriodo = ultimaSolicitudAprobada?.FechaResolucion?.Date ?? DateTime.MinValue;
+            var fechaInicio = ultimaAprobada?.FechaResolucion?.Date ?? DateTime.MinValue;
 
-            // Antigüedad (Años en el rango actual)
-            resultado.Antiguedad.Requerido = rangoRequisitos.AniosExperienciaRequeridos;
-            resultado.Antiguedad.Actual = fechaInicioPeriodo == DateTime.MinValue ? 0 : (decimal)(DateTime.Now - fechaInicioPeriodo).TotalDays / 365.25m;
-            resultado.Antiguedad.Mensaje = $"Antigüedad: {resultado.Antiguedad.Actual:F1} de {resultado.Antiguedad.Requerido} años requeridos.";
+            // Antigüedad
+            resultado.Antiguedad.Requerido = rango.AniosExperienciaRequeridos;
+            resultado.Antiguedad.Actual = fechaInicio == DateTime.MinValue ? 0 : (decimal)(DateTime.Now - fechaInicio).TotalDays / 365.25m;
+            resultado.Antiguedad.Mensaje = $"Antigüedad: {resultado.Antiguedad.Actual:F1} de {resultado.Antiguedad.Requerido} años.";
 
-            // Evaluaciones (Promedio de puntaje) - USANDO EL MÉTODO CORRECTO
+            // Evaluaciones
             var evaluaciones = await _evaluacionRepository.GetByDocenteCedulaAsync(docenteCedula);
-            var evaluacionesDelPeriodo = evaluaciones.Where(e => e.FechaEvaluacion >= fechaInicioPeriodo).ToList();
-            resultado.PromedioEvaluacion.Requerido = rangoRequisitos.PuntajePromedioEvaluacionesRequerido;
-            resultado.PromedioEvaluacion.Actual = evaluacionesDelPeriodo.Any() ? evaluacionesDelPeriodo.Average(e => e.PuntajePorcentual) : 0;
-            resultado.PromedioEvaluacion.Mensaje = $"Promedio de Evaluaciones: {resultado.PromedioEvaluacion.Actual:F2}% de {resultado.PromedioEvaluacion.Requerido}% requerido.";
+            var evalPeriodo = evaluaciones.Where(e => e.FechaEvaluacion >= fechaInicio);
+            resultado.PromedioEvaluacion.Requerido = rango.PuntajePromedioEvaluacionesRequerido;
+            resultado.PromedioEvaluacion.Actual = evalPeriodo.Any() ? evalPeriodo.Average(e => e.PuntajePorcentual) : 0;
+            resultado.PromedioEvaluacion.Mensaje = $"Evaluaciones: {resultado.PromedioEvaluacion.Actual:F2}% de {resultado.PromedioEvaluacion.Requerido}%";
 
-            // Artículos (Cantidad)
-            var articulos = await _articuloRepository.GetByDocenteAsync(docenteCedula);
-            var articulosDelPeriodo = articulos.Where(a => a.AnioPublicacion >= fechaInicioPeriodo.Year).ToList();
-            resultado.Articulos.Requerido = rangoRequisitos.ArticulosRequeridos;
-            resultado.Articulos.Actual = articulosDelPeriodo.Count;
-            resultado.Articulos.Mensaje = $"Artículos: {resultado.Articulos.Actual} de {resultado.Articulos.Requerido} requeridos.";
+            // Artículos
+            var articulos = await _articuloRepository.GetByDocenteCedulaAsync(docenteCedula);
+            resultado.Articulos.Requerido = rango.ArticulosRequeridos;
+            resultado.Articulos.Actual = articulos.Count(a => a.AnioPublicacion >= fechaInicio.Year);
+            resultado.Articulos.Mensaje = $"Artículos: {resultado.Articulos.Actual} de {resultado.Articulos.Requerido}";
 
-            // Investigaciones (Suma de meses)
-            var investigaciones = await _investigacionRepository.GetByDocenteAsync(docenteCedula);
-            var investigacionesDelPeriodo = investigaciones.Where(i => i.FechaFinalizacion >= fechaInicioPeriodo).ToList();
-            resultado.Investigaciones.Requerido = rangoRequisitos.MesesInvestigacionRequeridos;
-            resultado.Investigaciones.Actual = investigacionesDelPeriodo.Sum(i => i.MesesDeInvestigacion);
-            resultado.Investigaciones.Mensaje = $"Investigaciones: {resultado.Investigaciones.Actual} de {resultado.Investigaciones.Requerido} meses requeridos.";
+            // Investigaciones
+            var investigaciones = await _investigacionRepository.GetByDocenteCedulaAsync(docenteCedula);
+            resultado.Investigaciones.Requerido = rango.MesesInvestigacionRequeridos;
+            resultado.Investigaciones.Actual = investigaciones.Where(i => i.FechaFinalizacion >= fechaInicio).Sum(i => i.MesesDeInvestigacion);
+            resultado.Investigaciones.Mensaje = $"Meses Investigación: {resultado.Investigaciones.Actual} de {resultado.Investigaciones.Requerido}";
 
-            // Cursos (Suma de horas)
-            var cursos = await _cursoRepository.GetByDocenteAsync(docenteCedula);
-            var cursosDelPeriodo = cursos.Where(c => c.FechaFinalizacion >= fechaInicioPeriodo).ToList();
-            resultado.Cursos.Requerido = rangoRequisitos.HorasCursoRequeridas;
-            resultado.Cursos.Actual = cursosDelPeriodo.Sum(c => c.NumeroHoras);
-            resultado.Cursos.Mensaje = $"Cursos: {resultado.Cursos.Actual} de {resultado.Cursos.Requerido} horas requeridas.";
+            // Cursos
+            var cursos = await _cursoRepository.GetByDocenteCedulaAsync(docenteCedula);
+            resultado.Cursos.Requerido = rango.HorasCursoRequeridas;
+            resultado.Cursos.Actual = cursos.Where(c => c.FechaFinalizacion >= fechaInicio).Sum(c => c.NumeroHoras);
+            resultado.Cursos.Mensaje = $"Horas de Curso: {resultado.Cursos.Actual} de {resultado.Cursos.Requerido}";
+
+            // Tesis Dirigidas (si lo agregas como campo requerido en el rango)
+            resultado.Tesis.Requerido = rango.TesisDirigidasRequeridas;
+            var tesis = await _tesisRepository.GetByDocenteCedulaAsync(docenteCedula);
+            resultado.Tesis.Actual = tesis.Count(t => t.FechaFin >= fechaInicio);
+            resultado.Tesis.Mensaje = $"Tesis Dirigidas: {resultado.Tesis.Actual} de {resultado.Tesis.Requerido}";
 
             resultado.PuedeAscender = resultado.Antiguedad.Cumple &&
                                       resultado.PromedioEvaluacion.Cumple &&
                                       resultado.Articulos.Cumple &&
                                       resultado.Investigaciones.Cumple &&
-                                      resultado.Cursos.Cumple;
+                                      resultado.Cursos.Cumple &&
+                                      resultado.Tesis.Cumple;
 
             return resultado;
         }
     }
 }
-*/

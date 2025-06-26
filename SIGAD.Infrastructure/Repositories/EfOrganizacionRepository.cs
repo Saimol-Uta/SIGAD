@@ -48,6 +48,17 @@ namespace SIGAD.Infrastructure.Repositories
                 _context.Organizaciones.Remove(organizacion);
             }
         }
+        public async Task<Organizacion?> ObtenerPorNombreAsync(string nombre)
+        {
+            return await _context.Organizaciones
+                .FirstOrDefaultAsync(o => o.Nombre.ToLower() == nombre.ToLower());
+        }
+
+        public async Task AgregarAsync(Organizacion organizacion)
+        {
+            await _context.Organizaciones.AddAsync(organizacion);
+        }
+
 
         public async Task<bool> ExistsAsync(int id)
         {

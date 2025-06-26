@@ -1,0 +1,249 @@
+﻿@page "/admin-reportes"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(AdminLayout))]
+
+@inject ReporteService ReporteSvc
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="dashboard-wrapper">
+    <div class="report-title">
+        <h2>📊 Generador de Reportes</h2>
+        <p>Visualiza el estado de las solicitudes docentes a través de estadísticas dinámicas.</p>
+    </div>
+
+    <div class="report-grid">
+        <div class="report-card">
+            <div class="card-header">
+                <h3>Solicitudes por Estado</h3>
+                <button @onclick='() => DescargarGrafico("chartEstado")'>
+                    📥 Descargar
+                </button>
+            </div>
+            <canvas id="chartEstado"></canvas>
+        </div>
+
+        <div class="report-card">
+            <div class="card-header">
+                <h3>Solicitudes por Nivel Aspirado</h3>
+                <button @onclick='() => DescargarGrafico("chartNivel")'>
+                    📥 Descargar
+                </button>
+            </div>
+            <canvas id="chartNivel"></canvas>
+        </div>
+
+        <div class="report-card">
+            <div class="card-header">
+                <h3>Solicitudes por Mes</h3>
+                <button @onclick='() => DescargarGrafico("chartMes")'>
+                    📥 Descargar
+                </button>
+            </div>
+            <canvas id="chartMes"></canvas>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboard-wrapper {
+        padding: 40px 60px;
+        background-color: #f9f9f9;
+        min-height: 100vh;
+    }
+
+    .report-title h2 {
+        font-size: 28px;
+        color: #0a1d44;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .report-title p {
+        font-size: 15px;
+        color: #666;
+        margin-bottom: 35px;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 30px;
+    }
+
+    .report-card {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: box-shadow 0.3s ease;
+    }
+
+        .report-card:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+        .card-header h3 {
+            font-size: 18px;
+            color: #0a1d44;
+            margin: 0;
+        }
+
+        .card-header button {
+            background-color: #0a1d44;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+            .card-header button:hover {
+                background-color: #09306a;
+            }
+
+    canvas {
+        width: 100% !important;
+        max-height: 300px;
+    }
+</style>
+
+@code {
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Año actual para el reporte por mes
+            int anioActual = DateTime.Now.Year;
+
+            var estadoData = await ReporteSvc.GetReportePorEstadoAsync();
+            if (estadoData != null)
+            {
+                await JS.InvokeVoidAsync("renderPieChart", "chartEstado", estadoData);
+            }
+
+            var nivelData = await ReporteSvc.GetReportePorNivelAsync();
+            if (nivelData != null)
+            {
+                await JS.InvokeVoidAsync("renderBarChart", "chartNivel", nivelData);
+            }
+
+            var mesData = await ReporteSvc.GetReportePorMesAsync(anioActual);
+            if (mesData != null)
+            {
+                await JS.InvokeVoidAsync("renderLineChart", "chartMes", mesData);
+            }
+
+            // Llama a StateHasChanged si es necesario para re-renderizar
+            StateHasChanged();
+        }
+    }
+
+    private async Task DescargarGrafico(string idCanvas)
+    {
+        await JS.InvokeVoidAsync("descargarGraficoComoImagen", idCanvas);
+    }
+}
+
+<script>
+    window.renderPieChart = function (canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        // Extraemos las etiquetas y los valores de los datos que vienen de la API
+        const labels = data.map(x => x.categoria);
+        const valores = data.map(x => x.cantidad);
+
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: ['#0a1d44', '#3b5998', '#87ceeb', '#ff8c00', '#f44336', '#9c27b0']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    };
+
+    // Esta función global renderiza un gráfico de barras
+    window.renderBarChart = function (canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        const labels = data.map(x => x.categoria);
+        const valores = data.map(x => x.cantidad);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cantidad de Solicitudes',
+                    data: valores,
+                    backgroundColor: '#0a1d44'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    };
+
+    // Esta función global renderiza un gráfico de línea
+    window.renderLineChart = function (canvasId, data) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        const labels = data.map(x => x.categoria);
+        const valores = data.map(x => x.cantidad);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Solicitudes por Mes',
+                    data: valores,
+                    borderColor: '#0a1d44',
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    };
+
+    window.descargarGraficoComoImagen = function (canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const link = document.createElement("a");
+        link.download = canvasId + ".png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    };
+</script>

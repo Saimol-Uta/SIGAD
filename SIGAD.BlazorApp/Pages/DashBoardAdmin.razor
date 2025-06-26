@@ -1,22 +1,15 @@
 ﻿@page "/admin-dashboard"
 @using SIGAD.BlazorApp.Layout
-@attribute [Layout(typeof(EmptyLayout))]
-@using SIGAD.BlazorApp.Components
+@attribute [Layout(typeof(AdminLayout))]
 @using SIGAD.BlazorApp.Models
 @using SIGAD.BlazorApp.Services
 @inject ISolicitudesService SolicitudesService
 @inject NavigationManager Navigation
 
+
 <div class="page-wrapper">
-    <Encabezado />
 
     <div class="admin-dashboard">
-        <!-- BARRA LATERAL -->
-        <div class="sidebar">
-            <h3>SIGAD</h3>
-            <div class="nav-item active">Dashboard</div>
-            <div class="nav-item">Gestión Docentes</div>
-        </div>
 
         <!-- CONTENIDO PRINCIPAL -->
         <div class="main-content">

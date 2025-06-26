@@ -1,0 +1,79 @@
+﻿@inherits LayoutComponentBase
+@using SIGAD.BlazorApp.Components
+@inject NavigationManager NavigationManager
+
+<div class="page-wrapper">
+    <Encabezado />
+
+    <div class="admin-dashboard">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+
+<div class="nav-item @(IsActive("/admin-dashboard") ? "active" : "")"
+     @onclick='() => NavigationManager.NavigateTo("/admin-dashboard")'>
+    Dashboard
+</div>
+
+            <div class="nav-item @(IsActive("/admin-reportes") ? "active" : "")"
+                 @onclick='() => NavigationManager.NavigateTo("/admin-reportes")'>
+                Generar Reportes
+            </div>
+        </div>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="main-content">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool IsActive(string path) =>
+        NavigationManager.Uri.Contains(path, StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f9f9f9;
+    }
+
+    .admin-dashboard {
+        display: flex;
+        flex-grow: 1;
+        min-height: calc(100vh - 90px); /* altura descontando encabezado */
+    }
+
+    .sidebar {
+        width: 220px;
+        background-color: #0a1d44;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        padding-top: 20px;
+    }
+
+        .sidebar h3 {
+            margin-left: 20px;
+            margin-bottom: 30px;
+        }
+
+    .nav-item {
+        padding: 15px 20px;
+        color: white;
+        cursor: pointer;
+    }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: #112855;
+        }
+
+    .main-content {
+        flex: 1;
+        padding: 30px 40px;
+        background-color: #f9f9f9;
+    }
+</style>
