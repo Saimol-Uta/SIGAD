@@ -4,7 +4,7 @@ using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 using System;
 using System.Threading.Tasks;
-using System.Security.Claims; // Agregar esta línea al inicio del archivo
+using System.Security.Claims;
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -23,24 +23,41 @@ namespace SIGAD.WebAPI.Controllers
 
         // GET: api/solicitudes
         [HttpGet]
-
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> GetAll()
         {
-            var solicitudes = await _solicitudesService.GetAllParaAdminAsync();
-            return Ok(solicitudes);
+            try
+            {
+                var solicitudes = await _solicitudesService.GetAllParaAdminAsync();
+                return Ok(solicitudes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener todas las solicitudes");
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
 
         // GET: api/solicitudes/{id}
         [HttpGet("{id}")]
-
+        [Authorize]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
-            return solicitud != null ? Ok(solicitud) : NotFound();
+            try
+            {
+                var solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+                return solicitud != null ? Ok(solicitud) : NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener solicitud {SolicitudId}", id);
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
 
         // POST: api/solicitudes
         [HttpPost]
+        [Authorize(Roles = "DOCENTE")]
         public async Task<IActionResult> EnviarSolicitud([FromBody] EnviarSolicitudDto dto)
         {
             var docenteCedula = User.FindFirst("cedula")?.Value;
@@ -63,49 +80,51 @@ namespace SIGAD.WebAPI.Controllers
 
         // PUT: api/solicitudes/{id}/aprobar
         [HttpPut("{id}/aprobar")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> Aprobar(Guid id, [FromBody] string observaciones)
         {
             try
             {
                 await _solicitudesService.AprobarSolicitudAsync(id, observaciones ?? "");
-                
-                return Ok(new 
-                { 
-                    success = true, 
-                    message = "Solicitud aprobada exitosamente" 
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud aprobada exitosamente"
                 });
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning("Error de validación al aprobar solicitud {SolicitudId}: {Message}", id, ex.Message);
-                return BadRequest(new 
-                { 
-                    success = false, 
-                    message = ex.Message 
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning("Operación inválida al aprobar solicitud {SolicitudId}: {Message}", id, ex.Message);
-                return BadRequest(new 
-                { 
-                    success = false, 
-                    message = ex.Message 
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error inesperado al aprobar solicitud {SolicitudId}", id);
-                return StatusCode(500, new 
-                { 
-                    success = false, 
-                    message = "Error interno del servidor al procesar la aprobación" 
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor al procesar la aprobación"
                 });
             }
         }
 
         // PUT: api/solicitudes/{id}/rechazar
         [HttpPut("{id}/rechazar")]
+        [Authorize(Roles = "ADMINISTRADOR")]
         public async Task<IActionResult> Rechazar(Guid id, [FromBody] string observaciones)
         {
             try
@@ -113,9 +132,9 @@ namespace SIGAD.WebAPI.Controllers
                 // Validar que se proporcione una justificación obligatoria
                 if (string.IsNullOrWhiteSpace(observaciones))
                 {
-                    return BadRequest(new 
-                    { 
-                        success = false, 
+                    return BadRequest(new
+                    {
+                        success = false,
                         message = "La justificación es obligatoria para rechazar una solicitud",
                         field = "observaciones"
                     });
@@ -124,47 +143,47 @@ namespace SIGAD.WebAPI.Controllers
                 // Validar longitud mínima de la justificación
                 if (observaciones.Trim().Length < 10)
                 {
-                    return BadRequest(new 
-                    { 
-                        success = false, 
+                    return BadRequest(new
+                    {
+                        success = false,
                         message = "La justificación debe tener al menos 10 caracteres",
                         field = "observaciones"
                     });
                 }
 
                 await _solicitudesService.RechazarSolicitudAsync(id, observaciones.Trim());
-                
-                return Ok(new 
-                { 
-                    success = true, 
-                    message = "Solicitud rechazada exitosamente" 
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Solicitud rechazada exitosamente"
                 });
             }
             catch (ArgumentException ex)
             {
                 _logger.LogWarning("Error de validación al rechazar solicitud {SolicitudId}: {Message}", id, ex.Message);
-                return BadRequest(new 
-                { 
-                    success = false, 
-                    message = ex.Message 
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning("Operación inválida al rechazar solicitud {SolicitudId}: {Message}", id, ex.Message);
-                return BadRequest(new 
-                { 
-                    success = false, 
-                    message = ex.Message 
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error inesperado al rechazar solicitud {SolicitudId}", id);
-                return StatusCode(500, new 
-                { 
-                    success = false, 
-                    message = "Error interno del servidor al procesar el rechazo" 
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor al procesar el rechazo"
                 });
             }
         }
@@ -178,17 +197,59 @@ namespace SIGAD.WebAPI.Controllers
 
         // Endpoint de prueba con autorización básica
         [HttpGet("test-auth")]
+        [Authorize]
         public IActionResult TestAuth()
         {
             var userInfo = new
             {
-                IsAuthenticated = User.Identity.IsAuthenticated,
-                Name = User.Identity.Name,
+                IsAuthenticated = User.Identity?.IsAuthenticated,
+                Name = User.Identity?.Name,
                 Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
                 Roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
             };
 
             return Ok(userInfo);
+        }
+
+        // GET: api/solicitudes/verif-solicitud-activa
+        [HttpGet("verif-solicitud-activa")]
+        [Authorize(Roles = "DOCENTE")]
+        public async Task<IActionResult> VerificarSolicitudActiva()
+        {
+            var docenteCedula = User.FindFirst("cedula")?.Value;
+            if (string.IsNullOrEmpty(docenteCedula))
+            {
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "No se pudo obtener la cédula del docente desde el token."
+                });
+            }
+
+            try
+            {
+                var solicitud = await _solicitudesService.ObtenerBorradorActivoAsync(docenteCedula);
+
+                if (solicitud == null)
+                {
+                    return Ok(new
+                    {
+                        tieneBorrador = false
+                    });
+                }
+
+                return Ok(new
+                {
+                    tieneBorrador = true,
+                    solicitudId = solicitud.Id,
+                    fechaCreacion = solicitud.FechaCreacion
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar solicitud activa para docente {Cedula}", docenteCedula);
+                return StatusCode(500, "Error interno del servidor");
+            }
         }
     }
 }

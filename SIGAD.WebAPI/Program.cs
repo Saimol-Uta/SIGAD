@@ -1,13 +1,19 @@
 // SIGAD.WebAPI/Program.cs
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIGAD.Application.Interfaces;
+using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Application.Services;
+using SIGAD.Application.Services.ExternalServices;
 using SIGAD.Domain.Interfaces;
+using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
+using SIGAD.Infrastructure.Services;
+using SIGAD.WebAPI.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +24,30 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<SigadDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.CustomSchemaIds(type => type.FullName); // 👈 Solución alternativa
+});
+
+var configuration = builder.Configuration;
+
+builder.Services.AddScoped<ISgthSyncService>(_ =>
+    new SgthSyncService(configuration.GetConnectionString("SGTH")!));
+
+builder.Services.AddScoped<ISutSyncService>(_ =>
+    new SutSyncService(configuration.GetConnectionString("SUT")!));
+
+builder.Services.AddScoped<IDiticSyncService>(_ =>
+    new DiticSyncService(configuration.GetConnectionString("DITIC")!));
+
+
+builder.Services.AddScoped<DocenteSyncCoordinator>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDocenteSyncCoordinator, DocenteSyncCoordinator>();
+builder.Services.AddScoped<HistorialDocenteImporter>();
+
+
 
 // 2. Configurar JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -54,6 +84,7 @@ builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();
 builder.Services.AddScoped<IEvaluacionDocenteRepository, EfEvaluacionDocenteRepository>();
 builder.Services.AddScoped<IExperienciaLaboralRepository, ExperienciaLaboralRepository>();
+builder.Services.AddScoped<ITesisDirigidaRepository, EfTesisDirigidaRepository>();
 builder.Services.AddScoped<IOrganizacionRepository, EfOrganizacionRepository>();
 
 // Servicios de aplicación
@@ -63,13 +94,19 @@ builder.Services.AddScoped<IArticuloService, ArticuloService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
 builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
 builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
-// builder.Services.AddScoped<GestionArticulosAppService>();
-// builder.Services.AddScoped<GestionInvestigacionesAppService>();
-// builder.Services.AddScoped<ConsultaRangoAppService>();
-// builder.Services.AddScoped<GestionRangoAppService>();
-// builder.Services.AddScoped<ActualizarRangoService>();
-builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<ITesisDirigidaService, TesisDirigidaService>();
 
+// Servicios de aplicación específicos para SIGAD
+builder.Services.AddScoped<ConsultaRangoAppService>();
+builder.Services.AddScoped<GestionRangoAppService>();
+builder.Services.AddScoped<ActualizarRangoService>();
+builder.Services.AddScoped<GestionSolicitudesAppService>();
+builder.Services.AddScoped<ValidacionRequisitosService>();
+builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
+builder.Services.AddScoped<ReporteBackendService>();
 // 4. Agregar servicios para controladores de API
 builder.Services.AddControllers();
 
@@ -131,6 +168,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// 2. Middleware personalizado de validación y manejo de errores
+app.UseValidationMiddleware();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");

@@ -1,0 +1,326 @@
+@page "/register"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@inject NavigationManager NavigationManager
+@inject IAuthService AuthService
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JSRuntime
+
+<style>
+    body,
+    html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    .register-background {
+        background-color: white;
+        min-height: 100vh;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        padding: 20px 0;
+    }
+
+    .decor-top-right,
+    .decor-bottom-left {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        z-index: 1;
+    }
+
+    .decor-top-right {
+        background-image: url("/images/blueWatercolor.jpg");
+        top: 0;
+        right: 0;
+        transform: rotate(360deg);
+    }
+
+    .decor-bottom-left {
+        background-image: url("/images/blueWatercolor.jpg");
+        bottom: 0;
+        left: 0;
+        transform: rotate(180deg);
+    }
+
+    .register-container {
+        position: relative;
+        z-index: 2;
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        width: 400px;
+        max-width: 90%;
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .register-container img {
+        width: 50px;
+        margin-bottom: 10px;
+    }
+
+    .register-container h2 {
+        font-size: 18px;
+        color: #0a1d44;
+        margin-bottom: 20px;
+    }
+
+    .register-input {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .register-button {
+        width: 100%;
+        padding: 12px;
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin-top: 15px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .register-button:hover {
+        background-color: #0e2c6c;
+    }
+
+    .register-button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .register-button:disabled:hover {
+        background-color: #6c757d;
+    }
+
+    .back-to-login {
+        display: block;
+        margin-top: 15px;
+        font-size: 0.9em;
+        color: #0a1d44;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .spinner-border {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        vertical-align: text-bottom;
+        border: 0.15em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border 0.75s linear infinite;
+    }
+
+    .spinner-border-sm {
+        width: 0.875rem;
+        height: 0.875rem;
+        border-width: 0.1em;
+    }
+
+    .alert {
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 4px;
+        text-align: left;
+    }
+</style>
+
+<div class="register-background">
+    <!-- Imágenes decorativas -->
+    <div class="decor-top-right"></div>
+    <div class="decor-bottom-left"></div>
+
+    <!-- Caja de registro -->
+    <div class="register-container">
+        <img src="/images/IconoUser.png" alt="User Icon" />
+        <h2>CREAR NUEVA CUENTA</h2>
+
+        <EditForm Model="@registerModel" OnValidSubmit="@HandleRegister">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    @successMessage
+                </div>
+            }
+
+            <!-- Cédula -->
+            <div class="form-group">
+                <InputText @bind-Value="registerModel.Cedula" class="register-input" placeholder="Cédula (10 dígitos) *" maxlength="10" />
+                <ValidationMessage For="@(() => registerModel.Cedula)" class="validation-message" />
+            </div>
+
+            <!-- Correo -->
+            <div class="form-group">
+                <InputText @bind-Value="registerModel.Correo" class="register-input" placeholder="Correo Electrónico *" />
+                <ValidationMessage For="@(() => registerModel.Correo)" class="validation-message" />
+            </div>
+
+            <!-- Contraseña -->
+            <div class="form-group">
+                <InputText @bind-Value="registerModel.Clave" type="password" class="register-input" placeholder="Contraseña *" />
+                <ValidationMessage For="@(() => registerModel.Clave)" class="validation-message" />
+            </div>
+
+            <!-- Confirmar Contraseña -->
+            <div class="form-group">
+                <InputText @bind-Value="registerModel.ConfirmarClave" type="password" class="register-input" placeholder="Confirmar Contraseña *" />
+                <ValidationMessage For="@(() => registerModel.ConfirmarClave)" class="validation-message" />
+            </div>
+
+            <button type="submit" class="register-button" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Creando cuenta...</span>
+                }
+                else
+                {
+                    <span>CREAR CUENTA</span>
+                }
+            </button>
+
+            <a class="back-to-login" href="/login">← Volver al inicio de sesión</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    // Modelo simplificado para el registro
+    private RegisterSimpleDto registerModel = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            // Validación básica de cédula
+            if (string.IsNullOrWhiteSpace(registerModel.Cedula) || registerModel.Cedula.Length != 10)
+            {
+                errorMessage = "La cédula debe tener exactamente 10 dígitos.";
+                isLoading = false;
+                return;
+            }
+            if (registerModel.Clave != registerModel.ConfirmarClave)
+            {
+                errorMessage = "Las contraseñas no coinciden.";
+                isLoading = false;
+                return;
+            }
+
+            // Lógica de control de cédula:
+            var cedulaExiste = await AuthService.CedulaExisteAsync(registerModel.Cedula);
+            if (cedulaExiste)
+            {
+                // Usar el endpoint simplificado para registrar
+                var result = await AuthService.RegisterSimple(registerModel);                if (result)
+                {
+                    successMessage = "¡Cuenta creada exitosamente! Será redirigido al inicio de sesión.";
+                    registerModel = new RegisterSimpleDto();
+                    await Task.Delay(3000);
+                    NavigationManager.NavigateTo("/login");
+                }
+                else
+                {
+                    errorMessage = "No se pudo crear la cuenta. El correo o cédula ya pueden estar registrados.";
+                }
+            }
+            else
+            {
+                errorMessage = "No existe ningún usuario con esa cédula. Por favor, contacte a un administrador.";
+                // Si quieres permitir usuarios temporales, descomenta el siguiente bloque:
+                /*
+                var result = await AuthService.RegistrarUsuarioTemporal(registerModel);
+                if (result)
+                {
+                    successMessage = "¡Usuario temporal creado! Será redirigido al inicio de sesión.";
+                    registerModel = new RegisterRequestDto();
+                    await Task.Delay(3000);
+                    NavigationManager.NavigateTo("/login");
+                }
+                else
+                {
+                    errorMessage = "No se pudo crear el usuario temporal.";
+                }
+                */
+            }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            if (httpEx.Message.Contains("409"))
+            {
+                errorMessage = "El correo o cédula ya están registrados en el sistema.";
+            }
+            else if (httpEx.Message.Contains("400"))
+            {
+                errorMessage = "Los datos ingresados no son válidos. Verifique todos los campos.";
+            }
+            else
+            {
+                errorMessage = "Error de conexión. Verifique su conexión a internet.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ocurrió un error inesperado. Por favor, intente más tarde.";
+            Console.WriteLine($"Error en registro: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

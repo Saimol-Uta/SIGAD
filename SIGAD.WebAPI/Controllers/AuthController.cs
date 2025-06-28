@@ -11,8 +11,47 @@ namespace SIGAD.WebAPI.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
+
     public class AuthController : ControllerBase
     {
+        [HttpPost("verificar-codigo")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerificarCodigo([FromBody] VerificarCodigoDto dto)
+        {
+            var valido = await _authService.VerificarCodigoAsync(dto.Email, dto.Codigo);
+
+            if (!valido)
+            {
+                return BadRequest(new { Message = "El código ingresado es incorrecto o ha expirado." });
+            }
+
+            return Ok(new { Message = "Código verificado correctamente." });
+        }
+
+        [HttpPost("solicitar-recuperacion")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Un usuario sin sesión debe poder usar esto
+        public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto dto)
+        {
+            await _authService.SolicitarRecuperacionAsync(dto.Email);
+
+            // Por seguridad, siempre devolvemos una respuesta genérica exitosa
+            return Ok(new { Message = "Si su correo electrónico está registrado en nuestro sistema, recibirá un correo con las instrucciones para restablecer su contraseña." });
+        }
+
+        [HttpPost("restablecer-contrasena")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+        public async Task<IActionResult> RestablecerContrasena([FromBody] RestablecerContrasenaDto dto)
+        {
+            var success = await _authService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena, dto.ConfirmarContrasena);
+
+            if (!success)
+            {
+                return BadRequest(new { Message = "El código de recuperación es inválido, ha expirado o el correo es incorrecto." });
+            }
+
+            return Ok(new { Message = "Su contraseña ha sido restablecida exitosamente." });
+        }
+
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly SigadDbContext _context;
@@ -217,6 +256,55 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error interno del servidor"
                 });
             }
+        }        /// <summary>
+                 /// Registra un usuario SOLO con cédula, correo y clave (flujo simplificado)
+                 /// </summary>
+                 /// <param name="model">Datos mínimos para registro</param>
+                 /// <returns>Resultado del registro</returns>
+        [HttpPost("register-simple")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RegisterSimple([FromBody] RegisterSimpleDto model)
+        {
+            // Validación básica
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .ToList();
+                return BadRequest(new { success = false, message = "Datos de entrada inválidos", errors });
+            }
+
+            // Verificar si ya existe la cuenta
+            var cuentaExiste = await _context.Cuentas.AnyAsync(c => c.Correo == model.Correo || c.DocenteCedula == model.Cedula);
+            if (cuentaExiste)
+            {
+                return Conflict(new { success = false, message = "El correo o cédula ya están registrados" });
+            }
+
+            // Crear cuenta
+            var cuenta = new SIGAD.Domain.Entities.Cuenta
+            {
+                Correo = model.Correo,
+                ClaveHash = _authService.HashPassword(model.Clave),
+                DocenteCedula = model.Cedula,
+                // Puedes asignar un rol por defecto si lo necesitas
+                Rol = Domain.Enums.Rol.DOCENTE
+            };
+            _context.Cuentas.Add(cuenta);
+            await _context.SaveChangesAsync();
+
+            return StatusCode(StatusCodes.Status201Created, new
+            {
+                success = true,
+                message = "Usuario registrado exitosamente",
+                data = new
+                {
+                    correo = model.Correo,
+                    cedula = model.Cedula
+                }
+            });
         }
 
         /// <summary>
@@ -347,15 +435,15 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// TEMPORAL: Crea rangos de prueba (SOLO DESARROLLO)
+        /// TEMPORAL: Crea los rangos académicos oficiales según el Reglamento UTA Resolución 0677-CU-P-2023 (SOLO DESARROLLO)
         /// </summary>
-        /// <returns>Resultado de la creación</returns>
+        /// <returns>Resultado de la creación de rangos oficiales según el reglamento UTA</returns>
         [HttpPost("create-test-rangos")]
         public async Task<IActionResult> CreateTestRangos()
         {
             try
             {
-                _logger.LogInformation("Iniciando creación de rangos de prueba...");
+                _logger.LogInformation("Iniciando creación de rangos académicos según Reglamento UTA Resolución 0677-CU-P-2023...");
 
                 // Limpiar rangos existentes si existen
                 var existingRangos = await _context.Rangos.ToListAsync();
@@ -364,24 +452,104 @@ namespace SIGAD.WebAPI.Controllers
                     _context.Rangos.RemoveRange(existingRangos);
                     _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
                     await _context.SaveChangesAsync();
-                }
-
-                // Crear rangos de prueba (sin IDs específicos - dejar que la DB los genere)
-                var testRangos = new[]
+                }                // Crear rangos según el Reglamento para la Promoción del Personal Académico Titular de la UTA
+                // Resolución 0677-CU-P-2023
+                var rangosReglamento = new[]
                 {
-                    new { Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0.0m },
-                    new { Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70.0m },
-                    new { Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75.0m },
-                    new { Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80.0m }
+                    // TITULAR AUXILIAR 1 - Rango inicial (sin requisitos previos para promoción)
+                    new {
+                        Nombre = "Titular Auxiliar 1",
+                        ArticulosRequeridos = 0,
+                        AniosExperienciaRequeridos = 0,
+                        HorasCursoRequeridas = 0,
+                        MesesInvestigacionRequeridos = 0,
+                        TesisDirigidasRequeridas = 0,
+                        PuntajePromedioEvaluacionesRequerido = 0.0m
+                    },
+                    
+                    // TITULAR AUXILIAR 2 - Anexo 1, Página 7
+                    new {
+                        Nombre = "Titular Auxiliar 2",
+                        ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 1
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        MesesInvestigacionRequeridos = 0,  // No especifica proyectos de investigación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 1 - Anexo 1, Página 8  
+                    new {
+                        Nombre = "Titular Agregado 1",
+                        ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 2
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        MesesInvestigacionRequeridos = 12,  // 12 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 2 - Anexo 1, Página 9
+                    new {
+                        Nombre = "Titular Agregado 2",
+                        ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 1
+                        HorasCursoRequeridas = 128,  // 128 horas de capacitación (25% pedagógica = 32h)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR AGREGADO 3 - Anexo 1, Página 10
+                    new {
+                        Nombre = "Titular Agregado 3",
+                        ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
+                        AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 2
+                        HorasCursoRequeridas = 160,  // 160 horas de capacitación (25% pedagógica = 40h)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 1 - Anexo 1, Página 11
+                    new {
+                        Nombre = "Titular Principal 1",
+                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (1 en idioma extranjero)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
+                        HorasCursoRequeridas = 224,  // 224 horas de capacitación (25% pedagógica = 56h) + 40h impartidas
+                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 2 - Anexo 1, Página 12
+                    new {
+                        Nombre = "Titular Principal 2",
+                        ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 2
+                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (25% pedagógica = 64h) + 80h impartidas
+                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas/codirigidas
+                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                    },
+                    
+                    // TITULAR PRINCIPAL 3 - Rango máximo (sin promoción posterior)
+                    new {
+                        Nombre = "Titular Principal 3",
+                        ArticulosRequeridos = 15,  // Estimado para el rango máximo
+                        AniosExperienciaRequeridos = 25,  // Estimado para el rango máximo
+                        HorasCursoRequeridas = 300,  // Estimado para el rango máximo
+                        MesesInvestigacionRequeridos = 48,  // Estimado para el rango máximo
+                        TesisDirigidasRequeridas = 5,  // Estimado para el rango máximo
+                        PuntajePromedioEvaluacionesRequerido = 80.0m  // Estimado para el rango máximo
+                    }
                 };
 
                 var rangosCreados = new List<object>();
 
-                foreach (var rango in testRangos)
+                foreach (var rango in rangosReglamento)
                 {
-                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre);
-
-                    var newRango = new SIGAD.Domain.Entities.Rango
+                    _logger.LogInformation("Creando rango: {Nombre}", rango.Nombre); var newRango = new SIGAD.Domain.Entities.Rango
                     {
                         // No establecemos Id - dejar que Entity Framework lo genere automáticamente
                         Nombre = rango.Nombre,
@@ -389,6 +557,7 @@ namespace SIGAD.WebAPI.Controllers
                         AniosExperienciaRequeridos = rango.AniosExperienciaRequeridos,
                         HorasCursoRequeridas = rango.HorasCursoRequeridas,
                         MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
+                        TesisDirigidasRequeridas = rango.TesisDirigidasRequeridas,
                         PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
                     };
 
@@ -398,8 +567,7 @@ namespace SIGAD.WebAPI.Controllers
                 var savedRecords = await _context.SaveChangesAsync();
 
                 // Obtener los rangos creados con sus IDs generados
-                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync();
-                rangosCreados = rangosEnDb.Select(r => new
+                var rangosEnDb = await _context.Rangos.OrderBy(r => r.Id).ToListAsync(); rangosCreados = rangosEnDb.Select(r => new
                 {
                     id = r.Id,
                     nombre = r.Nombre,
@@ -407,28 +575,32 @@ namespace SIGAD.WebAPI.Controllers
                     aniosExperiencia = r.AniosExperienciaRequeridos,
                     horasCurso = r.HorasCursoRequeridas,
                     mesesInvestigacion = r.MesesInvestigacionRequeridos,
+                    tesisDirigidas = r.TesisDirigidasRequeridas,
                     puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
-                }).ToList<object>();
-                _logger.LogInformation("Rangos creados exitosamente. Registros guardados: {Count}", savedRecords);
+                }).ToList<object>(); _logger.LogInformation("Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023. Registros guardados: {Count}", savedRecords);
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Rangos de prueba creados exitosamente",
+                    message = "Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023",
                     data = new
                     {
                         rangosCreados = savedRecords,
-                        rangos = rangosCreados
+                        rangos = rangosCreados,
+                        reglamento = "Reglamento para la Promoción del Personal Académico Titular de la UTA",
+                        resolucion = "0677-CU-P-2023",
+                        fechaAprobacion = "15 de junio de 2023",
+                        fechaCreacion = DateTime.UtcNow
                     }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al crear rangos de prueba");
+                _logger.LogError(ex, "Error al crear rangos académicos UTA");
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "Error al crear rangos de prueba",
+                    message = "Error al crear rangos académicos UTA",
                     error = ex.Message
                 });
             }
@@ -660,7 +832,7 @@ namespace SIGAD.WebAPI.Controllers
                 {
                     new { Cedula = "1234567890", Nombre1 = "Juan", Nombre2 = "Carlos", Apellido1 = "Pérez", Apellido2 = "González", Correo = "admin@sigad.edu.co", Rol = "ADMINISTRADOR" },
                     new { Cedula = "0987654321", Nombre1 = "María", Nombre2 = "Elena", Apellido1 = "Rodríguez", Apellido2 = "López", Correo = "docente1@sigad.edu.co", Rol = "DOCENTE" },
-                    new { Cedula = "1122334455", Nombre1 = "Pedro", Nombre2 = (string?)null, Apellido1 = "Martínez", Apellido2 = "Hernández", Correo = "docente2@sigad.edu.co", Rol = "DOCENTE" }
+                    new { Cedula = "1122334455", Nombre1 = "Pedro", Nombre2 = "Andes", Apellido1 = "Martínez", Apellido2 = "Hernández", Correo = "docente2@sigad.edu.co", Rol = "DOCENTE" }
                 };
 
                 foreach (var user in testUsers)
@@ -831,10 +1003,10 @@ namespace SIGAD.WebAPI.Controllers
                 if (solicitudActiva != null)
                 {
                     var mensajeDetallado = GetMensajeEstadoSolicitud(solicitudActiva.Estado);
-                    return BadRequest(new 
-                    { 
-                        success = false, 
-                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}", 
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"No puede crear una nueva solicitud. {mensajeDetallado}",
                         solicitudId = solicitudActiva.Id,
                         estado = solicitudActiva.Estado.ToString(),
                         rangoSolicitado = solicitudActiva.RangoSolicitado.Nombre
@@ -1076,7 +1248,7 @@ namespace SIGAD.WebAPI.Controllers
             // 1. VERIFICAR ARTÍCULOS
             var articulosCount = await _context.ArticulosPorSolicitud
                 .CountAsync(aps => aps.SolicitudId == solicitudId);
-            
+
             // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
             var experienciasLaborales = await _context.ExperienciasPorSolicitud
                 .Where(eps => eps.SolicitudId == solicitudId)
@@ -1114,6 +1286,10 @@ namespace SIGAD.WebAPI.Controllers
             var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e.PuntajePorcentual) : 0;
             var todasEvaluacionesCumplen = evaluaciones.All(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido);
 
+            // 6. VERIFICAR TESIS DIRIGIDAS
+            var tesisCount = await _context.TesisPorSolicitud
+                .CountAsync(tps => tps.SolicitudId == solicitudId);
+
             // VALIDAR CADA REQUISITO
             if (articulosCount < rango.ArticulosRequeridos)
             {
@@ -1141,6 +1317,12 @@ namespace SIGAD.WebAPI.Controllers
                 requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
             }
 
+            // VALIDAR TESIS DIRIGIDAS
+            if (tesisCount < rango.TesisDirigidasRequeridas)
+            {
+                requisitosFaltantes.Add($"Tesis dirigidas: Tiene {tesisCount}, requiere {rango.TesisDirigidasRequeridas}");
+            }
+
             // Valores actuales y requeridos para mostrar al usuario
             var valoresActuales = new
             {
@@ -1150,7 +1332,8 @@ namespace SIGAD.WebAPI.Controllers
                 mesesInvestigacion = Math.Round(totalMesesInvestigacion, 1),
                 promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
                 totalEvaluaciones = evaluaciones.Count,
-                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido)
+                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido),
+                tesisDirigidas = tesisCount
             };
 
             var valoresRequeridos = new
@@ -1160,7 +1343,8 @@ namespace SIGAD.WebAPI.Controllers
                 horasCursos = rango.HorasCursoRequeridas,
                 mesesInvestigacion = rango.MesesInvestigacionRequeridos,
                 promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
-                rangoNombre = rango.Nombre
+                rangoNombre = rango.Nombre,
+                tesisDirigidas = rango.TesisDirigidasRequeridas
             };
 
             return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
@@ -1282,5 +1466,56 @@ namespace SIGAD.WebAPI.Controllers
                 return (null, "Error al obtener rango");
             }
         }
+
+        /// <summary>
+        /// Verifica si existe una cédula en la base de datos de docentes
+        /// </summary>
+        /// <param name="cedula">Cédula a verificar</param>
+        /// <returns>True si existe, False si no</returns>
+        [HttpGet("cedula-existe/{cedula}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CedulaExiste(string cedula)
+        {
+            if (string.IsNullOrWhiteSpace(cedula) || cedula.Length != 10)
+            {
+                return BadRequest(new { success = false, message = "La cédula debe tener exactamente 10 dígitos" });
+            }
+            var existe = await _context.Docentes.AnyAsync(d => d.Cedula == cedula);
+            return Ok(existe);
+        }
+
+        /// <summary>
+        /// (Opcional) Crea un usuario temporal si la cédula no existe (descomentar para habilitar)
+        /// </summary>
+        /// <param name="model">Datos mínimos para usuario temporal</param>
+        /// <returns>Resultado del registro temporal</returns>
+        /*
+        [HttpPost("registrar-usuario-temporal")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RegistrarUsuarioTemporal([FromBody] RegisterRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .SelectMany(x => x.Value!.Errors)
+                    .Select(x => x.ErrorMessage)
+                    .ToList();
+                return BadRequest(new { success = false, message = "Datos de entrada inválidos", errors });
+            }
+            // Aquí puedes crear un usuario temporal en la tabla que corresponda
+            // Ejemplo:
+            var usuarioTemporal = new SIGAD.Domain.Entities.Docente
+            {
+                Cedula = model.Cedula,
+                Nombre1 = "TEMPORAL",
+                Apellido1 = "TEMPORAL",
+                Correo = model.Correo
+            };
+            _context.Docentes.Add(usuarioTemporal);
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "Usuario temporal creado" });
+        }
+        */
     }
 }

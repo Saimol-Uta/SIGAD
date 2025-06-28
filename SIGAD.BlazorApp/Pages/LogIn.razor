@@ -202,7 +202,8 @@
                     <span>LOGIN</span>
                 }
             </button>
-            <a class="forgot-password">Olvidé mi contraseña</a>
+            <a class="forgot-password" href="/reestablecer">Olvidé mi contraseña</a>
+            <a class="forgot-password" href="/register">Crear cuenta</a>
         </EditForm>
     </div>
 </div>
@@ -299,7 +300,7 @@
         {
             // Error HTTP específico - también cuenta como intento fallido
             await RegistrarIntentoFallido();
-            
+
             if (httpEx.Message.Contains("401"))
             {
                 errorMessage = $"Credenciales incorrectas. Intentos restantes: {MAX_INTENTOS - intentosFallidos}";
@@ -340,7 +341,7 @@
             if (!string.IsNullOrEmpty(tiempoBloqueoStr) && DateTime.TryParse(tiempoBloqueoStr, out var tiempo))
             {
                 tiempoBloqueo = tiempo;
-                
+
                 // Verificar si el bloqueo aún está activo
                 if (DateTime.Now < tiempoBloqueo)
                 {
@@ -362,7 +363,7 @@
     private async Task RegistrarIntentoFallido()
     {
         intentosFallidos++;
-        
+
         // Guardar en localStorage
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "loginAttempts", intentosFallidos.ToString());
 
@@ -371,7 +372,7 @@
             // Bloquear cuenta
             tiempoBloqueo = DateTime.Now.AddMinutes(MINUTOS_BLOQUEO);
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "lockoutTime", tiempoBloqueo.Value.ToString());
-            
+
             IniciarBloqueo();
             errorMessage = $"Cuenta bloqueada por {MINUTOS_BLOQUEO} minutos debido a múltiples intentos fallidos.";
         }
@@ -383,9 +384,9 @@
         tiempoBloqueo = null;
         cuentaBloqueada = false;
         tiempoRestanteSegundos = 0;
-        
+
         temporizadorBloqueo?.Dispose();
-        
+
         // Limpiar localStorage
         await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "loginAttempts");
         await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "lockoutTime");

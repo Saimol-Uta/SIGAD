@@ -1,0 +1,76 @@
+﻿@page "/solicitud-de-ascenso"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISolicitudService SolicitudService
+
+<div class="contenedor">
+    <h2>Solicitud de Ascenso</h2>
+
+    <div class="tarjeta-evidencia" style="--color:#1e3353;">
+        <span>Cursos</span>
+        <button class="boton">Gestionar</button>
+    </div>
+
+    <div class="tarjeta-evidencia" style="--color:#1e3353;">
+        <span>Evaluación</span>
+        <button class="boton">Gestionar</button>
+    </div>
+
+    <div class="tarjeta-evidencia" style="--color:#1e3353;">
+        <span>Investigaciones</span>
+        <button class="boton">Gestionar</button>
+    </div>
+
+    <div class="tarjeta-evidencia" style="--color:#1e3353;">
+        <span>Artículos</span>
+        <button class="boton">Gestionar</button>
+    </div>
+
+    <div class="tarjeta-evidencia" style="--color:#1e3353;">
+        <span>Historiales</span>
+        <button class="boton">Gestionar</button>
+    </div>
+</div>
+
+<style>
+    .contenedor {
+        padding: 2rem;
+        background-color: white;
+    }
+
+    h2 {
+        color: #1e3353;
+        margin-bottom: 1.5rem;
+    }
+
+    .tarjeta-evidencia {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--color);
+        color: white;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 5px;
+    }
+
+    .boton {
+        background-color: #00bcd4;
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .boton:hover {
+        background-color: #0097a7;
+    }
+</style>

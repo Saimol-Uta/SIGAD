@@ -44,6 +44,28 @@ namespace SIGAD.BlazorApp.Services
 
             return loginResponse;
         }
+        public async Task<bool> Register(RegisterRequestDto registerRequest)
+        {
+            // Solo enviar los campos requeridos por el nuevo flujo
+            var apiRequest = new
+            {
+                Correo = registerRequest.Correo,
+                Clave = registerRequest.Clave,
+                Cedula = registerRequest.Cedula
+            };
+            var response = await _httpClient.PostAsJsonAsync("api/Auth/register", apiRequest);
+            return response.IsSuccessStatusCode;
+        }
+
+        // Verifica si la cédula existe en la base de datos
+        public async Task<bool> CedulaExisteAsync(string cedula)
+        {
+            var response = await _httpClient.GetAsync($"api/Auth/cedula-existe/{cedula}");
+            if (!response.IsSuccessStatusCode)
+                return false;
+            var existe = await response.Content.ReadFromJsonAsync<bool>();
+            return existe;
+        }
 
         public async Task Logout()
         {
@@ -51,11 +73,18 @@ namespace SIGAD.BlazorApp.Services
             ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
             _httpClient.DefaultRequestHeaders.Authorization = null;
         }
+        public async Task<bool> RegisterSimple(RegisterSimpleDto registerRequest)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Auth/register-simple", registerRequest);
+            return response.IsSuccessStatusCode;
+        }
     }
-
     public interface IAuthService
     {
         Task<LoginResponseDto?> Login(LoginRequestDto loginRequest);
+        Task<bool> Register(RegisterRequestDto registerRequest);
+        Task<bool> CedulaExisteAsync(string cedula);
         Task Logout();
+        Task<bool> RegisterSimple(RegisterSimpleDto registerRequest);
     }
 }
