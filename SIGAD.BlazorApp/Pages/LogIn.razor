@@ -69,11 +69,16 @@
         margin-bottom: 10px;
     }
 
-    .login-container h2 {
-        font-size: 16px;
+    .login-container h1  {
             color: #7c001c;
         margin-bottom: 30px;
     }
+
+        .login-container h2 {
+            font-size: 16px;
+            color: #7c001c;
+            margin-bottom: 30px;
+        }
 
     .login-input {
         width: 100%;
@@ -114,6 +119,7 @@
         font-size: 0.8em;
         color: #5d0015;
         text-decoration: underline;
+        transition: color 0.3s ease, transform 0.3s ease;
         cursor: pointer;
     }
 
@@ -171,7 +177,6 @@
     <div class="login-container">
         <img src="/images/IconoUser.png" alt="User Icon" />
         <h1>SIGAD</h1>
-        <br />
         <h2>GESTIÓN DE EVENTOS ACADÉMICOS</h2>
 
         <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
