@@ -1,201 +1,187 @@
 # 🎓 SIGAD - Sistema de Gestión Académica Docente
 
-Sistema completo para la gestión de ascensos docentes, desarrollado en .NET Core 9 con SQL Server.
+Sistema completo para la gestión de ascensos docentes universitarios, desarrollado con .NET 9 y SQL Server. Incluye aplicación web Blazor Server y API REST.
 
-## 📋 Características
+## 📋 Características Principales
 
-- ✅ **API REST completa** para gestión de evaluaciones docentes
-- ✅ **Arquitectura limpia** (Domain, Application, Infrastructure, WebAPI)
-- ✅ **Autenticación JWT** con roles (Admin/Docente)
-- ✅ **Manejo de archivos** (PDFs, documentos)
+- ✅ **Aplicación Web Blazor Server** con interfaz moderna y responsiva
+- ✅ **API REST completa** para gestión de documentos académicos
+- ✅ **Arquitectura limpia** (Domain, Application, Infrastructure, WebAPI, BlazorApp)
+- ✅ **Autenticación JWT** con roles diferenciados (Administrador/Docente)
+- ✅ **Gestión completa de documentos:**
+  - 📄 Artículos científicos
+  - 🔬 Proyectos de investigación
+  - 🎓 Cursos y capacitaciones
+  - 📊 Evaluaciones docentes
+  - 💼 Experiencia laboral
+  - 📘 Tesis dirigidas
+- ✅ **Subida y descarga de archivos** (PDF, DOC, DOCX)
+- ✅ **Validación automática de requisitos** para ascensos
 - ✅ **Base de datos SQL Server** con Entity Framework Core
+- ✅ **Migraciones automáticas** de base de datos
 - ✅ **Documentación Swagger** integrada
-- ✅ **Validaciones** y manejo de errores robusto
+- ✅ **Sistema de solicitudes** con flujo de aprobación
 
 ## 🏗️ Arquitectura del Proyecto
 
 ```
 SIGAD/
-├── SIGAD.Domain/           # Entidades y interfaces principales
-├── SIGAD.Application/      # DTOs y servicios de aplicación
-├── SIGAD.Infrastructure/   # Repositorios y contexto de BD
-├── SIGAD.WebAPI/          # Controladores y configuración API
-└── Scripts SQL/           # Scripts de base de datos
+├── SIGAD.Domain/              # 🏛️ Entidades del dominio e interfaces
+│   ├── Entities/              # Entidades principales (Docente, Solicitud, etc.)
+│   ├── Enums/                 # Enumeraciones del sistema
+│   └── Interfaces/            # Interfaces de repositorios
+├── SIGAD.Application/         # 📋 Lógica de aplicación y DTOs
+│   ├── DTOs/                  # Objetos de transferencia de datos
+│   ├── Services/              # Servicios de aplicación
+│   └── Interfaces/            # Interfaces de servicios
+├── SIGAD.Infrastructure/      # 🗄️ Acceso a datos y servicios externos
+│   ├── Persistence/           # Contexto de Entity Framework
+│   ├── Repositories/          # Implementaciones de repositorios
+│   └── Migrations/            # Migraciones de base de datos
+├── SIGAD.WebAPI/             # 🌐 API REST y controladores
+│   ├── Controllers/           # Controladores de la API
+│   ├── Middleware/            # Middleware personalizado
+│   └── uploads/               # Archivos subidos por usuarios
+├── SIGAD.BlazorApp/          # 🖥️ Aplicación web Blazor Server
+│   ├── Pages/                 # Páginas de la aplicación
+│   ├── Components/            # Componentes reutilizables
+│   ├── Layout/                # Layouts de página
+│   └── Services/              # Servicios del cliente
+└── basesExternas/            # 📊 Scripts de bases de datos externas
+    ├── DITIC.sql             # Base de datos de sistemas
+    ├── SGTH.sql              # Base de datos de talento humano
+    └── SUT.sql               # Base de datos académica
 ```
 
-## 🚀 Instalación y Configuración
+## 🚀 Guía de Instalación Completa
 
-### Prerrequisitos
+### 📋 Prerrequisitos
 
-- .NET 9 SDK
-- SQL Server (LocalDB, Express, o Full)
-- Visual Studio 2022 o VS Code
+Antes de comenzar, asegúrate de tener instalado:
 
-### 1. Clonar el repositorio
+- **[.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)** (versión 9.0 o superior)
+- **[SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads)** (LocalDB, Express, Developer, o Full)
+- **[Visual Studio 2022](https://visualstudio.microsoft.com/)** (recomendado) o **[VS Code](https://code.visualstudio.com/)**
+- **[Git](https://git-scm.com/)** para control de versiones
+
+### 🔧 Verificar Instalaciones
+
+Abre una terminal/PowerShell y verifica que tienes todo instalado:
 
 ```bash
-git clone https://github.com/tu-usuario/sigad.git
-cd sigad
+# Verificar .NET
+dotnet --version
+# Debe mostrar 9.0.x
+
+# Verificar SQL Server (LocalDB)
+sqllocaldb info
+# Debe mostrar las instancias disponibles
+
+# Verificar Git
+git --version
 ```
 
-### 2. Configurar la base de datos
 
-1. **Crear la base de datos** ejecutando el script completo de creación de esquema
-2. **Insertar datos de prueba** ejecutando `script_insertar_datos_prueba_completo.sql`
+### 2️⃣ Configurar la Base de Datos
 
-### 3. Configurar la aplicación
+3. **Edita `appsettings.Development.json`** con tus configuraciones:
 
-1. **Copiar archivo de configuración:**
-   ```bash
-   cp appsettings.Example.json appsettings.Development.json
-   ```
-
-2. **Editar `appsettings.Development.json`** con tus datos:
    ```json
    {
      "ConnectionStrings": {
-       "DefaultConnection": "Server=(localdb)\\mssqlocaldb;Database=SISTEMA_DOCENTES;Trusted_Connection=true;TrustServerCertificate=true;"
+       "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=SIGAD_DB;Trusted_Connection=true;MultipleActiveResultSets=true;TrustServerCertificate=true;",
+       "SGTH": "Server=(localdb)\\MSSQLLocalDB;Database=SGTH;Trusted_Connection=true;TrustServerCertificate=true;",
+       "SUT": "Server=(localdb)\\MSSQLLocalDB;Database=SUT;Trusted_Connection=true;TrustServerCertificate=true;",
+       "DITIC": "Server=(localdb)\\MSSQLLocalDB;Database=DITIC;Trusted_Connection=true;TrustServerCertificate=true;"
      },
      "JwtSettings": {
-       "SecretKey": "tu-clave-secreta-muy-larga-y-segura-de-al-menos-32-caracteres"
-     }
+       "SecretKey": "Mi-Clave-Super-Secreta-Para-JWT-Que-Debe-Ser-Muy-Larga-Y-Segura-123456789",
+       "Issuer": "SIGAD-API",
+       "Audience": "SIGAD-Users",
+       "ExpiryMinutes": 60
+     },
+     "Logging": {
+       "LogLevel": {
+         "Default": "Information",
+         "Microsoft.AspNetCore": "Warning"
+       }
+     },
+     "AllowedHosts": "*"
    }
    ```
 
-3. **Crear carpetas de archivos:**
-   ```bash
-   mkdir uploads
-   mkdir uploads/evaluaciones
-   mkdir uploads/articulos
-   mkdir uploads/certificados
-   mkdir uploads/investigaciones
-   ```
-
-### 4. Restaurar dependencias y ejecutar
+### 4️⃣ Restaurar Dependencias
 
 ```bash
+# Desde la carpeta raíz del proyecto
 dotnet restore
-dotnet run --project SIGAD.WebAPI
+
+# Esto descargará todas las dependencias necesarias
 ```
 
-## 🌐 URLs del Sistema
+### 5️⃣ Ejecutar Migraciones de Base de Datos
 
-- **API Base:** `https://localhost:7087/api`
-- **Swagger UI:** `https://localhost:7087/swagger`
-- **Health Check:** `https://localhost:7087/api/health` (si está configurado)
+# Navegar a la carpeta del proyecto API
 
-## 📚 Módulos Implementados
+* Eliminar los archivos de migración si existen
+* Abrir Consola del administrador de paquetes de Visual Studio 2022
+* cambiar el proyecto predeterminado a SIGAD.infrastructure
+* Ejecutar los siguientes comandos:
 
-### ✅ Evaluaciones Docentes
-- CRUD completo de evaluaciones
-- Subida y descarga de archivos PDF
-- Asociación con solicitudes de ascenso
-- Filtros por docente y periodo
-- Exportación a JSON/CSV
+```bash
+Add-Migration InitialSchema -StartupProject SIGAD.WebAPI
 
-### 🔄 Próximos Módulos (En Desarrollo)
-- Gestión de Artículos
-- Gestión de Cursos
-- Experiencia Laboral
-- Investigaciones
-
-## 🧪 Datos de Prueba
-
-El sistema incluye datos de prueba listos para usar:
-
-### Docentes de Prueba:
-- **Juan Carlos Pérez González** (1234567890)
-- **María Isabel Rodríguez López** (0987654321)
-- **Carlos Eduardo Martínez Silva** (1122334455)
-
-### Credenciales de Prueba:
-- **Correo:** `juan.perez@universidad.edu.co`
-- **Contraseña:** `password123`
-
-## 🔧 Endpoints Principales
-
-### Evaluaciones (`/api/evaluaciones`)
-```
-GET    /                      # Obtener todas las evaluaciones
-GET    /{id}                  # Obtener evaluación por ID
-GET    /docente/{cedula}      # Evaluaciones por docente
-POST   /                      # Crear nueva evaluación
-PUT    /{id}                  # Actualizar evaluación
-DELETE /{id}                  # Eliminar evaluación
-GET    /{id}/archivo          # Descargar archivo de evaluación
-GET    /exportar              # Exportar datos
+Update-Database -StartupProject SIGAD.WebAPI
 ```
 
-## 📱 Uso con Swagger
+#### 🔧 Solución de Problemas con Migraciones
 
-1. Navegar a `https://localhost:7087/swagger`
-2. Expandir el endpoint deseado
-3. Hacer clic en "Try it out"
-4. Completar los parámetros requeridos
-5. Ejecutar y revisar la respuesta
+Si encuentras errores con las migraciones:
 
-### Ejemplo de Creación de Evaluación:
-```json
-{
-  "periodoAcademico": "2024-1",
-  "fechaEvaluacion": "2024-01-15",
-  "puntajePorcentual": 85.5,
-  "docenteCedula": "1234567890",
-  "solicitudId": "guid-de-solicitud-existente"
-}
+* Eliminar el contenido en la carpeta `SIGAD.Infrastructure\Migrations`
+* Asegúrate de que la cadena de conexión en `appsettings.Development.json` sea correcta
+* Eliminar la base de datos SISTEMA_DOCENTES en local
+* volver a ejecutar los comandos de migración
+
+```bash
+Add-Migration InitialSchema -StartupProject SIGAD.WebAPI
+
+Update-Database -StartupProject SIGAD.WebAPI
 ```
 
-## 🔐 Seguridad
+### 6️⃣ Ejecutar la Aplicación
 
-- **Autenticación JWT** implementada
-- **Roles de usuario** (ADMINISTRADOR/DOCENTE)
-- **Validación de entrada** en todos los endpoints
-- **Manejo seguro de archivos** con hash SHA256
+#### Ejecutar solo la API
 
-## 📂 Estructura de Archivos
+* Selecciona la carpeta `SIGAD.WebAPI` y establece como proyecto de inicio en Visual Studio o ejecuta desde la terminal:
+```bash
+# Desde SIGAD.WebAPI
+dotnet run
 
-Los archivos subidos se organizan automáticamente:
+# O con hot reload para desarrollo
+dotnet watch run
 ```
-uploads/
-├── evaluaciones/    # Informes de evaluaciones docentes
-├── articulos/       # PDFs de artículos científicos
-├── certificados/    # Certificados de cursos y experiencia
-└── investigaciones/ # Informes de investigación
-```
+#### Ejecutar Usando Visual Studio
 
-## 🐛 Resolución de Problemas
+1. Abrir `SIGAD.sln` en Visual Studio
+2. Configurar múltiples proyectos de inicio:
+   - Click derecho en la solución → "Establecer proyectos de inicio"
+   - Seleccionar "Varios proyectos de inicio"
+   - Establecer `SIGAD.WebAPI` y `SIGAD.BlazorApp` como "Iniciar"
+3. Presionar F5 para ejecutar
 
-### Error de conexión a base de datos
-- Verificar que SQL Server esté ejecutándose
-- Confirmar la cadena de conexión en `appsettings.json`
-- Verificar que la base de datos `SISTEMA_DOCENTES` exista
+## 🌐 URLs y Acceso al Sistema
 
-### Error de archivos no encontrados
-- Verificar que las carpetas `uploads/` existan
-- Confirmar permisos de escritura en la carpeta
+Una vez que la aplicación esté ejecutándose, podrás acceder a:
 
-### Error de descarga de PDFs en Swagger
-- Normal en Swagger UI, probar la URL directa en el navegador
-- Usar Postman para probar descargas de archivos
+### 🖥️ Aplicación Web Principal
+- **URL:** `https://localhost:5001` o `http://localhost:5000`
+- **Descripción:** Interfaz principal para docentes y administradores
 
-## 🤝 Contribución
+### 🔧 API REST
+- **URL Base:** `https://localhost:7087/api` o `http://localhost:5000/api`
+- **Documentación Swagger:** `https://localhost:7087/swagger`
+- **Descripción:** API para integraciones y desarrollo
 
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abrir un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
-
-## 👥 Equipo de Desarrollo
-
-- **Desarrollador Principal:** [Tu Nombre]
-- **Arquitectura:** .NET Core 9 + SQL Server
-- **Patrón:** Clean Architecture
-
----
-
-**📞 Soporte:** Para problemas o preguntas, crear un issue en GitHub.
+### 🏥 Monitoreo (Si está habilitado)
+- **Health Check:** `https://localhost:7087/health`
