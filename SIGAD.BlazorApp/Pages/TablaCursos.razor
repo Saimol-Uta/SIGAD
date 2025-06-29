@@ -1,4 +1,4 @@
-﻿@page "/tabla-articulos"
+﻿@page "/tabla-cursos"
 @using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
 @using SIGAD.BlazorApp.Components
@@ -53,19 +53,19 @@
             }
             else
             {
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
                         <thead style="background-color: #7c001c; color: white;">
-                        <tr style="text-align: left;">
-                            <th style="padding: 12px 20px;">DOI</th>
-                            <th style="padding: 12px 20px;">Título</th>
-                            <th style="padding: 12px 20px;">Revista</th>
-                            <th style="padding: 12px 20px;">Año</th>
-                            <th style="padding: 12px 20px;">Opciones</th>
-                            <th style="padding: 12px 20px;">Seleccionar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                            <tr style="text-align: left;">
+                                <th style="padding: 12px 20px;">DOI</th>
+                                <th style="padding: 12px 20px;">Título</th>
+                                <th style="padding: 12px 20px;">Revista</th>
+                                <th style="padding: 12px 20px;">Año</th>
+                                <th style="padding: 12px 20px;">Opciones</th>
+                                <th style="padding: 12px 20px;">Seleccionar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <!-- FILA DE DATOS ESTÁTICOS PARA PRUEBA -->
                             <tr style="border-bottom: 1px solid #eee; text-align: left;">
                                 <td style="padding: 10px 20px;">10.1234/abcd</td>
@@ -94,9 +94,10 @@
                             </tr>
 
 
-                        @if (Filtradas.Any())
-                        {                            foreach (var solicitud in Filtradas)
+                            @if (Filtradas.Any())
                             {
+                                foreach (var solicitud in Filtradas)
+                                {
                                     <tr style="border-bottom: 1px solid #eee; text-align: left;">
                                         <td style="padding: 10px 20px;">@solicitud.Id</td>
                                         <td style="padding: 10px 20px;">@solicitud.DocenteNombreCompleto</td>
@@ -123,34 +124,35 @@
                                         </td>
                                     </tr>
 
+                                }
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron resultados.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>            </div>
-
-
-            <div class="flex bloque-bajo">
-
-            <!-- PAGINACIÓN -->
-                <div style="display: flex; justify-content: center;">
-                    @for (int i = 1; i <= PaginasTotales; i++)
-                    {
-                        <button @onclick="() => CambiarPagina(i)"
-                                style="margin: 0 4px; padding: 6px 14px; border-radius: 6px; border: none; background: @(paginaActual == i ? "#0a1d44" : "#e0e0e0"); color: @(paginaActual == i ? "white" : "#333"); font-weight: bold; cursor: pointer;">
-                            @i
-                        </button>
-                    }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron resultados.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-                <a href="#" class="btn-continuar flex"> 
+
+
+                <div class="flex bloque-bajo">
+
+                    <!-- PAGINACIÓN -->
+                    <div style="display: flex; justify-content: center;">
+                        @for (int i = 1; i <= PaginasTotales; i++)
+                        {
+                            <button @onclick="() => CambiarPagina(i)"
+                                    style="margin: 0 4px; padding: 6px 14px; border-radius: 6px; border: none; background: @(paginaActual == i ? "#0a1d44" : "#e0e0e0"); color: @(paginaActual == i ? "white" : "#333"); font-weight: bold; cursor: pointer;">
+                                @i
+                            </button>
+                        }
+                    </div>
+                    <a href="#" class="btn-continuar flex">
                         <p>Continuar Proceso</p>
-                </a>
-            </div>
+                    </a>
+                </div>
             }
         </div>
     </div>
@@ -222,11 +224,10 @@
         cursor: pointer;
     }
 
-    .select-documento option {
-        background-color:white;
+        .select-documento option {
+            background-color: white;
             color: #7c001c;
-
-    }
+        }
 
     .bloque-izquierdo {
         display: flex;
@@ -234,20 +235,21 @@
         gap: 60px;
     }
 
-    .bloque-izquierdo h2 {
-        font-size: 36px;
-        font-weight: 00;
-        margin: 0;
-    }
+        .bloque-izquierdo h2 {
+            font-size: 36px;
+            font-weight: 00;
+            margin: 0;
+        }
 
-    .flex, .flex-center{
+    .flex, .flex-center {
         display: flex;
         align-items: center;
-        
     }
+
     .flex {
         justify-content: space-between;
     }
+
     .flex-center {
         justify-content: center;
     }
@@ -261,7 +263,7 @@
     }
 
     .txt-mas {
-        font-weight:900;
+        font-weight: 900;
     }
 
     .bloque-bajo {
@@ -313,7 +315,6 @@
         display: block;
     }
 
-
 </style>
 
 @code {
@@ -335,13 +336,13 @@
     private readonly string[] ESTADOS_EN_PROCESO = new[] { "EnRevision", "En Revisión" };
     private readonly string[] ESTADOS_FINALIZADOS = new[] { "Aprobada", "Rechazada" };
 
-    
+
     protected override async Task OnInitializedAsync()
     {
         await CargarSolicitudes();
     }
-    
-   /*
+
+    /*
     protected override async Task OnInitializedAsync()
     {
         // Simulación para probar paginación
@@ -357,7 +358,7 @@
         ActualizarContadores();
         cargando = false;
         }
-         */
+              */
 
     private async Task CargarSolicitudes()
     {
@@ -368,7 +369,7 @@
             StateHasChanged();
 
             var solicitudesApi = await SolicitudesService.GetAllSolicitudesAsync();
-            
+
             TodasSolicitudes = solicitudesApi;
             ActualizarContadores();
         }
@@ -418,12 +419,12 @@
                     _ => true
                 })
                 .Count();
-            
+
             return (int)Math.Ceiling(totalFiltradas / (double)porPagina);
         }
     }
 
-    private void CambiarPagina(int nueva) => paginaActual = nueva;    private void FiltrarPor(string estadoGrupo)
+    private void CambiarPagina(int nueva) => paginaActual = nueva; private void FiltrarPor(string estadoGrupo)
     {
         estadoSeleccionado = estadoGrupo;
         paginaActual = 1;

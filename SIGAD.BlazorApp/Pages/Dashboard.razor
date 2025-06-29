@@ -409,12 +409,36 @@
         color: #3a3a3a;
     }
 
-    .notifications {
-        display: flex;
+    .notifications a{
+        display: inline-flex;
         align-items: center;
         gap: 10px;
         margin-top: 0.5rem;
+        position: relative;
+        text-decoration: none;
+        color: #930038;
+        padding: 0.25rem 0;
+        cursor: pointer; /* Cambia el cursor a mano */
     }
+
+        .notifications a::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 100%;
+            background-color: #930038; 
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .notifications a:hover::after {
+            transform: scaleX(1);
+        }
+
+
 
     .notifications img {
         width: 24px;
@@ -642,7 +666,7 @@
                 <div style="text-align: center; color: red;">
                     <p>@errorMessage</p>
                     <button @onclick="@(() => Navigation.NavigateTo("/login"))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #86011c; color: white; border: none; border-radius: 4px;">
-                        Volver al Login
+                        Volver al Inicio de Sesión
                     </button>
                 </div>
             </div>
@@ -665,7 +689,9 @@
                     {
                         <span class="badge">@CantidadNotificaciones</span>
                     }
-                    <span>Notificaciones</span>
+                    <a class="notifications" @onclick="@(() => Navigation.NavigateTo("/notificaciones"))">
+                        Notificaciones
+                    </a>
                 </div>
 
             <div class="buttons">
