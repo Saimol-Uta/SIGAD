@@ -11,6 +11,7 @@
 
 <PageTitle>Agregar Curso - SIGAD</PageTitle>
 
+
 <style>
     * {
         margin: 0;
@@ -53,39 +54,13 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
             border: 2px solid #86011c;
-        object-fit: cover;
-    }
-
-    .back-btn, .logout-btn {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: 15px;
-        transition: background-color 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .back-btn {
-        background-color: #6c757d;
-    }
-
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
-
-    .logout-btn:hover {
-        background-color: #c82333;
-    }
+            object-fit: cover;
+        }
 
     .main-content {
         display: flex;
@@ -105,20 +80,20 @@
         margin-top: 2rem;
     }
 
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
+        .form-container h1 {
+            font-size: 2.5rem;
+            font-weight: 500;
             color: #86011c;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
 
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
+        .form-container .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
     .form-group {
         margin-bottom: 1.5rem;
@@ -141,11 +116,11 @@
         transition: border-color 0.3s ease;
     }
 
-    .form-control:focus {
-        outline: none;
+        .form-control:focus {
+            outline: none;
             border-color: #86011c;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
 
     .form-row {
         display: grid;
@@ -162,14 +137,14 @@
         cursor: pointer;
     }
 
-    .file-upload:hover {
+        .file-upload:hover {
             border-color: #86011c;
-    }
+        }
 
-    .file-upload.has-file {
-        border-color: #28a745;
-        background-color: #f8fff9;
-    }
+        .file-upload.has-file {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
 
     .btn {
         padding: 0.75rem 1.5rem;
@@ -183,27 +158,12 @@
         text-align: center;
     }
 
-    .btn-primary-agr {
-        background-color: #86011c;
-        color: white;
-    }
 
-        .btn-primary-agr:hover {
-            background-color: #520212;
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
-    .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
 
     .btn-group {
         display: flex;
