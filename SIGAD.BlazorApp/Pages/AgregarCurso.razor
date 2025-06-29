@@ -183,15 +183,14 @@
         text-align: center;
     }
 
-    .btn-primary {
+    .btn-primary-agr {
         background-color: #86011c;
         color: white;
     }
 
-    .btn-primary:hover {
-            background-color: #56000c;
-    }
-
+        .btn-primary-agr:hover {
+            background-color: #520212;
+        }
     .btn-secondary {
         background-color: #6c757d;
         color: white;
@@ -348,7 +347,7 @@
                                 @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn-primary-agr" disabled="@(enviandoFormulario || archivoFormulario == null)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando curso...</span>
