@@ -1,0 +1,159 @@
+﻿@page "/historial-solicitudes"
+@using Microsoft.AspNetCore.Authorization
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Models
+@attribute [Layout(typeof(EmptyLayout))]
+@inject IJSRuntime JSRuntime
+@inject ISolicitudService SolicitudService
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+<style>
+
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #f4f4f4;
+    }
+
+    .titulo {
+        color: #8B0000; 
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .contenedor {
+        max-width: 800px;
+        margin: 30px auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .card {
+        background-color: #fff;
+        border-left: 6px solid #8B0000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+        .card h3 {
+            color: #8B0000;
+            margin-bottom: 10px;
+        }
+
+    .estado {
+        color: #b22222;
+        font-weight: bold;
+    }
+
+    .observaciones {
+        color: #333;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .comentario {
+        color: #444;
+        background-color: #fbeaea;
+        padding: 10px;
+        border-left: 3px solid #b22222;
+        border-radius: 5px;
+        margin-top: 5px;
+    }
+
+</style>
+<h2 class="titulo">Historial de Solicitudes</h2>
+
+@if (isLoading)
+{
+    <p>Cargando historial...</p>
+}
+else if (solicitudes == null || solicitudes.Count == 0)
+{
+    <div class="mensaje-error">
+        <h3>⚠ No hay solicitudes registradas</h3>
+        <p>Aún no has enviado ninguna solicitud de ascenso.</p>
+    </div>
+}
+else
+{
+    <div class="contenedor">
+        @foreach (var solicitud in solicitudes)
+        {
+            <div class="card">
+                <h3>Solicitud: @solicitud.RangoSolicitadoNombre</h3>
+                <p><strong>Estado:</strong> <span class="estado">@solicitud.Estado</span></p>
+                <p><strong>Fecha de creación:</strong> @solicitud.FechaCreacion.ToShortDateString()</p>
+                @if (solicitud.FechaResolucion != null)
+                {
+                    <p><strong>Fecha de resolución:</strong> @solicitud.FechaResolucion?.ToShortDateString()</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(solicitud.ObservacionesAdmin))
+                {
+                    <details>
+                        <summary class="observaciones">Observaciones del administrador</summary>
+                        <p class="comentario">@solicitud.ObservacionesAdmin</p>
+                    </details>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<SolicitudDetalleDto> solicitudes = new();
+    private bool isLoading = true;
+    private string cedulaDocente = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            cedulaDocente = user.Claims.FirstOrDefault(c => c.Type.Contains("cedula"))?.Value ?? "";
+            if (!string.IsNullOrWhiteSpace(cedulaDocente))
+            {
+                try
+                {
+                    var resultado = await Http.GetFromJsonAsync<List<SolicitudDetalleDto>>(
+         $"api/solicitudes/historial/{cedulaDocente}"
+     );
+
+                    if (resultado != null && resultado.Any())
+                    {
+                        solicitudes = resultado;
+                    }
+                    else
+                    {
+                        solicitudes = new(); // Deja la lista vacía para que se active el mensaje visual
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al obtener historial: {ex.Message}");
+                    solicitudes = new(); // Si ocurre error, también fuerza la lista vacía
+                }
+            }
+        }
+
+        isLoading = false;
+    }
+
+    public class SolicitudDetalleDto
+    {
+        public Guid Id { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+        public DateTime? FechaEnvio { get; set; }
+        public DateTime? FechaResolucion { get; set; }
+        public string? ObservacionesAdmin { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string DocenteNombreCompleto { get; set; } = string.Empty;
+        public string? RangoActualNombre { get; set; }
+        public string RangoSolicitadoNombre { get; set; } = string.Empty;
+    }
+}

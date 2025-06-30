@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace SIGAD.Application.Services
 {
@@ -295,5 +296,29 @@ namespace SIGAD.Application.Services
         {
             return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
         }
+        public async Task<List<SolicitudDetalleDto>> ObtenerHistorialPorDocenteAsync(string docenteCedula)
+        {
+            var solicitudes = await _solicitudRepository.GetHistorialByDocenteAsync(docenteCedula);
+
+            return solicitudes
+                .OrderByDescending(s => s.FechaCreacion)
+                .Select(s => new SolicitudDetalleDto
+                {
+                    Id = s.Id,
+                    Estado = s.Estado.ToString(),
+                    FechaCreacion = s.FechaCreacion,
+                    FechaEnvio = s.FechaEnvio,
+                    FechaResolucion = s.FechaResolucion,
+                    ObservacionesAdmin = s.ObservacionesAdmin,
+                    DocenteCedula = s.DocenteCedula,
+                    DocenteNombreCompleto = s.Docente != null
+                        ? $"{s.Docente.Nombre1} {s.Docente.Nombre2} {s.Docente.Apellido1} {s.Docente.Apellido2}".Replace("  ", " ").Trim()
+                        : "N/A",
+                    RangoActualNombre = s.RangoActual?.Nombre ?? "N/A",
+                    RangoSolicitadoNombre = s.RangoSolicitado?.Nombre ?? "N/A"
+                })
+                .ToList();
+        }
+
     }
 }
