@@ -32,5 +32,10 @@ namespace SIGAD.Application.DTOs
         [Required(ErrorMessage = "El ID de la solicitud es requerido")]
         [Display(Name = "ID de la Solicitud")]
         public Guid SolicitudId { get; set; }
+
+        /// <summary>
+        /// Número de horas de capacitación impartidas por el docente (opcional, para validación de rangos principales)
+        /// </summary>
+        public int? HorasImpartidas { get; set; }
     }
-} 
+}

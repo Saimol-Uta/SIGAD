@@ -96,7 +96,8 @@ namespace SIGAD.Application.Services
                 AnioPublicacion = createDto.AnioPublicacion,
                 DocenteCedula = createDto.DocenteCedula,
                 ArchivoRuta = archivoRuta,
-                ContenidoHash = contenidoHash
+                ContenidoHash = contenidoHash,
+                IdiomaPublicacion = createDto.IdiomaPublicacion // Nuevo campo mapeado
             };
 
             await _articuloRepository.AddAsync(articulo);
@@ -137,6 +138,7 @@ namespace SIGAD.Application.Services
             articulo.Titulo = updateDto.Titulo;
             articulo.Revista = updateDto.Revista;
             articulo.AnioPublicacion = updateDto.AnioPublicacion;
+            articulo.IdiomaPublicacion = updateDto.IdiomaPublicacion; // Nuevo campo mapeado
 
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
@@ -269,8 +271,9 @@ namespace SIGAD.Application.Services
                 DocenteCedula = articulo.DocenteCedula,
                 DocenteNombreCompleto = articulo.Docente != null 
                     ? $"{articulo.Docente.Nombre1} {articulo.Docente.Nombre2 ?? ""} {articulo.Docente.Apellido1} {articulo.Docente.Apellido2}".Trim()
-                    : string.Empty
+                    : string.Empty,
+                IdiomaPublicacion = articulo.IdiomaPublicacion // Exponer en el DTO
             };
         }
     }
-} 
+}

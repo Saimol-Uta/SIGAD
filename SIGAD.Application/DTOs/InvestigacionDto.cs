@@ -39,5 +39,9 @@ namespace SIGAD.Application.DTOs
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
-} 
+}

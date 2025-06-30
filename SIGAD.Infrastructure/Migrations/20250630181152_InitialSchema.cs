@@ -108,7 +108,8 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaVerificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ObservacionesVerificacion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     EsIndexado = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IdiomaPublicacion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -158,7 +159,8 @@ namespace SIGAD.Infrastructure.Migrations
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoCurso = table.Column<int>(type: "int", nullable: false),
-                    ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false)
+                    ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false),
+                    HorasImpartidas = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -248,7 +250,8 @@ namespace SIGAD.Infrastructure.Migrations
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoProyecto = table.Column<int>(type: "int", nullable: false),
                     MesesDeParticipacion = table.Column<int>(type: "int", nullable: false),
-                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    EsInternacional = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {

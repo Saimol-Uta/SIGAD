@@ -351,6 +351,14 @@
                                      rows="4" />
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label">
+                            Idioma de Publicación <span class="required">*</span>
+                        </label>
+                        <InputText @bind-Value="articuloModel.IdiomaPublicacion" class="form-control" placeholder="Ej: Español, Inglés, Francés" />
+                        <ValidationMessage For="@(() => articuloModel.IdiomaPublicacion)" />
+                    </div>
+
                                         <div class="form-group">
                         <label class="form-label">Archivo del Artículo <span class="required">*</span></label>
                         <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx" />
@@ -513,6 +521,7 @@
             content.Add(new StringContent(articuloModel.FechaPublicacion.Year.ToString()), "AnioPublicacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            content.Add(new StringContent(articuloModel.IdiomaPublicacion ?? string.Empty), "IdiomaPublicacion"); // Nuevo campo
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
@@ -593,6 +602,7 @@
         public string DOI { get; set; } = "";
         public string? URL { get; set; }
         public string? Resumen { get; set; }
+        public string? IdiomaPublicacion { get; set; } // Nuevo campo
     }
 
     public class VerifyTokenResponse

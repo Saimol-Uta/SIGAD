@@ -99,11 +99,59 @@ namespace SIGAD.Application.Services
             resultado.Tesis.Actual = tesis.Count(t => t.FechaFin >= fechaInicio);
             resultado.Tesis.Mensaje = $"Tesis Dirigidas: {resultado.Tesis.Actual} de {resultado.Tesis.Requerido}";
 
+            // Artículos en idioma extranjero (para Principal 1→2 y Principal 2→3)
+            int articulosIdiomaExtranjero = 0;
+            bool cumpleArticulosIdiomaExtranjero = true;
+            if (rango.Nombre.Contains("Principal 1 a Principal 2"))
+            {
+                articulosIdiomaExtranjero = articulos.Count(a => a.AnioPublicacion >= fechaInicio.Year && !string.IsNullOrEmpty(a.IdiomaPublicacion) && !a.IdiomaPublicacion.ToLower().Contains("español"));
+                resultado.Articulos.Mensaje += $" | Artículos en idioma extranjero: {articulosIdiomaExtranjero} (mínimo 1)";
+                cumpleArticulosIdiomaExtranjero = articulosIdiomaExtranjero >= 1;
+            }
+            else if (rango.Nombre.Contains("Principal 2 a Principal 3"))
+            {
+                articulosIdiomaExtranjero = articulos.Count(a => a.AnioPublicacion >= fechaInicio.Year && !string.IsNullOrEmpty(a.IdiomaPublicacion) && !a.IdiomaPublicacion.ToLower().Contains("español"));
+                resultado.Articulos.Mensaje += $" | Artículos en idioma extranjero: {articulosIdiomaExtranjero} (mínimo 2)";
+                cumpleArticulosIdiomaExtranjero = articulosIdiomaExtranjero >= 2;
+            }
+
+            // Investigaciones internacionales (para Principal 1→2 y Principal 2→3)
+            int investigacionesInternacionales = 0;
+            bool cumpleInvestigacionesInternacionales = true;
+            if (rango.Nombre.Contains("Principal 1 a Principal 2"))
+            {
+                investigacionesInternacionales = investigaciones.Count(i => i.FechaFinalizacion >= fechaInicio && i.EsInternacional);
+                resultado.Investigaciones.Mensaje += $" | Proyectos internacionales: {investigacionesInternacionales} (mínimo 1)";
+                cumpleInvestigacionesInternacionales = investigacionesInternacionales >= 1;
+            }
+            else if (rango.Nombre.Contains("Principal 2 a Principal 3"))
+            {
+                investigacionesInternacionales = investigaciones.Count(i => i.FechaFinalizacion >= fechaInicio && i.EsInternacional);
+                resultado.Investigaciones.Mensaje += $" | Proyectos internacionales: {investigacionesInternacionales} (mínimo 2)";
+                cumpleInvestigacionesInternacionales = investigacionesInternacionales >= 2;
+            }
+
+            // Horas de capacitación impartidas (para Principal 1→2 y Principal 2→3)
+            int horasImpartidas = 0;
+            bool cumpleHorasImpartidas = true;
+            if (rango.Nombre.Contains("Principal 1 a Principal 2"))
+            {
+                horasImpartidas = cursos.Where(c => c.FechaFinalizacion >= fechaInicio && c.HorasImpartidas.HasValue).Sum(c => c.HorasImpartidas ?? 0);
+                resultado.Cursos.Mensaje += $" | Horas impartidas: {horasImpartidas} (mínimo 40)";
+                cumpleHorasImpartidas = horasImpartidas >= 40;
+            }
+            else if (rango.Nombre.Contains("Principal 2 a Principal 3"))
+            {
+                horasImpartidas = cursos.Where(c => c.FechaFinalizacion >= fechaInicio && c.HorasImpartidas.HasValue).Sum(c => c.HorasImpartidas ?? 0);
+                resultado.Cursos.Mensaje += $" | Horas impartidas: {horasImpartidas} (mínimo 80)";
+                cumpleHorasImpartidas = horasImpartidas >= 80;
+            }
+
             resultado.PuedeAscender = resultado.Antiguedad.Cumple &&
                                       resultado.PromedioEvaluacion.Cumple &&
-                                      resultado.Articulos.Cumple &&
-                                      resultado.Investigaciones.Cumple &&
-                                      resultado.Cursos.Cumple &&
+                                      resultado.Articulos.Cumple && cumpleArticulosIdiomaExtranjero &&
+                                      resultado.Investigaciones.Cumple && cumpleInvestigacionesInternacionales &&
+                                      resultado.Cursos.Cumple && cumpleHorasImpartidas &&
                                       resultado.Tesis.Cumple;
 
             return resultado;
