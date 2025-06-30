@@ -2,6 +2,8 @@
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Domain.Enums;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SIGAD.Application.Services
 {
@@ -17,10 +19,12 @@ namespace SIGAD.Application.Services
     public class TesisDirigidaService : ITesisDirigidaService
     {
         private readonly ITesisDirigidaRepository _repository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TesisDirigidaService(ITesisDirigidaRepository repository)
+        public TesisDirigidaService(ITesisDirigidaRepository repository, IUnitOfWork unitOfWork)
         {
             _repository = repository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IEnumerable<TesisDirigidaDto>> ObtenerPorDocenteAsync(string cedula)
@@ -52,10 +56,12 @@ namespace SIGAD.Application.Services
                 FechaFin = dto.FechaFin,
                 Institucion = dto.Institucion,
                 CertificacionRuta = dto.CertificacionRuta,
-                ContenidoHash = string.Empty // Puedes calcular el hash si es necesario
+                ContenidoHash = GenerarHash(dto) // Generar hash basado en el contenido
             };
 
             await _repository.AddAsync(tesis);
+            await _unitOfWork.SaveChangesAsync(); // ¡Aquí estaba el problema!
+
             return new TesisDirigidaDto
             {
                 Id = tesis.Id,
@@ -73,16 +79,26 @@ namespace SIGAD.Application.Services
         public async Task AsociarASolicitudAsync(Guid solicitudId, int tesisId)
         {
             await _repository.AddToSolicitudAsync(solicitudId, tesisId);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task DesasociarDeSolicitudAsync(Guid solicitudId, int tesisId)
         {
             await _repository.RemoveFromSolicitudAsync(solicitudId, tesisId);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task<bool> ExistePorHashAsync(string hash)
         {
             return await _repository.ExistsByHashAsync(hash);
+        }
+
+        private string GenerarHash(CreateTesisDirigidaDto dto)
+        {
+            var contenido = $"{dto.DocenteCedula}|{dto.TituloTesis}|{dto.NivelAcademico}|{dto.Estado}|{dto.Institucion}|{dto.FechaInicio:yyyy-MM-dd}";
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(contenido));
+            return Convert.ToBase64String(hash);
         }
     }
 }

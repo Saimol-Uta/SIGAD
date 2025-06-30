@@ -673,6 +673,10 @@
                                                 <span class="label">📊 Evaluaciones:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% ✅</span>
                                             </div>
+                                            <div class="requirement-item">
+                                                <span class="label">📘 Tesis Dirigidas:</span>
+                                                <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
+                                            </div>
                                         </div>
 
                                         <div class="submission-actions">
@@ -730,6 +734,13 @@
                                                     @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "✅" : "❌")
                                                 </span>
                                             </div>
+                                            <div class="requirement-item">
+                                                <span class="label">📘 Tesis Dirigidas:</span>
+                                                <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
+                                                    @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
+                                                    @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div class="missing-requirements">
@@ -761,6 +772,7 @@
                                     @if (conteoExperiencias == 0) { <li>Experiencia Laboral</li> }
                                     @if (conteoEvaluaciones == 0) { <li>Evaluaciones</li> }
                                     @if (conteoCursos == 0) { <li>Cursos</li> }
+                                    @if (conteoTesis == 0) { <li>Tesis Dirigidas</li> }
                                 </ul>
                             </div>
                             <div class="submission-actions">
@@ -842,7 +854,8 @@
                                  conteoArticulos > 0 && 
                                  conteoExperiencias > 0 && 
                                  conteoEvaluaciones > 0 && 
-                                 conteoCursos > 0;
+                                 conteoCursos > 0 &&
+                                 conteoTesis > 0;
     }
 
     private async Task VerificarRequisitos()
@@ -1092,7 +1105,7 @@
 {
     try
     {
-        var response = await Http.GetAsync($"api/tesis/docente/{cedula}");
+        var response = await Http.GetAsync($"api/TesisDirigidas/docente/{cedula}");
         if (response.IsSuccessStatusCode)
         {
             var tesis = await response.Content.ReadFromJsonAsync<List<object>>();
@@ -1150,7 +1163,7 @@
 
     try
     {
-        string endpoint = tipoDocumento switch
+        string? endpoint = tipoDocumento switch
 {
     "investigaciones" => $"api/investigaciones/externa/importar/{cedula}",
     "articulos" => $"api/articulos/externos/importar/{cedula}",
@@ -1215,6 +1228,7 @@
                 "experiencias" => $"api/experienciaslaborales/docente/{cedula}",
                 "evaluaciones" => $"api/evaluaciones/docente/{cedula}",
                 "cursos" => $"api/cursos/docente/{cedula}",
+                "tesis" => $"api/TesisDirigidas/docente/{cedula}",
                 _ => ""
             };
 
@@ -1329,6 +1343,7 @@
         public decimal PromedioEvaluaciones { get; set; }
         public int TotalEvaluaciones { get; set; }
         public int EvaluacionesCumplen { get; set; }
+        public int TesisDirigidas { get; set; }
     }
 
     public class ValoresRequeridos
@@ -1339,5 +1354,6 @@
         public int MesesInvestigacion { get; set; }
         public decimal PromedioEvaluaciones { get; set; }
         public string? RangoNombre { get; set; }
+        public int TesisDirigidas { get; set; }
     }
 } 

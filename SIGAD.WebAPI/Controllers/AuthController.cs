@@ -1286,6 +1286,10 @@ namespace SIGAD.WebAPI.Controllers
             var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e.PuntajePorcentual) : 0;
             var todasEvaluacionesCumplen = evaluaciones.All(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido);
 
+            // 6. VERIFICAR TESIS DIRIGIDAS
+            var tesisCount = await _context.TesisPorSolicitud
+                .CountAsync(tps => tps.SolicitudId == solicitudId);
+
             // VALIDAR CADA REQUISITO
             if (articulosCount < rango.ArticulosRequeridos)
             {
@@ -1313,6 +1317,12 @@ namespace SIGAD.WebAPI.Controllers
                 requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
             }
 
+            // VALIDAR TESIS DIRIGIDAS
+            if (tesisCount < rango.TesisDirigidasRequeridas)
+            {
+                requisitosFaltantes.Add($"Tesis dirigidas: Tiene {tesisCount}, requiere {rango.TesisDirigidasRequeridas}");
+            }
+
             // Valores actuales y requeridos para mostrar al usuario
             var valoresActuales = new
             {
@@ -1322,7 +1332,8 @@ namespace SIGAD.WebAPI.Controllers
                 mesesInvestigacion = Math.Round(totalMesesInvestigacion, 1),
                 promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
                 totalEvaluaciones = evaluaciones.Count,
-                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido)
+                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido),
+                tesisDirigidas = tesisCount
             };
 
             var valoresRequeridos = new
@@ -1332,7 +1343,8 @@ namespace SIGAD.WebAPI.Controllers
                 horasCursos = rango.HorasCursoRequeridas,
                 mesesInvestigacion = rango.MesesInvestigacionRequeridos,
                 promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
-                rangoNombre = rango.Nombre
+                rangoNombre = rango.Nombre,
+                tesisDirigidas = rango.TesisDirigidasRequeridas
             };
 
             return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
