@@ -216,7 +216,16 @@
                                                             <td>@articulo.Revista</td>
                                                             <td>@articulo.AnioPublicacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("articulo", articulo.DOI))">Ver Documento</button>
+                                                                @if (!string.IsNullOrEmpty(articulo.DOI))
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("articulo", articulo.DOI, articulo.Titulo))">
+                                                                        <i class="fas fa-eye"></i> Ver Documento
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin archivo</span>
+                                                                }
                                                             </td>
                                                         </tr>
                                                     }
@@ -260,7 +269,9 @@
                                                             <td>@investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>@investigacion.MesesDeInvestigacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("investigacion", investigacion.Id.ToString()))">Ver Informe</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("investigacion", investigacion.Id.ToString(), investigacion.Titulo))">
+                                                                    <i class="fas fa-eye"></i> Ver Informe
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -304,7 +315,9 @@
                                                             <td>@curso.NumeroHoras</td>
                                                             <td>@curso.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("curso", curso.Id.ToString()))">Ver Certificado</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("curso", curso.Id.ToString(), curso.Nombre))">
+                                                                    <i class="fas fa-eye"></i> Ver Certificado
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -386,8 +399,8 @@
                                                             <td>
                                                                 @if (experiencia.TieneCertificado)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">
-                                                                        <i class="fas fa-download"></i> Ver Certificado
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("experiencia", experiencia.Id.ToString(), $"Certificado - {experiencia.OrganizacionNombre}"))">
+                                                                        <i class="fas fa-eye"></i> Ver Certificado
                                                                     </button>
                                                                 }
                                                                 else
@@ -441,7 +454,9 @@
                                                             <td>
                                                                 @if (evaluacion.TieneInforme)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("evaluacion", evaluacion.Id.ToString()))">Ver Informe</button>
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("evaluacion", evaluacion.Id.ToString(), $"Evaluación - {evaluacion.PeriodoAcademico}"))">
+                                                                        <i class="fas fa-eye"></i> Ver Informe
+                                                                    </button>
                                                                 }
                                                                 else
                                                                 {
@@ -658,6 +673,102 @@
     </div>
 </div>
 
+<!-- Modal para visualización de documentos -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentModalLabel">
+                    <i class="fas fa-file-alt"></i> @documentoActual.Titulo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                @if (cargandoDocumento)
+                {
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando documento...</span>
+                        </div>
+                        <div class="mt-3">Cargando documento...</div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(errorDocumento))
+                {
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Error al cargar el documento:</strong> @errorDocumento
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(documentoActual.ContenidoBase64))
+                {
+                    <div class="document-preview">
+                        @if (documentoActual.TipoMime.Contains("pdf"))
+                        {
+                            <!-- Visualización de PDF -->
+                            <div style="height: 70vh;">
+                                <embed src="data:application/pdf;base64,@documentoActual.ContenidoBase64" 
+                                       type="application/pdf" 
+                                       width="100%" 
+                                       height="100%"
+                                       style="border: none;" />
+                            </div>
+                            <div class="alert alert-info m-3">
+                                <i class="fas fa-info-circle"></i> 
+                                Si no se muestra el PDF correctamente, puede 
+                                <button class="btn btn-link p-0" @onclick="() => DescargarDocumentoActual()">descargarlo aquí</button>.
+                            </div>
+                        }
+                        else if (documentoActual.TipoMime.Contains("image"))
+                        {
+                            <!-- Visualización de imágenes -->
+                            <div class="text-center p-3">
+                                <img src="data:@documentoActual.TipoMime;base64,@documentoActual.ContenidoBase64" 
+                                     class="img-fluid" 
+                                     style="max-height: 70vh;" 
+                                     alt="Documento" />
+                            </div>
+                        }
+                        else if (documentoActual.TipoMime.Contains("text"))
+                        {
+                            <!-- Visualización de texto plano -->
+                            <div class="p-3">
+                                <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">@System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(documentoActual.ContenidoBase64))</pre>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Tipo de archivo no compatible para vista previa -->
+                            <div class="alert alert-warning m-3">
+                                <i class="fas fa-eye-slash"></i> 
+                                <strong>Vista previa no disponible</strong> para este tipo de archivo (@documentoActual.TipoMime).
+                                <br>
+                                <button class="btn btn-primary mt-2" @onclick="() => DescargarDocumentoActual()">
+                                    <i class="fas fa-download"></i> Descargar documento
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Tipo: @documentoActual.TipoMime | Tamaño: @(FormatearTamanoArchivo(documentoActual.TamanoBytes))
+                    </small>
+                </div>
+                <button type="button" class="btn btn-outline-primary" @onclick="() => DescargarDocumentoActual()">
+                    <i class="fas fa-download"></i> Descargar
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .page-wrapper {
         display: flex;
@@ -845,6 +956,65 @@
         border: 2px solid #198754;
         background-color: #d1e7dd;
     }
+
+    /* Estilos para el modal de documentos */
+    .modal-xl {
+        max-width: 90%;
+    }
+
+    #documentModal .modal-body {
+        min-height: 60vh;
+        max-height: 80vh;
+    }
+
+    #documentModal .modal-content {
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.175);
+    }
+
+    #documentModal .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    #documentModal .modal-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Estilos para la vista previa de documentos */
+    .document-preview {
+        overflow: auto;
+        height: 100%;
+    }
+
+    .document-preview embed {
+        border-radius: 0.375rem;
+    }
+
+    .document-preview img {
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+    }
+
+    .document-preview pre {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    @@media (max-width: 768px) {
+        .modal-xl {
+            max-width: 95%;
+        }
+        
+        #documentModal .modal-body {
+            min-height: 50vh;
+            max-height: 70vh;
+        }
+    }
 </style>
 
 @code {
@@ -856,7 +1026,12 @@
     private bool procesando = false;
     private string accionSeleccionada = "";
     
-    private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
+    private FormularioDecision formularioDecision = new();
+    
+    // Propiedades para el modal de documentos
+    private bool cargandoDocumento = false;
+    private string? errorDocumento = null;
+    private DocumentoVisualizacion documentoActual = new();    protected override async Task OnInitializedAsync()
     {
         await CargarDetalle();
     }    protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1062,8 +1237,30 @@
 
     private async Task DescargarDocumento(string tipoDocumento, string id)
     {
+        await VisualizarDocumento(tipoDocumento, id);
+    }
+
+    private async Task VisualizarDocumento(string tipoDocumento, string id, string? titulo = null)
+    {
         try
         {
+            cargandoDocumento = true;
+            errorDocumento = null;
+            
+            // Resetear el documento actual
+            documentoActual = new DocumentoVisualizacion
+            {
+                Titulo = titulo ?? $"{ObtenerNombreTipoDocumento(tipoDocumento)} - {id}"
+            };
+
+            // Mostrar el modal
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                var modal = new bootstrap.Modal(document.getElementById('documentModal'));
+                modal.show();
+            ");
+            
+            StateHasChanged();
+
             string endpoint = tipoDocumento.ToLower() switch
             {
                 "articulo" => $"api/articulos/{id}/archivo",
@@ -1076,14 +1273,14 @@
 
             if (string.IsNullOrEmpty(endpoint))
             {
-                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido.");
+                errorDocumento = "Tipo de documento no válido.";
                 return;
             }
 
             // Obtener el token de autenticación
             var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
             
-            // Realizar la descarga usando HttpClient con autenticación
+            // Realizar la petición
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
             if (!string.IsNullOrEmpty(token))
             {
@@ -1097,7 +1294,7 @@
                 var fileBytes = await response.Content.ReadAsByteArrayAsync();
                 var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
                 
-                // Obtener el nombre del archivo desde el header Content-Disposition si existe
+                // Obtener el nombre del archivo
                 var fileName = $"{tipoDocumento}_{id}";
                 if (response.Content.Headers.ContentDisposition?.FileName != null)
                 {
@@ -1112,50 +1309,101 @@
                     fileName += ".docx";
                 }
 
-                // Convertir a Base64 para JavaScript
-                var base64 = Convert.ToBase64String(fileBytes);
-                
-                // Usar JavaScript para descargar el archivo
-                await JSRuntime.InvokeVoidAsync("eval", $@"
-                    const byteCharacters = atob('{base64}');
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {{
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }}
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], {{ type: '{contentType}' }});
-                    
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = '{fileName}';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                ");
+                // Actualizar el documento actual
+                documentoActual = new DocumentoVisualizacion
+                {
+                    Titulo = titulo ?? $"{ObtenerNombreTipoDocumento(tipoDocumento)} - {fileName}",
+                    ContenidoBase64 = Convert.ToBase64String(fileBytes),
+                    TipoMime = contentType,
+                    NombreArchivo = fileName,
+                    TamanoBytes = fileBytes.Length
+                };
             }
             else
             {
-                var errorMessage = response.StatusCode switch
+                errorDocumento = response.StatusCode switch
                 {
                     System.Net.HttpStatusCode.NotFound => "Archivo no encontrado",
                     System.Net.HttpStatusCode.Unauthorized => "No autorizado para acceder a este archivo",
                     _ => $"Error del servidor: {response.StatusCode}"
                 };
-                await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el archivo: {errorMessage}");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el documento: {ex.Message}");
+            errorDocumento = ex.Message;
         }
+        finally
+        {
+            cargandoDocumento = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DescargarDocumentoActual()
+    {
+        if (!string.IsNullOrEmpty(documentoActual.ContenidoBase64))
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                const byteCharacters = atob('{documentoActual.ContenidoBase64}');
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {{
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }}
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {{ type: '{documentoActual.TipoMime}' }});
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = '{documentoActual.NombreArchivo}';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            ");
+        }
+    }
+
+    private string ObtenerNombreTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento.ToLower() switch
+        {
+            "articulo" => "Artículo Científico",
+            "investigacion" => "Informe de Investigación",
+            "curso" => "Certificado de Curso",
+            "experiencia" => "Certificado de Experiencia",
+            "evaluacion" => "Evaluación Docente",
+            _ => "Documento"
+        };
+    }
+
+    private string FormatearTamanoArchivo(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
     }
 
     public class FormularioDecision
     {
         public string? Observaciones { get; set; }
+    }
+
+    public class DocumentoVisualizacion
+    {
+        public string Titulo { get; set; } = "";
+        public string ContenidoBase64 { get; set; } = "";
+        public string TipoMime { get; set; } = "";
+        public string NombreArchivo { get; set; } = "";
+        public long TamanoBytes { get; set; } = 0;
     }
 }
 
@@ -1190,5 +1438,64 @@
     .justify-content-valid {
         border: 2px solid #198754;
         background-color: #d1e7dd;
+    }
+
+    /* Estilos para el modal de documentos */
+    .modal-xl {
+        max-width: 90%;
+    }
+
+    #documentModal .modal-body {
+        min-height: 60vh;
+        max-height: 80vh;
+    }
+
+    #documentModal .modal-content {
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.175);
+    }
+
+    #documentModal .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    #documentModal .modal-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Estilos para la vista previa de documentos */
+    .document-preview {
+        overflow: auto;
+        height: 100%;
+    }
+
+    .document-preview embed {
+        border-radius: 0.375rem;
+    }
+
+    .document-preview img {
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+    }
+
+    .document-preview pre {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    @@media (max-width: 768px) {
+        .modal-xl {
+            max-width: 95%;
+        }
+        
+        #documentModal .modal-body {
+            min-height: 50vh;
+            max-height: 70vh;
+        }
     }
 </style>
