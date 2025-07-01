@@ -9,6 +9,7 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+
 <style>
 
     body {
@@ -64,6 +65,22 @@
     }
 
 </style>
+<header class="header">
+    <div class="branding">
+        <img src="/images/Sena_Colombia_logo.png" alt="SENA Logo" class="logo" />
+    </div>
+    <div class="user-profile">
+        <img src="/images/IconoUser.png" alt="User Avatar" />
+        <span>@nombreUsuario</span>
+        <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+            Volver
+        </button>
+        <button class="logout-btn" @onclick="Logout">
+            Cerrar Sesión
+        </button>
+    </div>
+</header>
+
 <h2 class="titulo">Historial de Solicitudes</h2>
 
 @if (isLoading)
@@ -103,6 +120,42 @@ else
 }
 
 @code {
+    private async Task<string?> ObtenerCedulaUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    return result?.Data?.Cedula;
+                }
+            }
+        }
+        catch
+        {
+            // Silenciar errores
+        }
+        return null;
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+    }
     private List<SolicitudDetalleDto> solicitudes = new();
     private bool isLoading = true;
     private string cedulaDocente = "";
@@ -111,6 +164,9 @@ else
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
+
+        await CargarInformacionUsuario();
+        await VerificarSolicitudActiva();
 
         if (user.Identity?.IsAuthenticated == true)
         {
@@ -156,4 +212,60 @@ else
         public string? RangoActualNombre { get; set; }
         public string RangoSolicitadoNombre { get; set; } = string.Empty;
     }
+
+    
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+    // Variables de estado
+    private string? errorMessage;
+
+    private async Task VerificarSolicitudActiva()
+    {
+        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+        if (string.IsNullOrEmpty(solicitudId))
+        {
+            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+        }
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al cargar información del usuario: " + ex.Message;
+        }
+    }
+
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Nombre1 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? Cedula { get; set; }
+    }
+
+
 }
