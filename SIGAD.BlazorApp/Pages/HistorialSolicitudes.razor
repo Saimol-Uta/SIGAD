@@ -11,7 +11,6 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <style>
-
     body {
         font-family: 'Segoe UI', sans-serif;
         background-color: #f4f4f4;
@@ -47,7 +46,7 @@
         }
 
     .titulo {
-        color: #8B0000; 
+        color: #8B0000;
         text-align: center;
         margin-top: 20px;
     }
@@ -83,7 +82,11 @@
         font-weight: bold;
         cursor: pointer;
     }
-
+    .mensaje-error{
+        border-radius: 5px;
+        border-color: #d30036;
+        background-color: #ffcedb;
+    }
     .comentario {
         color: #444;
         background-color: #fbeaea;
@@ -92,8 +95,8 @@
         border-radius: 5px;
         margin-top: 5px;
     }
-
 </style>
+
 <header class="header">
     <div class="branding">
         <img src="/images/Sena_Colombia_logo.png" alt="SENA Logo" class="logo" />
@@ -101,12 +104,8 @@
     <div class="user-profile">
         <img src="/images/IconoUser.png" alt="User Avatar" />
         <span>@nombreUsuario</span>
-        <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
-            Volver
-        </button>
-        <button class="logout-btn" @onclick="Logout">
-            Cerrar Sesión
-        </button>
+        <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">Volver</button>
+        <button class="logout-btn" @onclick="Logout">Cerrar Sesión</button>
     </div>
 </header>
 
@@ -116,7 +115,7 @@
 {
     <p>Cargando historial...</p>
 }
-else if (solicitudes == null || solicitudes.Count == 0)
+else if (!solicitudes.Any())
 {
     <div class="mensaje-error">
         <h3>⚠ No hay solicitudes registradas</h3>
@@ -149,45 +148,11 @@ else
 }
 
 @code {
-    private async Task<string?> ObtenerCedulaUsuario()
-    {
-        try
-        {
-            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-            if (!string.IsNullOrEmpty(token))
-            {
-                var response = await Http.GetAsync("api/auth/verify");
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
-                    return result?.Data?.Cedula;
-                }
-            }
-        }
-        catch
-        {
-            // Silenciar errores
-        }
-        return null;
-    }
-
-    private async Task Logout()
-    {
-        try
-        {
-            var response = await Http.PostAsync("api/auth/logout", null);
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
-            Navigation.NavigateTo("/login", true);
-        }
-        catch (Exception)
-        {
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
-            Navigation.NavigateTo("/login", true);
-        }
-    }
-    private List<SolicitudDetalleDto> solicitudes = new();
+    private IEnumerable<SolicitudDetalleDto> solicitudes = Enumerable.Empty<SolicitudDetalleDto>();
     private bool isLoading = true;
     private string cedulaDocente = "";
+    private string nombreUsuario = "";
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,59 +169,21 @@ else
             {
                 try
                 {
-                    var resultado = await Http.GetFromJsonAsync<List<SolicitudDetalleDto>>(
-         $"api/solicitudes/historial/{cedulaDocente}"
-     );
+                    var resultado = await Http.GetFromJsonAsync<IEnumerable<SolicitudDetalleDto>>(
+                        $"api/solicitudes/historial/{cedulaDocente}"
+                    );
 
-                    if (resultado != null && resultado.Any())
-                    {
-                        solicitudes = resultado;
-                    }
-                    else
-                    {
-                        solicitudes = new(); // Deja la lista vacía para que se active el mensaje visual
-                    }
+                    solicitudes = resultado ?? Enumerable.Empty<SolicitudDetalleDto>();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error al obtener historial: {ex.Message}");
-                    solicitudes = new(); // Si ocurre error, también fuerza la lista vacía
+                    solicitudes = Enumerable.Empty<SolicitudDetalleDto>();
                 }
             }
         }
 
         isLoading = false;
-    }
-
-    public class SolicitudDetalleDto
-    {
-        public Guid Id { get; set; }
-        public string Estado { get; set; } = string.Empty;
-        public DateTime FechaCreacion { get; set; }
-        public DateTime? FechaEnvio { get; set; }
-        public DateTime? FechaResolucion { get; set; }
-        public string? ObservacionesAdmin { get; set; }
-        public string DocenteCedula { get; set; } = string.Empty;
-        public string DocenteNombreCompleto { get; set; } = string.Empty;
-        public string? RangoActualNombre { get; set; }
-        public string RangoSolicitadoNombre { get; set; } = string.Empty;
-    }
-
-    
-    // Variables para información del usuario
-    private string nombreUsuario = "";
-    // Variables de estado
-    private string? errorMessage;
-
-    private async Task VerificarSolicitudActiva()
-    {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
-        {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-        }
     }
 
     private async Task CargarInformacionUsuario()
@@ -283,6 +210,46 @@ else
         }
     }
 
+    private async Task VerificarSolicitudActiva()
+    {
+        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
+        if (string.IsNullOrEmpty(solicitudId))
+        {
+            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+        }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            var response = await Http.PostAsync("api/auth/logout", null);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error al cerrar sesión: " + ex.Message);
+        }
+
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        Navigation.NavigateTo("/login", true);
+    }
+
+    public class SolicitudDetalleDto
+    {
+        public Guid Id { get; set; }
+        public string Estado { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+        public DateTime? FechaEnvio { get; set; }
+        public DateTime? FechaResolucion { get; set; }
+        public string? ObservacionesAdmin { get; set; }
+        public string DocenteCedula { get; set; } = string.Empty;
+        public string DocenteNombreCompleto { get; set; } = string.Empty;
+        public string? RangoActualNombre { get; set; }
+        public string RangoSolicitadoNombre { get; set; } = string.Empty;
+    }
+
     public class VerifyTokenResponse
     {
         public bool Success { get; set; }
@@ -295,6 +262,4 @@ else
         public string? Apellido1 { get; set; }
         public string? Cedula { get; set; }
     }
-
-
 }
