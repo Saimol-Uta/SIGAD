@@ -296,9 +296,9 @@ namespace SIGAD.Application.Services
         {
             return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
         }
-        public async Task<List<SolicitudDetalleDto>> ObtenerHistorialPorDocenteAsync(string docenteCedula)
+        public async Task<IEnumerable<SolicitudDetalleDto>> ObtenerHistorialPorDocenteAsync(string docenteCedula)
         {
-            var solicitudes = await _solicitudRepository.GetHistorialByDocenteAsync(docenteCedula);
+            var solicitudes = await _solicitudRepository.GetByDocenteAsync(docenteCedula);
 
             return solicitudes
                 .OrderByDescending(s => s.FechaCreacion)
