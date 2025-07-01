@@ -26,7 +26,7 @@ namespace SIGAD.Domain.Interfaces
         Task EnviarSolicitudAsync(Guid solicitudId);
         Task AprobarSolicitudAsync(Guid solicitudId, string? observaciones = null);
         Task RechazarSolicitudAsync(Guid solicitudId, string observaciones);
-        Task<IEnumerable<SolicitudAscenso>> GetHistorialByDocenteAsync(string docenteCedula);
+        
 
         // Métodos para reportes y estadísticas
         Task<int> GetCantidadSolicitudesByEstadoAsync(EstadoSolicitud estado);
