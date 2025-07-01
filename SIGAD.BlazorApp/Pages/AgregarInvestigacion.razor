@@ -11,6 +11,8 @@
 
 <PageTitle>Agregar Investigación - SIGAD</PageTitle>
 
+
+
 <style>
     * {
         margin: 0;
@@ -21,7 +23,7 @@
     body {
         font-family: Arial, sans-serif;
         background-color: #fff;
-        color: #0a1d44;
+        color: #86011c;
         height: 100%;
         overflow-x: hidden;
     }
@@ -53,118 +55,19 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #0a1d44;
-        object-fit: cover;
-    }
-
-    .back-btn, .logout-btn {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: 15px;
-        transition: background-color 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .back-btn {
-        background-color: #6c757d;
-    }
-
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
-
-    .logout-btn:hover {
-        background-color: #c82333;
-    }
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #86011c;
+            object-fit: cover;
+        }
 
     .main-content {
         display: flex;
         justify-content: center;
         padding: 2rem;
         min-height: calc(100vh - 120px);
-    }
-
-    .form-container {
-        background: white;
-        padding: 2rem;
-        max-width: 800px;
-        width: 100%;
-        border: 1px solid #0a1d44;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-top: 1rem;
-    }
-
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        display: block;
-        font-weight: bold;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        font-size: 1rem;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 1rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #0a1d44;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
-
-    .form-control[type="file"] {
-        padding: 0.5rem;
-    }
-
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
     }
 
     .btn {
@@ -179,28 +82,10 @@
         text-align: center;
     }
 
-    .btn-primary {
-        background-color: #0a1d44;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: #09203f;
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
     .btn-group {
         display: flex;
@@ -210,57 +95,32 @@
     }
 
     .alert {
-        padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
+        padding: 1rem;
         border-radius: 4px;
+        margin-bottom: 1rem;
     }
 
     .alert-danger {
-        color: #721c24;
         background-color: #f8d7da;
-        border-color: #f5c6cb;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
     }
 
     .alert-success {
-        color: #155724;
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-    }
-
-    .alert-info {
-        color: #0c5460;
-        background-color: #d1ecf1;
-        border-color: #bee5eb;
-    }
-
-    .file-info {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #666;
+        background-color: #d1e7dd;
+        border: 1px solid #a3cfbb;
+        color: #0f5132;
     }
 
     .triangle-bg {
         position: fixed;
-        top: 115px;
-        right: -75px;
-        height: auto;
-        max-height: 90vh;
-        max-width: 40vw;
-        z-index: 0;
-        object-fit: contain;
-        pointer-events: none;
-        opacity: 0.3;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 2rem;
-        color: #666;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.1;
     }
 
     .required {
@@ -368,14 +228,14 @@
                         <button type="button" class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))" disabled="@enviandoFormulario">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary-agr" disabled="@(enviandoFormulario || archivoFormulario == null)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando...</span>
                             }
                             else
                             {
-                                <span>Guardar Investigación</span>
+                                <span>💾 Guardar Investigación</span>
                             }
                         </button>
                     </div>

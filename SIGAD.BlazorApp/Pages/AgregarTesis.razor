@@ -12,6 +12,7 @@
 
 <PageTitle>Agregar Tesis Dirigida - SIGAD</PageTitle>
 
+
 <style>
     * {
         margin: 0;
@@ -22,7 +23,7 @@
     body {
         font-family: Arial, sans-serif;
         background-color: #fff;
-        color: #0a1d44;
+        color: #86011c;
         height: 100%;
         overflow-x: hidden;
     }
@@ -54,40 +55,13 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #0a1d44;
-        object-fit: cover;
-    }
-
-    .back-btn,
-    .logout-btn {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: 15px;
-        transition: background-color 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .back-btn {
-        background-color: #6c757d;
-    }
-
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
-
-    .logout-btn:hover {
-        background-color: #c82333;
-    }
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #86011c;
+            object-fit: cover;
+        }
 
     .main-content {
         display: flex;
@@ -96,82 +70,6 @@
         min-height: calc(100vh - 120px);
     }
 
-    .form-container {
-        background: white;
-        padding: 2rem;
-        max-width: 800px;
-        width: 100%;
-        border: 1px solid #0a1d44;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-    }
-
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
-
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        display: block;
-        font-weight: bold;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        font-size: 1rem;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 1rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #0a1d44;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .file-upload {
-        border: 2px dashed #ddd;
-        border-radius: 4px;
-        padding: 2rem;
-        text-align: center;
-        transition: border-color 0.3s ease;
-        cursor: pointer;
-    }
-
-    .file-upload:hover {
-        border-color: #0a1d44;
-    }
-
-    .file-upload.has-file {
-        border-color: #28a745;
-        background-color: #f8fff9;
-    }
 
     .btn {
         padding: 0.75rem 1.5rem;
@@ -184,31 +82,12 @@
         display: inline-block;
         text-align: center;
     }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
-    .btn-primary {
-        background-color: #0a1d44;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: #081527;
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .form-actions {
+    .btn-group {
         display: flex;
         gap: 1rem;
         justify-content: center;
@@ -216,100 +95,36 @@
     }
 
     .alert {
-        padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
+        padding: 1rem;
         border-radius: 4px;
-    }
-
-    .alert-success {
-        color: #155724;
-        background-color: #d4edda;
-        border-color: #c3e6cb;
+        margin-bottom: 1rem;
     }
 
     .alert-danger {
-        color: #721c24;
         background-color: #f8d7da;
-        border-color: #f5c6cb;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
     }
 
-    .alert-info {
-        color: #0c5460;
-        background-color: #d1ecf1;
-        border-color: #bee5eb;
+    .alert-success {
+        background-color: #d1e7dd;
+        border: 1px solid #a3cfbb;
+        color: #0f5132;
     }
 
     .triangle-bg {
         position: fixed;
-        top: 115px;
-        right: -75px;
-        height: auto;
-        max-height: 90vh;
-        max-width: 40vw;
-        z-index: 0;
-        object-fit: contain;
-        pointer-events: none;
-        opacity: 0.3;
-    }
-
-    .loading-spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #0a1d44;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.1;
     }
 
     .required {
         color: #dc3545;
-    }
-
-    .form-help {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.25rem;
-    }
-
-    .file-upload {
-        border: 2px dashed #ccc;
-        border-radius: 8px;
-        padding: 2rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background-color: #f8f9fa;
-    }
-
-    .file-upload:hover {
-        border-color: #0a1d44;
-        background-color: #e9ecef;
-    }
-
-    .file-upload.has-file {
-        border-color: #28a745;
-        background-color: #d4edda;
-    }
-
-    .file-upload p {
-        margin: 0.5rem 0;
-        color: #666;
-    }
-
-    .file-upload.has-file p {
-        color: #155724;
     }
 </style>
 
@@ -410,7 +225,7 @@
                     <button type="button" class="btn btn-secondary" @onclick="Cancelar">
                         Cancelar
                     </button>
-                    <button type="submit" class="btn btn-primary" disabled="@guardandoTesis">
+                    <button type="submit" class="btn btn-primary-agr" disabled="@guardandoTesis">
                         @if (guardandoTesis)
                         {
                             <span class="loading-spinner"></span>
