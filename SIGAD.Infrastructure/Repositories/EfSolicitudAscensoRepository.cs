@@ -215,6 +215,37 @@ namespace SIGAD.Infrastructure.Repositories
             }
         }
 
+        // Métodos específicos para el proceso de dos etapas según Reglamento UTA
+        public async Task AprobarPorComisionAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.AprobarPorComision(observaciones);
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
+        public async Task AprobarPorConsejoAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.AprobarPorConsejo(observaciones);
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
+        public async Task FinalizarProcesoAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.FinalizarProceso(observaciones);
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
         public async Task<IEnumerable<SolicitudAscenso>> GetHistorialByDocenteAsync(string docenteCedula)
         {
             return await _context.SolicitudesAscenso

@@ -295,5 +295,38 @@ namespace SIGAD.Application.Services
         {
             return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
         }
+
+        public async Task AprobarPorComisionAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorComision(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task AprobarPorConsejoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorConsejo(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task FinalizarProcesoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.FinalizarProceso(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 }

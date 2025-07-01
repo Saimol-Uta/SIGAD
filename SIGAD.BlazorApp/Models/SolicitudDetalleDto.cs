@@ -17,6 +17,14 @@ namespace SIGAD.BlazorApp.Models
         public List<VerCursoDto> CursosPresentados { get; set; } = new();
         public List<VerExperienciaLaboralDto> ExperienciasLaborales { get; set; } = new();
         public List<VerEvaluacionDocenteDto> EvaluacionesDocente { get; set; } = new();
+
+        // Estados de aprobación según el reglamento UTA
+        public bool AprobadoPorComision { get; set; } = false;
+        public bool AprobadoPorConsejo { get; set; } = false;
+        public DateTime? FechaAprobacionComision { get; set; }
+        public DateTime? FechaAprobacionConsejo { get; set; }
+        public string? ObservacionesComision { get; set; }
+        public string? ObservacionesConsejo { get; set; }
     }
 
     public class VerArticuloDto
