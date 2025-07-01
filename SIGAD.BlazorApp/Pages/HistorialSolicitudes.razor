@@ -95,6 +95,57 @@
         border-radius: 5px;
         margin-top: 5px;
     }
+
+    .contenedor-tabla {
+        overflow-x: auto;
+        margin: 30px auto;
+        max-width: 95%;
+    }
+
+    .tabla-solicitudes {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+        .tabla-solicitudes thead {
+            background-color: #8B0000;
+            color: white;
+        }
+
+        .tabla-solicitudes th, .tabla-solicitudes td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tabla-solicitudes tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+    .btn-aceptar,
+    .btn-rechazar {
+        padding: 6px 12px;
+        margin-right: 5px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .btn-aceptar {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-rechazar {
+        background-color: #dc3545;
+        color: white;
+    }
+
 </style>
 
 <header class="header">
@@ -124,28 +175,50 @@ else if (!solicitudes.Any())
 }
 else
 {
-    <div class="contenedor">
-        @foreach (var solicitud in solicitudes)
-        {
-            <div class="card">
-                <h3>Solicitud: @solicitud.RangoSolicitadoNombre</h3>
-                <p><strong>Estado:</strong> <span class="estado">@solicitud.Estado</span></p>
-                <p><strong>Fecha de creación:</strong> @solicitud.FechaCreacion.ToShortDateString()</p>
-                @if (solicitud.FechaResolucion != null)
+    <div class="contenedor-tabla">
+        <table class="tabla-solicitudes">
+            <thead>
+                <tr>
+                    <th>Rango Solicitado</th>
+                    <th>Estado</th>
+                    <th>Creación</th>
+                    <th>Resolución</th>
+                    <th>Observaciones</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var solicitud in solicitudes)
                 {
-                    <p><strong>Fecha de resolución:</strong> @solicitud.FechaResolucion?.ToShortDateString()</p>
+                    <tr>
+                        <td>@solicitud.RangoSolicitadoNombre</td>
+                        <td><span class="estado">@solicitud.Estado</span></td>
+                        <td>@solicitud.FechaCreacion.ToShortDateString()</td>
+                        <td>@(solicitud.FechaResolucion?.ToShortDateString() ?? "-")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(solicitud.ObservacionesAdmin))
+                            {
+                                <details>
+                                    <summary class="observaciones">Ver</summary>
+                                    <p class="comentario">@solicitud.ObservacionesAdmin</p>
+                                </details>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn-aceptar">Aceptar</button>
+                            <button class="btn-rechazar">Rechazar</button>
+                        </td>
+                    </tr>
                 }
-                @if (!string.IsNullOrWhiteSpace(solicitud.ObservacionesAdmin))
-                {
-                    <details>
-                        <summary class="observaciones">Observaciones del administrador</summary>
-                        <p class="comentario">@solicitud.ObservacionesAdmin</p>
-                    </details>
-                }
-            </div>
-        }
+            </tbody>
+        </table>
     </div>
 }
+
 
 @code {
     private IEnumerable<SolicitudDetalleDto> solicitudes = Enumerable.Empty<SolicitudDetalleDto>();
