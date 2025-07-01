@@ -140,6 +140,14 @@ namespace SIGAD.Application.Services
                 RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
                 RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
 
+                // Campos de aprobación UTA
+                AprobadoPorComision = solicitud.AprobadoPorComision,
+                AprobadoPorConsejo = solicitud.AprobadoPorConsejo,
+                FechaAprobacionComision = solicitud.FechaAprobacionComision,
+                FechaAprobacionConsejo = solicitud.FechaAprobacionConsejo,
+                ObservacionesComision = solicitud.ObservacionesComision,
+                ObservacionesConsejo = solicitud.ObservacionesConsejo,
+
                 ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
                 {
                     DOI = a.Articulo?.DOI ?? "",

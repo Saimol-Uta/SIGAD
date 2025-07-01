@@ -992,7 +992,17 @@
                 if (resultado.success)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", $"✅ {resultado.message}");
+                    
+                    // Debug: Verificar el estado antes de recargar
+                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado antes de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
+                    
+                    // Dar tiempo a la base de datos para procesar la actualización
+                    await Task.Delay(1000);
+                    
                     await CargarDetalle(); // Recargar para mostrar el nuevo estado
+                    
+                    // Debug: Verificar el estado después de recargar
+                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado después de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
                     
                     // Limpiar el formulario
                     formularioDecision.Observaciones = "";
