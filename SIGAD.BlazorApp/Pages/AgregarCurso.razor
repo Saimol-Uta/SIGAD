@@ -4,7 +4,6 @@
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
-@using System.Linq
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -342,7 +341,7 @@
                         {
                             <p>
                                 Archivo actual:
-                                <a href="@($"/uploads/{cursoModel.CertificadoRuta}")" target="_blank">
+                                <a href="@($"https://localhost:7072/uploads/{cursoModel.CertificadoRuta}")" target="_blank">
                                     @Path.GetFileName(cursoModel.CertificadoRuta)
                                 </a>
                             </p>

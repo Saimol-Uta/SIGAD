@@ -152,11 +152,29 @@ namespace SIGAD.Application.Services
                 // Eliminar archivo anterior si existe
                 if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
                 {
-                    var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
-                    var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-                    if (File.Exists(rutaCompleta))
+                    // Intentar eliminar desde múltiples ubicaciones
+                    var rutasAEliminar = new List<string>();
+                    
+                    if (Path.IsPathRooted(experiencia.CertificadoRuta))
                     {
-                        File.Delete(rutaCompleta);
+                        rutasAEliminar.Add(experiencia.CertificadoRuta);
+                    }
+                    else
+                    {
+                        var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
+                        rutasAEliminar.Add(Path.Combine(_uploadsPath, nombreArchivo));
+                        
+                        var baseDirectory = Directory.GetCurrentDirectory();
+                        rutasAEliminar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+                    }
+                    
+                    foreach (var rutaAEliminar in rutasAEliminar)
+                    {
+                        if (File.Exists(rutaAEliminar))
+                        {
+                            File.Delete(rutaAEliminar);
+                            break;
+                        }
                     }
                 }
 
@@ -182,11 +200,29 @@ namespace SIGAD.Application.Services
             // Eliminar archivo si existe
             if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
             {
-                var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
-                var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-                if (File.Exists(rutaCompleta))
+                // Intentar eliminar desde múltiples ubicaciones
+                var rutasAEliminar = new List<string>();
+                
+                if (Path.IsPathRooted(experiencia.CertificadoRuta))
                 {
-                    File.Delete(rutaCompleta);
+                    rutasAEliminar.Add(experiencia.CertificadoRuta);
+                }
+                else
+                {
+                    var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
+                    rutasAEliminar.Add(Path.Combine(_uploadsPath, nombreArchivo));
+                    
+                    var baseDirectory = Directory.GetCurrentDirectory();
+                    rutasAEliminar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+                }
+                
+                foreach (var rutaAEliminar in rutasAEliminar)
+                {
+                    if (File.Exists(rutaAEliminar))
+                    {
+                        File.Delete(rutaAEliminar);
+                        break;
+                    }
                 }
             }
 
@@ -228,7 +264,41 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
-            return await File.ReadAllBytesAsync(experiencia.CertificadoRuta);
+            // Intentar múltiples ubicaciones para el archivo
+            var rutasAIntentar = new List<string>();
+
+            // 1. Si es una ruta completa (archivos nuevos manuales), usar tal como está
+            if (Path.IsPathRooted(experiencia.CertificadoRuta))
+            {
+                rutasAIntentar.Add(experiencia.CertificadoRuta);
+            }
+            else
+            {
+                // 2. Ruta para archivos manuales: uploads/experiencias/nombrearchivo.pdf
+                rutasAIntentar.Add(Path.Combine(_uploadsPath, Path.GetFileName(experiencia.CertificadoRuta)));
+
+                // 3. Ruta para archivos importados: wwwroot/uploads/experiencias/nombrearchivo.pdf
+                var baseDirectory = Directory.GetCurrentDirectory();
+                rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+
+                // 4. Si la ruta contiene la estructura completa, intentar construir ambas variantes
+                if (experiencia.CertificadoRuta.Contains("/") || experiencia.CertificadoRuta.Contains("\\"))
+                {
+                    rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+                    rutasAIntentar.Add(Path.Combine(baseDirectory, experiencia.CertificadoRuta));
+                }
+            }
+
+            // Intentar cada ruta hasta encontrar el archivo
+            foreach (var rutaCompleta in rutasAIntentar)
+            {
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
+            }
+
+            return null;
         }
 
         public async Task<string?> GetNombreArchivoAsync(int id)
@@ -239,6 +309,7 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
+            // Extraer solo el nombre del archivo de la ruta
             return Path.GetFileName(experiencia.CertificadoRuta);
         }
 
@@ -248,6 +319,45 @@ namespace SIGAD.Application.Services
             var fechaFin = experiencia.FechaFin ?? DateTime.Now;
             var diferencia = fechaFin - experiencia.FechaInicio;
             var aniosExperiencia = (decimal)diferencia.TotalDays / 365.25m; // Considerar años bisiestos
+
+            // Validar si el archivo existe físicamente en cualquiera de las ubicaciones
+            string rutaCertificadoValida = string.Empty;
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
+            {
+                var rutasAIntentar = new List<string>();
+
+                // 1. Si es una ruta completa (archivos nuevos manuales), usar tal como está
+                if (Path.IsPathRooted(experiencia.CertificadoRuta))
+                {
+                    rutasAIntentar.Add(experiencia.CertificadoRuta);
+                }
+                else
+                {
+                    // 2. Ruta para archivos manuales
+                    rutasAIntentar.Add(Path.Combine(_uploadsPath, Path.GetFileName(experiencia.CertificadoRuta)));
+
+                    // 3. Ruta para archivos importados
+                    var baseDirectory = Directory.GetCurrentDirectory();
+                    rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+
+                    // 4. Si la ruta contiene la estructura completa
+                    if (experiencia.CertificadoRuta.Contains("/") || experiencia.CertificadoRuta.Contains("\\"))
+                    {
+                        rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
+                        rutasAIntentar.Add(Path.Combine(baseDirectory, experiencia.CertificadoRuta));
+                    }
+                }
+
+                // Verificar si existe en alguna ubicación
+                foreach (var ruta in rutasAIntentar)
+                {
+                    if (File.Exists(ruta))
+                    {
+                        rutaCertificadoValida = experiencia.CertificadoRuta;
+                        break;
+                    }
+                }
+            }
 
             return new ExperienciaLaboralDto
             {
@@ -259,7 +369,7 @@ namespace SIGAD.Application.Services
                 Cargo = experiencia.Cargo,
                 FechaInicio = experiencia.FechaInicio,
                 FechaFin = experiencia.FechaFin,
-                CertificadoRuta = experiencia.CertificadoRuta,
+                CertificadoRuta = rutaCertificadoValida, // Solo rutas válidas
                 ContenidoHash = experiencia.ContenidoHash,
                 AniosExperiencia = Math.Round(aniosExperiencia, 1)
             };
@@ -296,7 +406,7 @@ namespace SIGAD.Application.Services
                 contentHash = Convert.ToHexString(hashBytes);
             }
 
-            // Ruta relativa para la base de datos
+            // Ruta relativa para la base de datos (compatible con sistema de importación)
             var relativePath = Path.Combine("experiencias", nombreArchivo).Replace("\\", "/");
 
             return (relativePath, contentHash);

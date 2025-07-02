@@ -299,7 +299,9 @@
         border: 1px solid #bee5eb;
         color: #0c5460;
     }
+    @if (cargando) { <div style="text-align: center; padding: 40px; color: #666;"> <div style="margin-bottom: 15px;">Cargando @config.Titulo.ToLower()...</div> <div style="font-size: 32px; margin: 0 auto;">🔄</div> </div> }
 
+    
 </style>
 
 @code {
@@ -490,13 +492,13 @@ private string? ObtenerRutaPdf(JsonElement doc, string tipo)
     var pdfRuta = ObtenerRutaPdf(doc, TipoDocumento);
     if (!string.IsNullOrEmpty(pdfRuta))
     {
-        // Para todos los tipos de documentos, usar la lógica existente
+        // Si la ruta ya empieza con /uploads, úsala tal cual. Si no, antepón /uploads/
         var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
             ? pdfRuta
             : $"/uploads/{pdfRuta.TrimStart('/')}";
-        
+
+        // Construir la URL absoluta al backend (puerto 7072)
         var backendUrl = $"https://localhost:7072{relativePath}";
-        
         await JSRuntime.InvokeVoidAsync("window.open", backendUrl, "_blank");
     }
     else
@@ -511,7 +513,7 @@ private string ObtenerEndpointEliminar(string tipo, string id)
     return tipo switch
     {
         "investigaciones" => $"api/investigaciones/{id}",
-        "articulos" => $"api/articulos/{id}",
+        "articulos" => $"api/articulos/{Uri.EscapeDataString(id)}", // Escapar caracteres especiales del DOI
         "tesis" => $"api/TesisDirigidas/{id}",
         "experiencias" => $"api/experienciaslaborales/{id}",
         "cursos" => $"api/cursos/{id}",
@@ -535,9 +537,7 @@ private async Task EditarDocumento(JsonElement doc)
                 Navigation.NavigateTo($"/editar-curso/{id}");
                 break;
             case "articulos":
-                // Para artículos, codificar el DOI para la URL
-                var encodedDoi = Uri.EscapeDataString(id);
-                Navigation.NavigateTo($"/editar-articulo/{encodedDoi}");
+                Navigation.NavigateTo($"/editar-articulo/{Uri.EscapeDataString(id)}");
                 break;
             case "investigaciones":
                 Navigation.NavigateTo($"/editar-investigacion/{id}");
@@ -577,9 +577,7 @@ private async Task EliminarDocumento(JsonElement doc)
             return;
         }
 
-        // Para artículos, codificar el DOI
-        var encodedId = TipoDocumento == "articulos" ? Uri.EscapeDataString(id) : id;
-        var endpoint = ObtenerEndpointEliminar(TipoDocumento, encodedId);
+        var endpoint = ObtenerEndpointEliminar(TipoDocumento, id);
         var response = await Http.DeleteAsync(endpoint);
 
         if (response.IsSuccessStatusCode)
@@ -733,27 +731,24 @@ private async Task EliminarDocumento(JsonElement doc)
     }
     private string? ObtenerIdDocumento(JsonElement doc, string tipo)
 {
-    switch (tipo)
+    // Para artículos, usar el DOI como identificador
+    if (tipo == "articulos")
     {
-        case "articulos":
-            // Para artículos, el identificador es el DOI
-            if (doc.TryGetProperty("doi", out var doiElement))
-            {
-                return doiElement.GetString();
-            }
-            break;
-        
-        default:
-            // Para otros tipos de documentos, usar el campo "id"
-            if (doc.TryGetProperty("id", out var idElement))
-            {
-                // Si el id es un número, conviértelo a string
-                if (idElement.ValueKind == JsonValueKind.Number)
-                    return idElement.GetInt32().ToString();
-                if (idElement.ValueKind == JsonValueKind.String)
-                    return idElement.GetString();
-            }
-            break;
+        if (doc.TryGetProperty("doi", out var doiElement) && doiElement.ValueKind == JsonValueKind.String)
+        {
+            return doiElement.GetString();
+        }
+        return null;
+    }
+    
+    // Para otros tipos, usar el campo "id"
+    if (doc.TryGetProperty("id", out var idElement))
+    {
+        // Si el id es un número, conviértelo a string
+        if (idElement.ValueKind == JsonValueKind.Number)
+            return idElement.GetInt32().ToString();
+        if (idElement.ValueKind == JsonValueKind.String)
+            return idElement.GetString();
     }
     return null;
 }

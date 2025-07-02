@@ -41,10 +41,14 @@ namespace SIGAD.WebAPI.Controllers
                                 .Concat(await _sut.ObtenerExperienciasAsync(cedula))
                                 .DistinctBy(e => e.ContenidoHash);
 
+                Console.WriteLine($"Encontradas {externos.Count()} experiencias externas para cédula {cedula}");
+
                 int insertados = 0;
 
                 foreach (var dto in externos)
                 {
+                    Console.WriteLine($"Procesando experiencia: {dto.Organizacion}, PDF: {(dto.PdfDocumento?.Length ?? 0)} bytes");
+                    
                     // Validar que el DTO tenga datos válidos
                     if (string.IsNullOrEmpty(dto.ContenidoHash) || string.IsNullOrEmpty(dto.Organizacion))
                         continue;
@@ -64,12 +68,17 @@ namespace SIGAD.WebAPI.Controllers
                                     "experiencias", 
                                     identificador
                                 );
+                                Console.WriteLine($"PDF procesado exitosamente para experiencia {dto.Organizacion}. Ruta: {rutaArchivoLocal}");
                             }
                             catch (Exception ex)
                             {
                                 // Log error pero continúa con la importación sin archivo
                                 Console.WriteLine($"Error procesando PDF para experiencia {dto.Organizacion}: {ex.Message}");
                             }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"No hay PDF para experiencia {dto.Organizacion}");
                         }
 
                         // Buscar o crear la organización
@@ -87,11 +96,13 @@ namespace SIGAD.WebAPI.Controllers
                             Cargo = dto.Cargo,
                             FechaInicio = dto.FechaInicio,
                             FechaFin = dto.FechaFin,
-                            // Usar la ruta local si se procesó el PDF, sino la ruta original
-                            CertificadoRuta = rutaArchivoLocal ?? dto.CertificadoRuta ?? "",
+                            // Solo usar ruta local si se procesó el PDF, sino dejar vacío
+                            CertificadoRuta = rutaArchivoLocal ?? "",
                             ContenidoHash = dto.ContenidoHash,
                             DocenteCedula = docente.Cedula
                         };
+
+                        Console.WriteLine($"Guardando experiencia {dto.Organizacion} con ruta: '{experiencia.CertificadoRuta}'");
 
                         await _unitOfWork.Experiencias.AgregarAsync(experiencia);
                         insertados++;
