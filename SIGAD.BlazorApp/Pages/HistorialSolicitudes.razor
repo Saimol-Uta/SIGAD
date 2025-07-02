@@ -209,10 +209,10 @@ else
                             }
                         </td>
                         <td>
-                            @if (solicitud.Estado == "Rechazado")
+                            @if (solicitud.Estado == "Rechazada")
                             {
                                 <button class="btn-aceptar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Aceptar</button>
-                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo("/apelar-solicitud"))">Apelar</button>
+                                <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)">Apelar</button>
                                 <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)">Ver Detalles</button>
                             }
                             else
