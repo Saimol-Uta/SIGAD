@@ -158,9 +158,11 @@ namespace SIGAD.Application.Services
             // Actualizar propiedades básicas
             cursoExistente.Nombre = actualizarCursoDto.Nombre;
             cursoExistente.OrganizacionId = actualizarCursoDto.OrganizacionId;
+            cursoExistente.NumeroHoras = actualizarCursoDto.NumeroHoras;
             cursoExistente.FechaFinalizacion = actualizarCursoDto.FechaFinalizacion;
             cursoExistente.DocenteCedula = actualizarCursoDto.DocenteCedula;
             cursoExistente.TipoCurso = Enum.Parse<TipoCurso>(actualizarCursoDto.TipoCurso);
+            cursoExistente.ImpartidoPorDocente = actualizarCursoDto.ImpartidoPorDocente;
             cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas; // <-- Nuevo campo actualizado
 
             // Si se proporciona nuevo certificado

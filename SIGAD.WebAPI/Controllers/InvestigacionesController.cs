@@ -9,10 +9,12 @@ namespace SIGAD.WebAPI.Controllers
     public class InvestigacionesController : ControllerBase
     {
         private readonly IInvestigacionService _investigacionService;
+        private readonly ILogger<InvestigacionesController> _logger;
 
-        public InvestigacionesController(IInvestigacionService investigacionService)
+        public InvestigacionesController(IInvestigacionService investigacionService, ILogger<InvestigacionesController> logger)
         {
             _investigacionService = investigacionService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -193,6 +195,105 @@ namespace SIGAD.WebAPI.Controllers
             catch (FileNotFoundException ex)
             {
                 return NotFound(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Asocia una investigación a una solicitud de ascenso
+        /// </summary>
+        /// <param name="id">ID de la investigación</param>
+        /// <param name="request">Datos de la solicitud</param>
+        /// <returns>Resultado de la asociación</returns>
+        [HttpPost("{id}/asociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AsociarInvestigacionASolicitud(int id, [FromBody] AsociarInvestigacionSolicitudDto request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .SelectMany(x => x.Value!.Errors)
+                        .Select(x => x.ErrorMessage)
+                        .ToList();
+
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos de entrada inválidos",
+                        errors = errors
+                    });
+                }
+
+                // Crear el DTO con los datos del request
+                var asociarDto = new AsociarInvestigacionSolicitudDto
+                {
+                    InvestigacionId = id,
+                    SolicitudId = request.SolicitudId
+                };
+
+                var result = await _investigacionService.AsociarInvestigacionASolicitudAsync(asociarDto);
+                if (!result)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No se pudo asociar la investigación a la solicitud. Verifique que ambos existan y no estén ya asociados."
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigación asociada a la solicitud exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al asociar investigación {InvestigacionId} a solicitud {SolicitudId}", 
+                    id, request.SolicitudId);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desasocia una investigación de una solicitud de ascenso
+        /// </summary>
+        /// <param name="solicitudId">ID de la solicitud</param>
+        /// <param name="investigacionId">ID de la investigación</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{investigacionId}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarInvestigacionDeSolicitud(Guid solicitudId, int investigacionId)
+        {
+            try
+            {
+                await _investigacionService.DesasociarInvestigacionDeSolicitudAsync(solicitudId, investigacionId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigación desasociada de la solicitud exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar investigación {InvestigacionId} de solicitud {SolicitudId}", 
+                    investigacionId, solicitudId);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
             }
         }
     }

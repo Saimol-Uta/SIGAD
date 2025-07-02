@@ -1258,33 +1258,48 @@ namespace SIGAD.WebAPI.Controllers
 
             var totalAniosExperiencia = CalcularTotalAniosExperiencia(experienciasLaborales);
 
-            // 3. VERIFICAR HORAS DE CURSOS (suma total)
+            // 3. VERIFICAR HORAS DE CURSOS SEGÚN EL RANGO SOLICITADO
             var cursos = await _context.CursosPorSolicitud
                 .Where(cps => cps.SolicitudId == solicitudId)
                 .Include(cps => cps.Curso)
                 .Select(cps => cps.Curso)
                 .ToListAsync();
 
-            var totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+            int totalHorasCursos = 0;
+            
+            // Para rangos 4 y superiores (Agregado 3, Principal 1, 2, 3): usar horas impartidas
+            if (rango.Id >= 5) // Asumiendo que rango 5+ son los avanzados
+            {
+                totalHorasCursos = cursos
+                    .Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue)
+                    .Sum(c => c.HorasImpartidas ?? 0);
+            }
+            else
+            {
+                // Para rangos 1, 2, 3 (Auxiliar 1, 2 y Agregado 1, 2): usar horas de capacitación recibida
+                totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+            }
 
-            // 4. VERIFICAR MESES DE INVESTIGACIÓN (suma total)
+            // 4. VERIFICAR MESES DE INVESTIGACIÓN SEGÚN REGLAMENTO UTA (con multiplicadores por rol y proyectos internacionales)
             var investigaciones = await _context.InvestigacionesPorSolicitud
                 .Where(ips => ips.SolicitudId == solicitudId)
                 .Include(ips => ips.Investigacion)
                 .Select(ips => ips.Investigacion)
                 .ToListAsync();
 
-            var totalMesesInvestigacion = CalcularTotalMesesInvestigacion(investigaciones);
+            var resultadoInvestigacion = CalcularMesesInvestigacionConReglamento(investigaciones, rango);
+            var totalMesesInvestigacion = resultadoInvestigacion.mesesTotales;
+            var cumpleRequisitosInternacionales = resultadoInvestigacion.cumpleInternacionales;
 
-            // 5. VERIFICAR PROMEDIO DE EVALUACIONES (todas deben cumplir el mínimo)
+            // 5. VERIFICAR EVALUACIONES DOCENTES (al menos 75% promedio mínimo)
             var evaluaciones = await _context.EvaluacionesPorSolicitud
                 .Where(evps => evps.SolicitudId == solicitudId)
                 .Include(evps => evps.Evaluacion)
                 .Select(evps => evps.Evaluacion)
                 .ToListAsync();
 
-            var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e.PuntajePorcentual) : 0;
-            var todasEvaluacionesCumplen = evaluaciones.All(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido);
+            var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e?.PuntajePorcentual ?? 0) : 0;
+            var todasEvaluacionesCumplen = evaluaciones.All(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido);
 
             // 6. VERIFICAR TESIS DIRIGIDAS
             var tesisCount = await _context.TesisPorSolicitud
@@ -1303,7 +1318,8 @@ namespace SIGAD.WebAPI.Controllers
 
             if (totalHorasCursos < rango.HorasCursoRequeridas)
             {
-                requisitosFaltantes.Add($"Horas de cursos: Tiene {totalHorasCursos}, requiere {rango.HorasCursoRequeridas}");
+                string tipoHoras = rango.Id >= 5 ? "impartidas" : "de capacitación";
+                requisitosFaltantes.Add($"Horas {tipoHoras} en cursos: Tiene {totalHorasCursos}, requiere {rango.HorasCursoRequeridas}");
             }
 
             if (totalMesesInvestigacion < rango.MesesInvestigacionRequeridos)
@@ -1311,9 +1327,31 @@ namespace SIGAD.WebAPI.Controllers
                 requisitosFaltantes.Add($"Meses de investigación: Tiene {totalMesesInvestigacion:F1}, requiere {rango.MesesInvestigacionRequeridos}");
             }
 
-            if (!todasEvaluacionesCumplen || promedioEvaluaciones < rango.PuntajePromedioEvaluacionesRequerido)
+            // Validar proyectos internacionales para rangos Principal
+            if (!cumpleRequisitosInternacionales)
             {
-                var evaluacionesIncumplidas = evaluaciones.Where(e => e.PuntajePorcentual < rango.PuntajePromedioEvaluacionesRequerido).Count();
+                if (rango.Id == 6) // Principal 1
+                {
+                    requisitosFaltantes.Add("Principal 1: Debe tener al menos 1 proyecto internacional dirigido/codirigido");
+                }
+                else if (rango.Id == 7) // Principal 2
+                {
+                    requisitosFaltantes.Add("Principal 2: Debe tener al menos 1 proyecto internacional dirigido/codirigido (24 meses mínimo)");
+                }
+                else if (rango.Id == 8) // Principal 3
+                {
+                    requisitosFaltantes.Add("Principal 3: Debe tener al menos 2 proyectos internacionales dirigidos/codirigidos (36 meses mínimo)");
+                }
+            }
+
+            // VALIDAR EVALUACIONES DOCENTES (solo verificar promedio mínimo)
+            if (evaluaciones.Count == 0)
+            {
+                requisitosFaltantes.Add($"Evaluaciones: No tiene evaluaciones asociadas a esta solicitud");
+            }
+            else if (!todasEvaluacionesCumplen || promedioEvaluaciones < rango.PuntajePromedioEvaluacionesRequerido)
+            {
+                var evaluacionesIncumplidas = evaluaciones.Where(e => (e?.PuntajePorcentual ?? 0) < rango.PuntajePromedioEvaluacionesRequerido).Count();
                 requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
             }
 
@@ -1330,9 +1368,11 @@ namespace SIGAD.WebAPI.Controllers
                 aniosExperiencia = Math.Round(totalAniosExperiencia, 1),
                 horasCursos = totalHorasCursos,
                 mesesInvestigacion = Math.Round(totalMesesInvestigacion, 1),
+                proyectosInternacionales = resultadoInvestigacion.proyectosInternacionales,
+                cumpleRequisitosInternacionales = cumpleRequisitosInternacionales,
                 promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
                 totalEvaluaciones = evaluaciones.Count,
-                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido),
+                evaluacionesCumplen = evaluaciones.Count(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido),
                 tesisDirigidas = tesisCount
             };
 
@@ -1342,9 +1382,12 @@ namespace SIGAD.WebAPI.Controllers
                 aniosExperiencia = rango.AniosExperienciaRequeridos,
                 horasCursos = rango.HorasCursoRequeridas,
                 mesesInvestigacion = rango.MesesInvestigacionRequeridos,
+                proyectosInternacionalesRequeridos = GetProyectosInternacionalesRequeridos(rango.Id),
                 promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
                 rangoNombre = rango.Nombre,
-                tesisDirigidas = rango.TesisDirigidasRequeridas
+                tesisDirigidas = rango.TesisDirigidasRequeridas,
+                notaEvaluaciones = "Pueden incluir las evaluaciones que consideren apropiadas, con promedio mínimo requerido",
+                notaInvestigacion = "Coordinador Principal = 2x tiempo, Coordinador Subrogante = 1.5x tiempo"
             };
 
             return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
@@ -1382,6 +1425,94 @@ namespace SIGAD.WebAPI.Controllers
             }
 
             return totalMeses;
+        }
+
+        /// <summary>
+        /// Calcula meses de investigación aplicando multiplicadores según el reglamento UTA y valida proyectos internacionales
+        /// </summary>
+        /// <param name="investigaciones">Lista de investigaciones</param>
+        /// <param name="rango">Rango solicitado</param>
+        /// <returns>Tupla con meses totales, cantidad de proyectos internacionales y si cumple requisitos</returns>
+        private (decimal mesesTotales, int proyectosInternacionales, bool cumpleInternacionales) CalcularMesesInvestigacionConReglamento(
+            List<SIGAD.Domain.Entities.Investigacion> investigaciones, 
+            SIGAD.Domain.Entities.Rango rango)
+        {
+            decimal totalMeses = 0;
+            int proyectosInternacionales = 0;
+            decimal mesesInternacionales = 0;
+
+            foreach (var inv in investigaciones)
+            {
+                decimal mesesConMultiplicador = inv.MesesDeParticipacion;
+
+                // Aplicar multiplicadores según el rol en investigación
+                switch (inv.RolEnInvestigacion?.ToUpper())
+                {
+                    case "COORDINADOR PRINCIPAL":
+                    case "DIRECTOR":
+                    case "INVESTIGADOR PRINCIPAL":
+                        mesesConMultiplicador *= 2.0m; // Doble tiempo
+                        break;
+                    case "COORDINADOR SUBROGANTE":
+                    case "CODIRECTOR":
+                    case "INVESTIGADOR SUBROGANTE":
+                        mesesConMultiplicador *= 1.5m; // 1.5x tiempo
+                        break;
+                    default:
+                        // Investigador regular: 1x tiempo (sin multiplicador)
+                        break;
+                }
+
+                totalMeses += mesesConMultiplicador;
+
+                // Contar proyectos internacionales
+                if (inv.EsInternacional)
+                {
+                    proyectosInternacionales++;
+                    mesesInternacionales += mesesConMultiplicador;
+                }
+            }
+
+            // Validar requisitos internacionales según el rango
+            bool cumpleInternacionales = true;
+            
+            switch (rango.Id)
+            {
+                case 6: // Principal 1 → Principal 2
+                    // Requiere al menos 1 proyecto internacional
+                    cumpleInternacionales = proyectosInternacionales >= 1;
+                    break;
+                case 7: // Principal 2 → Principal 3  
+                    // Requiere al menos 1 proyecto internacional con 24+ meses
+                    cumpleInternacionales = proyectosInternacionales >= 1 && mesesInternacionales >= 24;
+                    break;
+                case 8: // Principal 3
+                    // Requiere al menos 2 proyectos internacionales con 36+ meses total
+                    cumpleInternacionales = proyectosInternacionales >= 2 && mesesInternacionales >= 36;
+                    break;
+                default:
+                    // Para otros rangos no se requieren proyectos internacionales
+                    cumpleInternacionales = true;
+                    break;
+            }
+
+            return (totalMeses, proyectosInternacionales, cumpleInternacionales);
+        }
+
+        /// <summary>
+        /// Obtiene la cantidad de proyectos internacionales requeridos según el rango
+        /// </summary>
+        /// <param name="rangoId">ID del rango</param>
+        /// <returns>Cantidad de proyectos internacionales requeridos</returns>
+        private int GetProyectosInternacionalesRequeridos(int rangoId)
+        {
+            return rangoId switch
+            {
+                6 => 1, // Principal 1
+                7 => 1, // Principal 2 (con al menos 24 meses)
+                8 => 2, // Principal 3 (con al menos 36 meses total)
+                _ => 0  // Otros rangos no requieren proyectos internacionales
+            };
         }
 
         /// <summary>

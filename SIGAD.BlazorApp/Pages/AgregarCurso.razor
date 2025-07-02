@@ -2,8 +2,6 @@
 @page "/editar-curso/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
-@using SIGAD.BlazorApp.Layout
-@using SIGAD.BlazorApp.Services
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -300,13 +298,41 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">
-                                Horas Impartidas <span class="required">*</span>
+                            <label class="form-label checkbox-label">
+                                <InputCheckbox @bind-Value="cursoModel.ImpartidoPorDocente" 
+                                             class="form-check-input"
+                                             @onchange="OnImpartidoPorDocenteChange" />
+                                ¿Es un curso impartido por usted? 
+                                <small class="text-muted">(Marque si usted dictó este curso)</small>
                             </label>
-                            <InputNumber @bind-Value="cursoModel.HorasImpartidas" class="form-control"
-                                         placeholder="Ej: 20" min="1" max="1000" />
-                            <ValidationMessage For="@(() => cursoModel.HorasImpartidas)" />
                         </div>
+                    </div>
+
+                    <div class="form-row">
+                        @if (cursoModel.ImpartidoPorDocente)
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Impartidas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasImpartidas" class="form-control"
+                                             placeholder="Ej: 20" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasImpartidas)" />
+                                <small class="text-muted">Horas que usted impartió como instructor</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Número de Horas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.NumeroHoras" class="form-control"
+                                             placeholder="Ej: 40" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.NumeroHoras)" />
+                                <small class="text-muted">Horas de capacitación que usted recibió</small>
+                            </div>
+                        }
                         <div class="form-group">
                             <label class="form-label">
                                 Tipo de Curso <span class="required">*</span>
@@ -522,7 +548,9 @@
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(cursoModel.Nombre), "Nombre");
                 content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
-                content.Add(new StringContent(cursoModel.HorasImpartidas.ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
+                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
                 content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
                 content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
@@ -565,7 +593,9 @@
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(cursoModel.Nombre), "Nombre");
                 content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
-                content.Add(new StringContent(cursoModel.HorasImpartidas.ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
+                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
                 content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
                 content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
@@ -638,6 +668,23 @@
         }
     }
 
+    private void OnImpartidoPorDocenteChange(ChangeEventArgs e)
+    {
+        cursoModel.ImpartidoPorDocente = (bool)(e.Value ?? false);
+        
+        // Resetear valores cuando cambia el tipo
+        if (cursoModel.ImpartidoPorDocente)
+        {
+            cursoModel.NumeroHoras = 0; // Limpiar horas de capacitación
+        }
+        else
+        {
+            cursoModel.HorasImpartidas = 0; // Limpiar horas impartidas
+        }
+        
+        StateHasChanged(); // Refrescar la UI
+    }
+
     // Modelos
     public class CursoModel
     {
@@ -645,7 +692,9 @@
         public string Nombre { get; set; } = "";
         public DateTime FechaInicio { get; set; } = DateTime.Today;
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddDays(30);
-        public int HorasImpartidas { get; set; } = 0;
+        public int NumeroHoras { get; set; } = 0;
+        public int? HorasImpartidas { get; set; } = 0;
+        public bool ImpartidoPorDocente { get; set; } = false;
         public int? OrganizacionId { get; set; }
         public string TipoCurso { get; set; } = "";
         public string? CertificadoRuta { get; set; }

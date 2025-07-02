@@ -19,5 +19,9 @@ namespace SIGAD.Application.Interfaces
 
         // Operaciones de archivos
         Task<(byte[] FileContent, string ContentType, string FileName)> DownloadInformeAsync(int id);
+
+        // Operaciones de asociación con solicitudes
+        Task<bool> AsociarInvestigacionASolicitudAsync(AsociarInvestigacionSolicitudDto asociarDto);
+        Task DesasociarInvestigacionDeSolicitudAsync(Guid solicitudId, int investigacionId);
     }
-} 
+}

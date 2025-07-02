@@ -28,6 +28,7 @@ namespace SIGAD.Domain.Interfaces
 
         // Métodos específicos para el reglamento de promoción
         Task<int> GetTotalHorasCapacitacionAsync(string docenteCedula, int ultimosAnios = 3);
+        Task<int> GetTotalHorasImpartidasAsync(string docenteCedula, int ultimosAnios = 3);
         Task<int> GetHorasActualizacionPedagogicaAsync(string docenteCedula, int ultimosAnios = 3);
         Task<int> GetHorasActualizacionCientificaAsync(string docenteCedula, int ultimosAnios = 3);
 

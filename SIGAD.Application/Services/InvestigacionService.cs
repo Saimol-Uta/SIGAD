@@ -254,5 +254,28 @@ namespace SIGAD.Application.Services
                 ContenidoHash = investigacion.ContenidoHash
             };
         }
+
+        public async Task<bool> AsociarInvestigacionASolicitudAsync(AsociarInvestigacionSolicitudDto asociarDto)
+        {
+            var investigacionExists = await _investigacionRepository.ExistsAsync(asociarDto.InvestigacionId);
+            if (!investigacionExists)
+            {
+                return false;
+            }
+
+            var solicitudExists = await _solicitudRepository.ExistsAsync(asociarDto.SolicitudId);
+            if (!solicitudExists)
+            {
+                return false;
+            }
+
+            await _investigacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.InvestigacionId);
+            return true;
+        }
+
+        public async Task DesasociarInvestigacionDeSolicitudAsync(Guid solicitudId, int investigacionId)
+        {
+            await _investigacionRepository.RemoveFromSolicitudAsync(solicitudId, investigacionId);
+        }
     }
 }

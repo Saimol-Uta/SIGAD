@@ -189,6 +189,13 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
+            // Validar que la evaluación no esté ya usada en otra solicitud aprobada
+            var estaYaUsada = await _evaluacionRepository.EstaEvaluacionYaUsadaAsync(asociarDto.EvaluacionId);
+            if (estaYaUsada)
+            {
+                return false;
+            }
+
             await _evaluacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.EvaluacionId);
             await _unitOfWork.SaveChangesAsync();
             return true;
@@ -221,12 +228,41 @@ namespace SIGAD.Application.Services
         public async Task<string?> GetNombreArchivoAsync(int id)
         {
             var evaluacion = await _evaluacionRepository.GetByIdAsync(id);
-            if (evaluacion == null || string.IsNullOrEmpty(evaluacion.InformeRuta))
-            {
-                return null;
-            }
+            return evaluacion?.InformeRuta;
+        }
 
-            return Path.GetFileName(evaluacion.InformeRuta);
+        public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesDisponiblesAsync(string docenteCedula, Guid? solicitudActualId = null)
+        {
+            var evaluacionesDisponibles = await _evaluacionRepository.GetEvaluacionesDisponiblesParaSolicitudAsync(docenteCedula, solicitudActualId);
+            
+            return evaluacionesDisponibles.Select(e => new EvaluacionDocenteDto
+            {
+                Id = e.Id,
+                PeriodoAcademico = e.PeriodoAcademico,
+                PuntajePorcentual = e.PuntajePorcentual,
+                FechaEvaluacion = e.FechaEvaluacion,
+                DocenteCedula = e.DocenteCedula,
+                InformeRuta = e.InformeRuta,
+                ContenidoHash = e.ContenidoHash,
+                DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
+            });
+        }
+
+        public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesUsadasAsync(string docenteCedula)
+        {
+            var evaluacionesUsadas = await _evaluacionRepository.GetEvaluacionesUsadasEnSolicitudesAsync(docenteCedula);
+            
+            return evaluacionesUsadas.Select(e => new EvaluacionDocenteDto
+            {
+                Id = e.Id,
+                PeriodoAcademico = e.PeriodoAcademico,
+                PuntajePorcentual = e.PuntajePorcentual,
+                FechaEvaluacion = e.FechaEvaluacion,
+                DocenteCedula = e.DocenteCedula,
+                InformeRuta = e.InformeRuta,
+                ContenidoHash = e.ContenidoHash,
+                DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
+            });
         }
 
         private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)

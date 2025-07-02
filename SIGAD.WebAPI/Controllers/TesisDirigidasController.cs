@@ -30,11 +30,37 @@ namespace SIGAD.API.Controllers
             return CreatedAtAction(nameof(ObtenerPorDocente), new { cedula = nueva.DocenteCedula }, nueva);
         }
 
-        [HttpPost("asociar")]
-        public async Task<IActionResult> AsociarASolicitud(Guid solicitudId, int tesisId)
+        [HttpPost("{id}/asociar-solicitud")]
+        public async Task<IActionResult> AsociarASolicitud(int id, [FromBody] AsociarTesisSolicitudDto request)
         {
-            await _service.AsociarASolicitudAsync(solicitudId, tesisId);
-            return Ok();
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos de entrada inválidos",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+
+                await _service.AsociarASolicitudAsync(request.SolicitudId, id);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "Tesis asociada exitosamente a la solicitud"
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor"
+                });
+            }
         }
 
         [HttpDelete("desasociar")]
