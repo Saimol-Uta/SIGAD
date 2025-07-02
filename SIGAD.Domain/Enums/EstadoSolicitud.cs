@@ -12,6 +12,7 @@ namespace SIGAD.Domain.Enums
         Enviada = 2,
         EnRevision = 3,
         Aprobada = 4,
-        Rechazada = 5
+        Rechazada = 5,
+        Apelada = 6
     }
 }
