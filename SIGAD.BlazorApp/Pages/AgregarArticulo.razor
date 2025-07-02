@@ -21,7 +21,7 @@
     body {
         font-family: Arial, sans-serif;
         background-color: #fff;
-        color: #0a1d44;
+        color: #86011c;
         height: 100%;
         overflow-x: hidden;
     }
@@ -53,39 +53,13 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #0a1d44;
-        object-fit: cover;
-    }
-
-    .back-btn, .logout-btn {
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: 15px;
-        transition: background-color 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .back-btn {
-        background-color: #6c757d;
-    }
-
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
-
-    .logout-btn:hover {
-        background-color: #c82333;
-    }
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #86011c;
+            object-fit: cover;
+        }
 
     .main-content {
         display: flex;
@@ -94,82 +68,7 @@
         min-height: calc(100vh - 120px);
     }
 
-    .form-container {
-        background: white;
-        padding: 2rem;
-        max-width: 800px;
-        width: 100%;
-        border: 1px solid #0a1d44;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-    }
 
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
-
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        display: block;
-        font-weight: bold;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        font-size: 1rem;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 1rem;
-        transition: border-color 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #0a1d44;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .file-upload {
-        border: 2px dashed #ddd;
-        border-radius: 4px;
-        padding: 2rem;
-        text-align: center;
-        transition: border-color 0.3s ease;
-        cursor: pointer;
-    }
-
-    .file-upload:hover {
-        border-color: #0a1d44;
-    }
-
-    .file-upload.has-file {
-        border-color: #28a745;
-        background-color: #f8fff9;
-    }
 
     .btn {
         padding: 0.75rem 1.5rem;
@@ -183,28 +82,10 @@
         text-align: center;
     }
 
-    .btn-primary {
-        background-color: #0a1d44;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: #081527;
-    }
-
-    .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
     .btn-group {
         display: flex;
@@ -373,14 +254,14 @@
                                 @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary-agr" disabled="@(enviandoFormulario || archivoFormulario == null)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando artículo...</span>
                             }
                             else
                             {
-                                <span>Guardar Artículo</span>
+                                <span>💾 Guardar Artículo</span>
                             }
                         </button>
                     </div>

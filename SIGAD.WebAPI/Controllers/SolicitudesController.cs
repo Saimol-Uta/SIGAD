@@ -311,5 +311,23 @@ namespace SIGAD.WebAPI.Controllers
         {
             public string Observaciones { get; set; } = string.Empty;
         }
+        // GET: api/solicitudes/historial/{cedulaDocente}
+        [HttpGet("historial/{cedulaDocente}")]
+        [Authorize(Roles = "DOCENTE,ADMINISTRADOR")]
+        public async Task<IActionResult> ObtenerHistorialPorCedula(string cedulaDocente)
+        {
+            try
+            {
+                var historial = await _solicitudesService.ObtenerHistorialPorDocenteAsync(cedulaDocente);
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el historial del docente con cédula {Cedula}", cedulaDocente);
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
     }
+
 }
