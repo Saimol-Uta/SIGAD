@@ -275,5 +275,7 @@ namespace SIGAD.Application.Services
                 IdiomaPublicacion = articulo.IdiomaPublicacion // Exponer en el DTO
             };
         }
+
+
     }
 }
