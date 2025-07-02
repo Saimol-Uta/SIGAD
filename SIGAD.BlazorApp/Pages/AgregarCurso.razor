@@ -169,6 +169,14 @@
                     <DataAnnotationsValidator />
 
                     <div class="form-group">
+                        <label class="form-label">¿Tipo de curso? <span class="required">*</span></label>
+                        <InputRadioGroup @bind-Value="cursoModel.ImpartidoPorDocente">
+                            <InputRadio Value="false" /> Recibido
+                            <InputRadio Value="true" /> Impartido (dictado por usted)
+                        </InputRadioGroup>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">
                             Nombre del Curso <span class="required">*</span>
                         </label>
@@ -196,15 +204,27 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">
-                                Horas Académicas <span class="required">*</span>
-                            </label>
-                            <InputNumber @bind-Value="cursoModel.HorasAcademicas" class="form-control" 
-                                       placeholder="Ej: 40" min="1" max="1000" />
-                            <ValidationMessage For="@(() => cursoModel.HorasAcademicas)" />
-                        </div>
-
+                        @if (!cursoModel.ImpartidoPorDocente)
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Académicas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasAcademicas" class="form-control" 
+                                           placeholder="Ej: 40" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasAcademicas)" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Impartidas por usted <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasImpartidas" class="form-control" placeholder="Ej: 20" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasImpartidas)" />
+                            </div>
+                        }
                         <div class="form-group">
                             <label class="form-label">
                                 Organización <span class="required">*</span>
@@ -215,14 +235,28 @@
                         </div>
                     </div>
 
-                                        <div class="form-group">
-                        <label class="form-label">Certificado <span class="required">*</span></label>
-                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                        @if (!string.IsNullOrEmpty(archivoSeleccionado))
-                        {
-                            <p>Archivo: @archivoSeleccionado</p>
-                        }
-                    </div>
+                    @if (cursoModel.ImpartidoPorDocente)
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Certificado de facilitador <span class="required">*</span></label>
+                            <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                            {
+                                <p>Archivo: @archivoSeleccionado</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Certificado de aprobación <span class="required">*</span></label>
+                            <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                            {
+                                <p>Archivo: @archivoSeleccionado</p>
+                            }
+                        </div>
+                    }
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary" 
@@ -370,6 +404,8 @@
             content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas"); // Nuevo campo
+            content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente"); // Nuevo campo
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
@@ -448,6 +484,8 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddDays(30);
         public int HorasAcademicas { get; set; } = 1;
         public string OrganizacionNombre { get; set; } = "";
+        public int? HorasImpartidas { get; set; } // Solo si es impartido
+        public bool ImpartidoPorDocente { get; set; } = false;
     }
 
     public class VerifyTokenResponse

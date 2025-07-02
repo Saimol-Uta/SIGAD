@@ -17,6 +17,13 @@ namespace SIGAD.Domain.Entities
         public string? AceptacionODemanda { get; set; }
         public DateTime? FechaResolucionApelacion { get; set; }
 
+        // Estados de aprobación según Reglamento UTA - Artículo 5
+        public bool AprobadoPorComision { get; set; } = false;
+        public bool AprobadoPorConsejo { get; set; } = false;
+        public DateTime? FechaAprobacionComision { get; set; }
+        public DateTime? FechaAprobacionConsejo { get; set; }
+        public string? ObservacionesComision { get; set; }
+        public string? ObservacionesConsejo { get; set; }
 
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = null!;
@@ -113,5 +120,59 @@ namespace SIGAD.Domain.Entities
             this.ObservacionesAdmin = observaciones;
         }
 
+        /// <summary>
+        /// Aprueba la solicitud por parte de la Comisión Académica de Escalafón y Promoción
+        /// según el Artículo 5.2.c del Reglamento UTA
+        /// </summary>
+        public void AprobarPorComision(string? observaciones = null)
+        {
+            if (this.Estado != EstadoSolicitud.Enviada)
+            {
+                throw new InvalidOperationException("Solo se puede aprobar por Comisión una solicitud enviada.");
+            }
+
+            this.AprobadoPorComision = true;
+            this.FechaAprobacionComision = DateTime.UtcNow;
+            this.ObservacionesComision = observaciones;
+            // No cambiamos el estado aquí, se mantiene como "Enviada" hasta completar todo el proceso
+        }
+
+        /// <summary>
+        /// Aprueba la solicitud por parte del Honorable Consejo Universitario
+        /// según el Artículo 5.1.b del Reglamento UTA
+        /// </summary>
+        public void AprobarPorConsejo(string? observaciones = null)
+        {
+            if (!this.AprobadoPorComision)
+            {
+                throw new InvalidOperationException("La solicitud debe ser aprobada primero por la Comisión según el Reglamento UTA.");
+            }
+
+            if (this.Estado != EstadoSolicitud.Enviada)
+            {
+                throw new InvalidOperationException("La solicitud debe estar en estado 'Enviada' para ser aprobada por el Consejo.");
+            }
+
+            this.AprobadoPorConsejo = true;
+            this.FechaAprobacionConsejo = DateTime.UtcNow;
+            this.ObservacionesConsejo = observaciones;
+            // No cambiamos el estado aquí, se mantiene como "Enviada" hasta finalizar el proceso
+        }
+
+        /// <summary>
+        /// Finaliza el proceso de ascenso una vez aprobado por ambas instancias
+        /// según el Artículo 8 del Reglamento UTA (emisión de constancia)
+        /// </summary>
+        public void FinalizarProceso(string? observacionesFinales = null)
+        {
+            if (!this.AprobadoPorComision || !this.AprobadoPorConsejo)
+            {
+                throw new InvalidOperationException("El proceso solo puede finalizarse tras aprobación de Comisión y Consejo Universitario.");
+            }
+
+            this.Estado = EstadoSolicitud.Aprobada;
+            this.FechaResolucion = DateTime.UtcNow;
+            this.ObservacionesAdmin = observacionesFinales;
+        }
     }
 }

@@ -13,6 +13,14 @@ namespace SIGAD.Application.DTOs
         public string? RangoActualNombre { get; set; }
         public string RangoSolicitadoNombre { get; set; } = string.Empty;
 
+        // Campos para seguimiento de aprobación UTA
+        public bool AprobadoPorComision { get; set; }
+        public bool AprobadoPorConsejo { get; set; }
+        public DateTime? FechaAprobacionComision { get; set; }
+        public DateTime? FechaAprobacionConsejo { get; set; }
+        public string? ObservacionesComision { get; set; }
+        public string? ObservacionesConsejo { get; set; }
+
         public List<VerTesisDirigidaDto> TesisDirigidas { get; set; } = new();
 
 

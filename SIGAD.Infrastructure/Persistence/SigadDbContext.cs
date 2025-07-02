@@ -171,10 +171,10 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ObservacionesVerificacion).HasMaxLength(500);
                 entity.Property(e => e.EsIndexado);
                 entity.Property(e => e.FechaCreacion);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.IdiomaPublicacion).HasMaxLength(50).IsRequired(false);
                 // Propiedad de compatibilidad (no mapear directamente)
                 entity.Ignore(e => e.Verificado);
-
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Articulos)
                     .HasForeignKey(e => e.DocenteCedula)
@@ -200,12 +200,12 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.TipoCurso).HasConversion<int>();
                 entity.Property(e => e.ImpartidoPorDocente);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.HorasImpartidas).IsRequired(false);
                 entity.HasOne(e => e.Organizacion)
                     .WithMany(o => o.Cursos)
                     .HasForeignKey(e => e.OrganizacionId)
                     .OnDelete(DeleteBehavior.Restrict);
-
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Cursos)
                     .HasForeignKey(e => e.DocenteCedula)
@@ -248,7 +248,8 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.TipoProyecto).HasConversion<int>();
                 entity.Property(e => e.MesesDeParticipacion);
                 entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.EsInternacional).HasDefaultValue(false);
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Investigaciones)
                     .HasForeignKey(e => e.DocenteCedula)

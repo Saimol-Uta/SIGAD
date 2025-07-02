@@ -125,7 +125,8 @@ namespace SIGAD.Application.Services
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
                 CertificadoRuta = filePath,
-                ContenidoHash = contentHash
+                ContenidoHash = contentHash,
+                HorasImpartidas = crearCursoDto.HorasImpartidas // Nuevo campo mapeado
             };
 
             await _cursoRepository.AddAsync(curso);
@@ -150,6 +151,7 @@ namespace SIGAD.Application.Services
             cursoExistente.NumeroHoras = actualizarCursoDto.NumeroHoras;
             cursoExistente.FechaFinalizacion = actualizarCursoDto.FechaFinalizacion;
             cursoExistente.DocenteCedula = actualizarCursoDto.DocenteCedula;
+            cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas; // Nuevo campo mapeado
 
             // Si se proporciona nuevo certificado
             if (certificado != null && certificado.Length > 0)
@@ -308,7 +310,10 @@ namespace SIGAD.Application.Services
                 DocenteCedula = curso.DocenteCedula,
                 CertificadoRuta = curso.CertificadoRuta,
                 ContenidoHash = curso.ContenidoHash,
-                OrganizacionId = curso.OrganizacionId
+                OrganizacionId = curso.OrganizacionId,
+                TipoCurso = curso.TipoCurso.ToString(),
+                ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                HorasImpartidas = curso.HorasImpartidas // Exponer en el DTO
             };
         }
 
@@ -329,4 +334,4 @@ namespace SIGAD.Application.Services
             };
         }
     }
-} 
+}

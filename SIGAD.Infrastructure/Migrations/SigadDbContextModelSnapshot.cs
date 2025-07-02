@@ -119,6 +119,10 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<DateTime?>("FechaVerificacion")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("IdiomaPublicacion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("ObservacionesVerificacion")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -222,6 +226,9 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.Property<DateTime>("FechaFinalizacion")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("HorasImpartidas")
+                        .HasColumnType("int");
 
                     b.Property<bool>("ImpartidoPorDocente")
                         .HasColumnType("bit");
@@ -436,6 +443,11 @@ namespace SIGAD.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<bool>("EsInternacional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("FechaFinalizacion")
                         .HasColumnType("datetime2");

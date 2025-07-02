@@ -210,6 +210,14 @@
                         }
                     </div>
 
+                    <!-- Investigación Internacional -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" @bind="investigacionModel.EsInternacional" />
+                            Investigación Internacional
+                        </label>
+                    </div>
+
                     @if (enviandoFormulario)
                     {
                         <div class="alert alert-info">
@@ -373,6 +381,7 @@
             content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional"); // Nuevo campo
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
@@ -451,6 +460,7 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
         public string RolEnInvestigacion { get; set; } = "";
         public int MesesDeInvestigacion { get; set; } = 1;
+        public bool EsInternacional { get; set; } = false; // Nuevo campo
     }
 
     public class VerifyTokenResponse
@@ -465,4 +475,4 @@
         public string? Apellido1 { get; set; }
         public string? Cedula { get; set; }
     }
-} 
+}
