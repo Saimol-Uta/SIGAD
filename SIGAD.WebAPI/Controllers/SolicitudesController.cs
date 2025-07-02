@@ -201,11 +201,11 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al aprobar por Comisión la solicitud {SolicitudId}: {Message}", id, ex.Message);
-                
+
                 // Obtener detalles del inner exception si existe
                 var innerMessage = ex.InnerException?.Message ?? "Sin detalles adicionales";
                 var fullMessage = $"Error: {ex.Message}. Detalles: {innerMessage}";
-                
+
                 return BadRequest(new { success = false, message = fullMessage });
             }
         }
@@ -257,8 +257,9 @@ namespace SIGAD.WebAPI.Controllers
         public IActionResult TestAuth()
         {
             var userClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
-            return Ok(new { 
-                message = "Autenticación exitosa", 
+            return Ok(new
+            {
+                message = "Autenticación exitosa",
                 user = User.Identity?.Name,
                 roles = User.Claims.Where(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
                                   .Select(c => c.Value).ToArray(),
