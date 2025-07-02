@@ -209,8 +209,16 @@ else
                             }
                         </td>
                         <td>
-                            <button class="btn-aceptar">Aceptar</button>
-                            <button class="btn-rechazar">Rechazar</button>
+                            @if (solicitud.Estado == "Rechazado")
+                            {
+                                <button class="btn-aceptar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Aceptar</button>
+                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo("/apelar-solicitud"))">Apelar</button>
+                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo(""))" )">Ver Detalles</button>
+                            }
+                            else
+                            {
+                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Ver Detalles</button>
+                            }
                         </td>
                     </tr>
                 }
