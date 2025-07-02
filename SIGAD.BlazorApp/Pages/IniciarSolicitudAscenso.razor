@@ -63,7 +63,7 @@
     }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -85,7 +85,7 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -104,6 +104,7 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-top: 2rem;
+        z-index:2;
     }
 
     .form-container h1 {
@@ -270,6 +271,60 @@
         padding: 2rem;
         color: #666;
     }
+            /* --- Media Query para el tamaño intermedio (Tablets) --- */
+   @@media (max-width: 1199px) and (min-width: 769px) {
+    
+    /* 1. Aseguramos que el layout principal sea horizontal */
+    .main-content {
+        flex-direction: row;
+        align-items: center; /* Centra los elementos verticalmente */
+        justify-content: center; /* Mantiene el espacio entre ellos */
+        padding: 2rem; /* Un padding adecuado para este tamaño */
+    }
+
+    /* 2. Reducimos el tamaño del título para que ocupe menos espacio */
+    .left h1 {
+        font-size: 4.5rem; 
+    }
+
+    /* 3. Nos aseguramos que la tarjeta no tenga márgenes extraños */
+    .promotion-card {
+        margin-right: 0; /* Quitamos cualquier margen grande */
+        flex-shrink: 0;  /* Evita que la tarjeta se encoja y se deforme */
+        width: 45%;      /* Le damos un ancho fijo o porcentual */
+        max-width: 450px;
+    }
+
+    /* 4. La clave: Ocultamos los triángulos en este tamaño */
+    .triangle-bg {
+        display: none;
+    }
+}
+
+    @@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+
+    .left {
+        padding-left: 1rem;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    .promotion-card {
+        margin-right: 0 !important;
+        margin-top: 20px;
+        width: 100%;
+        max-width: none;
+    }
+
+    .triangle-bg {
+        display: none;
+    }
+}
 </style>
 
 <body>
