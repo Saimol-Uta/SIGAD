@@ -20,6 +20,7 @@ namespace SIGAD.Domain.Interfaces
         ISolicitudAscensoRepository SolicitudesAscenso { get; } // ⚠️ CRÍTICO
         IAccionesDePersonalRepository AccionesDePersonal { get; } // ⚠️ CRÍTICO
         IRangoRepository Rangos { get; } // ⚠️ IMPORTANTE
+        IApelacionRepository Apelaciones { get; } // ⚠️ NUEVO - Para proceso de apelaciones según Reglamento UTA
 
         IPromocionService PromocionService { get; } // ⚠️ CRÍTICO
 
