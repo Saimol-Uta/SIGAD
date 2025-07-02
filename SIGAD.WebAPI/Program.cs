@@ -13,6 +13,7 @@ using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
+using SIGAD.WebAPI.Services;
 using SIGAD.WebAPI.Middleware;
 using System.Text;
 
@@ -40,6 +41,9 @@ builder.Services.AddScoped<ISutSyncService>(_ =>
 
 builder.Services.AddScoped<IDiticSyncService>(_ =>
     new DiticSyncService(configuration.GetConnectionString("DITIC")!));
+
+// Registrar servicio de procesamiento de archivos para importación
+builder.Services.AddScoped<IArchivoImportacionService, ArchivoImportacionService>();
 
 
 builder.Services.AddScoped<DocenteSyncCoordinator>();

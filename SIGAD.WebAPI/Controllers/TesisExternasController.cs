@@ -4,6 +4,7 @@ using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Domain.Enums;
+using SIGAD.WebAPI.Services;
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -14,12 +15,18 @@ namespace SIGAD.WebAPI.Controllers
         private readonly ISgthSyncService _sgth;
         private readonly ISutSyncService _sut;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IArchivoImportacionService _archivoService;
 
-        public TesisExternasController(ISgthSyncService sgth, ISutSyncService sut, IUnitOfWork unitOfWork)
+        public TesisExternasController(
+            ISgthSyncService sgth, 
+            ISutSyncService sut, 
+            IUnitOfWork unitOfWork,
+            IArchivoImportacionService archivoService)
         {
             _sgth = sgth;
             _sut = sut;
             _unitOfWork = unitOfWork;
+            _archivoService = archivoService;
         }
 
         [HttpPost("importar/{cedula}")]
@@ -38,11 +45,35 @@ namespace SIGAD.WebAPI.Controllers
                 int insertadas = 0;
                 foreach (var dto in externas)
                 {
+                    // Validar que el DTO tenga datos válidos
+                    if (string.IsNullOrEmpty(dto.ContenidoHash) || string.IsNullOrEmpty(dto.TituloTesis))
+                        continue;
+
                     bool existe = await _unitOfWork.TesisDirigidas.ExistsByHashAsync(dto.ContenidoHash);
                     if (!existe)
                     {
+                        // Procesar y guardar PDF si existe
+                        string? rutaArchivoLocal = null;
+                        if (dto.PdfDocumento != null && dto.PdfDocumento.Length > 0)
+                        {
+                            try
+                            {
+                                var identificador = $"{dto.DocenteCedula}_{dto.ContenidoHash.Substring(0, Math.Min(8, dto.ContenidoHash.Length))}";
+                                rutaArchivoLocal = await _archivoService.ProcesarYGuardarPdfAsync(
+                                    dto.PdfDocumento, 
+                                    "tesis", 
+                                    identificador
+                                );
+                            }
+                            catch (Exception ex)
+                            {
+                                // Log error pero continúa con la importación sin archivo
+                                Console.WriteLine($"Error procesando PDF para tesis {dto.TituloTesis}: {ex.Message}");
+                            }
+                        }
+
                         // Mapeo de estado externo a enum interno
-                        string estadoDto = dto.Estado?.Trim();
+                        string estadoDto = dto.Estado?.Trim() ?? "EnProceso";
                         switch (estadoDto)
                         {
                             case "Finalizada":
@@ -67,7 +98,8 @@ namespace SIGAD.WebAPI.Controllers
                             FechaInicio = dto.FechaInicio,
                             FechaFin = dto.FechaFin,
                             Institucion = dto.Institucion,
-                            CertificacionRuta = dto.CertificacionRuta,
+                            // Usar la ruta local si se procesó el PDF, sino la ruta original
+                            CertificacionRuta = rutaArchivoLocal ?? dto.CertificacionRuta ?? "",
                             ContenidoHash = dto.ContenidoHash
                         };
 

@@ -12,7 +12,8 @@
         public string TipoCurso { get; set; } = string.Empty;
         public bool ImpartidoPorDocente { get; set; }
         public int? HorasImpartidas { get; set; } // Nuevo campo
-
-
+        
+        // Nuevo campo para el PDF en binario desde BD externa
+        public byte[]? PdfDocumento { get; set; }
     }
 }

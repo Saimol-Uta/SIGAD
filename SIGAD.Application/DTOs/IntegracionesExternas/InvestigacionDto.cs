@@ -17,6 +17,9 @@
 
         public bool EsInternacional { get; set; }
 
+        // Nuevo campo para el PDF en binario desde BD externa
+        public byte[]? PdfDocumento { get; set; }
+
 
     }
 }
