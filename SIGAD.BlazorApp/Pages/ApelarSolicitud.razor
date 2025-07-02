@@ -1,5 +1,234 @@
-﻿<h3>ApelarSolicitud</h3>
+﻿@page "/docente/apelacion/{solicitudId}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using System.Text.Json
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISolicitudService SolicitudService
+<style>
+    /* Formulario general */
+    form {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+        background-color: #f9fafb;
+        border-radius: 1rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Títulos */
+    h3 {
+        text-align: center;
+        font-size: 1.5rem;
+        color: #1f2937;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Etiquetas */
+    label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Inputs y TextArea */
+    input[type="text"],
+    textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+        color: #111827;
+        background-color: #fff;
+        transition: border 0.3s ease;
+    }
+
+        textarea:focus,
+        input[type="text"]:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
+
+    /* Validación */
+    .validation-message {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Botón de enviar */
+    button[type="submit"] {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        button[type="submit"]:hover {
+            background-color: #1d4ed8;
+        }
+
+    /* Mensajes */
+    .text-green-600 {
+        color: #16a34a;
+    }
+
+    .text-red-600 {
+        color: #dc2626;
+    }
+
+    /* Link */
+    a {
+        color: #2563eb;
+        text-decoration: underline;
+    }
+
+</style>
+<h3 class="text-xl font-bold mb-4">Formulario de Apelación</h3>
+
+@if (isLoading)
+{
+    <p>Cargando datos...</p>
+}
+else if (error != null)
+{
+    <div class="text-red-600">@error</div>
+}
+else
+{
+    <EditForm Model="apelacion" OnValidSubmit="EnviarApelacion">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-4">
+            <label class="font-semibold">Docente:</label>
+            <p>@docente.Nombre (@docente.Cedula)</p>
+        </div>
+
+        <div class="mb-4">
+            <label class="font-semibold">Solicitud Rechazada:</label><br />
+            <a class="text-blue-600 underline" href="/solicitud/@SolicitudId">Ver Solicitud</a>
+        </div>
+
+        <div class="mb-4">
+            <label class="font-semibold">Motivo de la apelación:</label><br />
+            <InputTextArea class="w-full p-2 border rounded" @bind-Value="apelacion.Motivo" rows="5" />
+            <ValidationMessage For="@(() => apelacion.Motivo)" />
+        </div>
+
+        <div class="mb-4">
+            <label class="font-semibold">Documento de respaldo (PDF):</label><br />
+            <InputFile OnChange="CargarArchivo" accept="application/pdf" />
+            @if (!string.IsNullOrEmpty(nombreArchivo))
+            {
+                <p class="text-green-600">Archivo seleccionado: @nombreArchivo</p>
+            }
+            <ValidationMessage For="@(() => archivo)" />
+        </div>
+
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" type="submit">
+            Enviar Apelación
+        </button>
+    </EditForm>
+}
 
 @code {
+    [Parameter] public Guid SolicitudId { get; set; }
 
+    private bool isLoading = true;
+    private string? error;
+    private string? nombreArchivo;
+    private DocenteDto docente = new();
+    private ApelacionDto apelacion = new();
+    private IBrowserFile? archivo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtener datos del docente y solicitud relacionada
+            var solicitud = await Http.GetFromJsonAsync<SolicitudDto>($"api/solicitudes/{SolicitudId}");
+            docente = solicitud.Docente;
+            apelacion = new ApelacionDto
+                {
+                    SolicitudId = SolicitudId,
+                    CedulaDocente = docente.Cedula,
+                    Fecha = DateTime.Now
+                };
+        }
+        catch (Exception ex)
+        {
+            error = "Error al cargar los datos: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CargarArchivo(InputFileChangeEventArgs e)
+    {
+        archivo = e.File;
+        nombreArchivo = archivo.Name;
+    }
+
+    private async Task EnviarApelacion()
+    {
+        if (archivo == null)
+        {
+            error = "Debe adjuntar un documento PDF de respaldo.";
+            return;
+        }
+
+        var content = new MultipartFormDataContent();
+        content.Add(new StringContent(apelacion.SolicitudId.ToString()), "SolicitudId");
+        content.Add(new StringContent(apelacion.Motivo), "Motivo");
+        content.Add(new StringContent(apelacion.CedulaDocente), "CedulaDocente");
+
+        var archivoStream = archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB máx
+        content.Add(new StreamContent(archivoStream), "Archivo", archivo.Name);
+
+        var response = await Http.PostAsync("api/apelaciones", content);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/apelaciones/enviada");
+        }
+        else
+        {
+            error = "No se pudo enviar la apelación. Intente nuevamente.";
+        }
+    }
+
+    public class ApelacionDto
+    {
+        public Guid SolicitudId { get; set; }
+        public string CedulaDocente { get; set; } = string.Empty;
+        public string Motivo { get; set; } = string.Empty;
+        public DateTime Fecha { get; set; }
+    }
+
+    public class DocenteDto
+    {
+        public string Cedula { get; set; } = "";
+        public string Nombre { get; set; } = "";
+    }
+
+    public class SolicitudDto
+    {
+        public Guid Id { get; set; }
+        public DocenteDto Docente { get; set; } = new();
+        public string Estado { get; set; } = "";
+    }
 }

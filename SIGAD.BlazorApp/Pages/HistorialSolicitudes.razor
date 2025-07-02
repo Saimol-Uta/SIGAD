@@ -212,8 +212,9 @@ else
                             @if (solicitud.Estado == "Rechazada")
                             {
                                 <button class="btn-aceptar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Aceptar</button>
-                                <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)">Apelar</button>
+                                <button class="btn-rechazar" @onclick="() => Apelar(solicitud.Id)">Apelar</button>
                                 <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)">Ver Detalles</button>
+
                             }
                             else
                             {
@@ -320,6 +321,10 @@ else
         Navigation.NavigateTo($"/docente/solicitud/{solicitudId}");
     }
 
+    private void Apelar(Guid solicitudId)
+    {
+        Navigation.NavigateTo($"/apelacion/{solicitudId}");
+    }
     public class SolicitudDetalleDto
     {
         public Guid Id { get; set; }
