@@ -213,11 +213,11 @@ else
                             {
                                 <button class="btn-aceptar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Aceptar</button>
                                 <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo("/apelar-solicitud"))">Apelar</button>
-                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo(""))" )">Ver Detalles</button>
+                                <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)">Ver Detalles</button>
                             }
                             else
                             {
-                                <button class="btn-rechazar" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">Ver Detalles</button>
+                                <button class="btn-rechazar" @onclick="() => VerDetalles(solicitud.Id)" ))">Ver Detalles</button>
                             }
                         </td>
                     </tr>
@@ -314,6 +314,10 @@ else
 
         await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
         Navigation.NavigateTo("/login", true);
+    }
+    private void VerDetalles(Guid solicitudId)
+    {
+        Navigation.NavigateTo($"/docente/solicitud/{solicitudId}");
     }
 
     public class SolicitudDetalleDto
