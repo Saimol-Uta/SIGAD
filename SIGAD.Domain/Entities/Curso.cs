@@ -15,6 +15,7 @@ namespace SIGAD.Domain.Entities
         public int NumeroHoras { get; set; }
         public DateTime FechaFinalizacion { get; set; }
         public string CertificadoRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 

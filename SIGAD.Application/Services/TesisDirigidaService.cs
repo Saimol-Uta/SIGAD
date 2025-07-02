@@ -2,17 +2,25 @@
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Application.Interfaces;
-using SIGAD.Domain.Enums; // Asegúrate de tener este using
+using SIGAD.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace SIGAD.Application.Services
 {
     public class TesisDirigidaService : ITesisDirigidaService
     {
         private readonly ITesisDirigidaRepository _repository;
+        private readonly IFileStorageService _fileStorageService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TesisDirigidaService(ITesisDirigidaRepository repository)
+        public TesisDirigidaService(
+            ITesisDirigidaRepository repository,
+            IFileStorageService fileStorageService,
+            IUnitOfWork unitOfWork)
         {
             _repository = repository;
+            _fileStorageService = fileStorageService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IEnumerable<TesisDirigidaDto>> ObtenerPorDocenteAsync(string cedula)
@@ -28,7 +36,8 @@ namespace SIGAD.Application.Services
                 FechaInicio = t.FechaInicio,
                 FechaFin = t.FechaFin,
                 Institucion = t.Institucion,
-                CertificacionRuta = t.CertificacionRuta
+                CertificacionRuta = t.CertificacionRuta,
+                UrlCloudinary = t.UrlCloudinary
             });
         }
 
@@ -48,10 +57,13 @@ namespace SIGAD.Application.Services
                 FechaFin = dto.FechaFin,
                 Institucion = dto.Institucion,
                 CertificacionRuta = dto.CertificacionRuta,
-                ContenidoHash = string.Empty // Puedes calcular el hash si es necesario
+                UrlCloudinary = dto.UrlCloudinary, // Usar la URL de Cloudinary del DTO
+                ContenidoHash = dto.ContenidoHash // Usar el hash del DTO
             };
 
             await _repository.AddAsync(tesis);
+            await _unitOfWork.SaveChangesAsync();
+
             return new TesisDirigidaDto
             {
                 Id = tesis.Id,
@@ -62,7 +74,8 @@ namespace SIGAD.Application.Services
                 FechaInicio = tesis.FechaInicio,
                 FechaFin = tesis.FechaFin,
                 Institucion = tesis.Institucion,
-                CertificacionRuta = tesis.CertificacionRuta
+                CertificacionRuta = tesis.CertificacionRuta,
+                UrlCloudinary = tesis.UrlCloudinary
             };
         }
 
@@ -86,7 +99,14 @@ namespace SIGAD.Application.Services
             if (tesis == null)
                 return false;
 
+            // Eliminar archivos de ambos almacenamientos
+            if (!string.IsNullOrEmpty(tesis.CertificacionRuta) || !string.IsNullOrEmpty(tesis.UrlCloudinary))
+            {
+                await _fileStorageService.EliminarArchivoDualAsync(tesis.CertificacionRuta, tesis.UrlCloudinary);
+            }
+
             await _repository.DeleteAsync(id);
+            await _unitOfWork.SaveChangesAsync();
             return true;
         }
         public async Task<bool> EditarAsync(int id, CreateTesisDirigidaDto dto)
@@ -104,8 +124,11 @@ namespace SIGAD.Application.Services
             tesis.FechaFin = dto.FechaFin;
             tesis.Institucion = dto.Institucion;
             tesis.CertificacionRuta = dto.CertificacionRuta;
+            tesis.UrlCloudinary = dto.UrlCloudinary; // Asignar URL de Cloudinary
+            tesis.ContenidoHash = dto.ContenidoHash; // Asignar hash del contenido
 
             await _repository.UpdateAsync(tesis);
+            await _unitOfWork.SaveChangesAsync();
             return true;
         }
         public async Task<string?> ObtenerRutaPdfAsync(int id)
@@ -130,7 +153,8 @@ namespace SIGAD.Application.Services
                 FechaInicio = tesis.FechaInicio,
                 FechaFin = tesis.FechaFin,
                 Institucion = tesis.Institucion,
-                CertificacionRuta = tesis.CertificacionRuta
+                CertificacionRuta = tesis.CertificacionRuta,
+                UrlCloudinary = tesis.UrlCloudinary
             };
         }
 

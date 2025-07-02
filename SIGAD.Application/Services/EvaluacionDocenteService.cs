@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SIGAD.Application.Services
 {
@@ -14,26 +12,20 @@ namespace SIGAD.Application.Services
         private readonly IDocenteRepository _docenteRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly string _uploadsPath;
+        private readonly IFileStorageService _fileStorageService;
 
         public EvaluacionDocenteService(
             IEvaluacionDocenteRepository evaluacionRepository,
             IDocenteRepository docenteRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _evaluacionRepository = evaluacionRepository;
             _docenteRepository = docenteRepository;
             _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
-            _uploadsPath = configuration["FileStorage:EvaluacionesPath"] ?? "uploads/evaluaciones";
-
-            // Crear directorio si no existe
-            if (!Directory.Exists(_uploadsPath))
-            {
-                Directory.CreateDirectory(_uploadsPath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<EvaluacionDocenteDto>> GetAllEvaluacionesAsync()
@@ -70,13 +62,15 @@ namespace SIGAD.Application.Services
             }
 
             // Procesar archivo si se proporciona
-            string archivoRuta = string.Empty;
+            string? rutaLocal = null;
+            string? urlCloudinary = null;
             string contenidoHash = string.Empty;
 
             if (archivo != null && archivo.Length > 0)
             {
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                archivoRuta = ruta;
+                var (ruta, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(archivo, "evaluaciones");
+                rutaLocal = ruta;
+                urlCloudinary = cloudinaryUrl;
                 contenidoHash = hash;
             }
 
@@ -86,7 +80,8 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = createDto.FechaEvaluacion,
                 PuntajePorcentual = createDto.PuntajePorcentual,
                 DocenteCedula = createDto.DocenteCedula,
-                InformeRuta = archivoRuta,
+                InformeRuta = rutaLocal,
+                UrlCloudinary = urlCloudinary,
                 ContenidoHash = contenidoHash
             };
 
@@ -131,18 +126,13 @@ namespace SIGAD.Application.Services
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
-                // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
-                {
-                    var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
-                    if (File.Exists(rutaFisica))
-                    {
-                        File.Delete(rutaFisica);
-                    }
-                }
+                // Eliminar archivos anteriores si existen
+                await _fileStorageService.EliminarArchivoDualAsync(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
 
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                evaluacion.InformeRuta = ruta;
+                // Subir nuevo archivo
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(archivo, "evaluaciones");
+                evaluacion.InformeRuta = rutaLocal;
+                evaluacion.UrlCloudinary = urlCloudinary;
                 evaluacion.ContenidoHash = hash;
             }
 
@@ -160,15 +150,8 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
-            // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
-            {
-                var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
-                if (File.Exists(rutaFisica))
-                {
-                    File.Delete(rutaFisica);
-                }
-            }
+            // Eliminar archivos de ambos almacenamientos
+            await _fileStorageService.EliminarArchivoDualAsync(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
 
             await _evaluacionRepository.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
@@ -211,18 +194,36 @@ namespace SIGAD.Application.Services
         public async Task<byte[]?> GetArchivoEvaluacionAsync(int id)
         {
             var evaluacion = await _evaluacionRepository.GetByIdAsync(id);
-            if (evaluacion == null || string.IsNullOrEmpty(evaluacion.InformeRuta))
+            if (evaluacion == null || (string.IsNullOrEmpty(evaluacion.InformeRuta) && string.IsNullOrEmpty(evaluacion.UrlCloudinary)))
             {
                 return null;
             }
 
-            var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
-            if (!File.Exists(rutaFisica))
+            // Obtener la mejor URL y usarla para descargar el archivo
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
+            
+            // Si la mejor URL es local, leer el archivo directamente
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && mejorUrl.Contains("localhost"))
             {
-                return null;
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
             }
 
-            return await File.ReadAllBytesAsync(rutaFisica);
+            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
+            // Por ahora, intentamos usar el archivo local como fallback
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
+            {
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
+            }
+
+            return null;
         }
 
         public async Task<string?> GetNombreArchivoAsync(int id)
@@ -243,6 +244,7 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = e.FechaEvaluacion,
                 DocenteCedula = e.DocenteCedula,
                 InformeRuta = e.InformeRuta,
+                UrlCloudinary = e.UrlCloudinary,
                 ContenidoHash = e.ContenidoHash,
                 DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
             });
@@ -260,53 +262,10 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = e.FechaEvaluacion,
                 DocenteCedula = e.DocenteCedula,
                 InformeRuta = e.InformeRuta,
+                UrlCloudinary = e.UrlCloudinary,
                 ContenidoHash = e.ContenidoHash,
                 DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
             });
-        }
-
-        private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)
-        {
-            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
-
-            if (archivo.Length > 25 * 1024 * 1024) // 25MB
-                throw new ArgumentException("El archivo no puede exceder los 25MB");
-
-            // Generar nombre único
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_uploadsPath, fileName);
-
-            // Guardar archivo físicamente
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await archivo.CopyToAsync(stream);
-            }
-
-            // Calcular hash
-            string contentHash;
-            using (var stream = File.OpenRead(filePath))
-            using (var sha256 = SHA256.Create())
-            {
-                var hashBytes = sha256.ComputeHash(stream);
-                contentHash = Convert.ToHexString(hashBytes);
-            }
-
-            // Ruta relativa para la base de datos
-            var relativePath = Path.Combine("evaluaciones", fileName).Replace("\\", "/");
-
-            return (relativePath, contentHash);
-        }
-
-        private async Task<string> CalcularHashArchivoAsync(string rutaArchivo)
-        {
-            using var sha256 = SHA256.Create();
-            using var stream = File.OpenRead(rutaArchivo);
-            var hashBytes = await Task.Run(() => sha256.ComputeHash(stream));
-            return Convert.ToHexString(hashBytes);
         }
 
         private static EvaluacionDocenteDto MapToDto(EvaluacionDocente evaluacion)
@@ -322,6 +281,7 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = evaluacion.FechaEvaluacion,
                 PuntajePorcentual = evaluacion.PuntajePorcentual,
                 InformeRuta = evaluacion.InformeRuta,
+                UrlCloudinary = evaluacion.UrlCloudinary,
                 ContenidoHash = evaluacion.ContenidoHash,
                 DocenteCedula = evaluacion.DocenteCedula,
                 DocenteNombreCompleto = nombreCompleto

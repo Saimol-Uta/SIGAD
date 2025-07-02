@@ -10,10 +10,12 @@ namespace SIGAD.API.Controllers
     public class TesisDirigidasController : ControllerBase
     {
         private readonly ITesisDirigidaService _service;
+        private readonly IFileStorageService _fileStorageService;
 
-        public TesisDirigidasController(ITesisDirigidaService service)
+        public TesisDirigidasController(ITesisDirigidaService service, IFileStorageService fileStorageService)
         {
             _service = service;
+            _fileStorageService = fileStorageService;
         }
 
         [HttpGet("docente/{cedula}")]
@@ -137,20 +139,34 @@ namespace SIGAD.API.Controllers
             if (createDto == null)
                 return BadRequest("Datos de tesis inválidos.");
 
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "Tesis");
-            Directory.CreateDirectory(uploadsFolder);
-            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            try
             {
-                await file.CopyToAsync(stream);
+                Console.WriteLine($"🔄 [TesisDirigidasController] Iniciando subida de archivo: {file.FileName}, Tamaño: {file.Length} bytes");
+                
+                // Usar FileStorageService para almacenamiento dual
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(file, "tesis");
+                
+                Console.WriteLine($"✅ [TesisDirigidasController] Archivo subido - Local: {rutaLocal}, Cloudinary: {!string.IsNullOrEmpty(urlCloudinary)}, Hash: {hash}");
+                
+                createDto.CertificacionRuta = rutaLocal;
+                createDto.UrlCloudinary = urlCloudinary;
+                createDto.ContenidoHash = hash;
+                
+                var nueva = await _service.CrearAsync(createDto);
+                
+                return Ok(new 
+                { 
+                    success = true, 
+                    data = nueva,
+                    message = "Tesis creada exitosamente con almacenamiento dual",
+                    certificadoRuta = rutaLocal,
+                    urlCloudinary = urlCloudinary
+                });
             }
-
-            createDto.CertificacionRuta = $"Tesis/{fileName}";
-
-            var nueva = await _service.CrearAsync(createDto);
-            return CreatedAtAction(nameof(ObtenerPorDocente), new { cedula = nueva.DocenteCedula }, nueva);
+            catch (Exception ex)
+            {
+                return BadRequest($"Error al subir archivo: {ex.Message}");
+            }
         }
         [HttpPut("editar-pdf/{id}")]
         [Consumes("multipart/form-data")]
@@ -166,23 +182,44 @@ namespace SIGAD.API.Controllers
             if (createDto == null)
                 return BadRequest("Datos de tesis inválidos.");
 
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "Tesis");
-            Directory.CreateDirectory(uploadsFolder);
-            var fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            try
             {
-                await file.CopyToAsync(stream);
+                // Obtener la tesis existente para eliminar archivos anteriores
+                var tesisExistente = await _service.ObtenerPorIdAsync(id);
+                if (tesisExistente == null)
+                    return NotFound("Tesis no encontrada.");
+
+                // Eliminar archivos anteriores si existen
+                if (!string.IsNullOrEmpty(tesisExistente.CertificacionRuta) || !string.IsNullOrEmpty(tesisExistente.UrlCloudinary))
+                {
+                    await _fileStorageService.EliminarArchivoDualAsync(tesisExistente.CertificacionRuta, tesisExistente.UrlCloudinary);
+                }
+
+                // Subir nuevo archivo con almacenamiento dual
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(file, "tesis");
+                
+                createDto.CertificacionRuta = rutaLocal;
+                createDto.UrlCloudinary = urlCloudinary;
+                createDto.ContenidoHash = hash;
+                
+                var actualizado = await _service.EditarAsync(id, createDto);
+                if (actualizado)
+                {
+                    return Ok(new 
+                    { 
+                        success = true, 
+                        message = "Tesis actualizada exitosamente con almacenamiento dual",
+                        certificadoRuta = rutaLocal,
+                        urlCloudinary = urlCloudinary
+                    });
+                }
+
+                return NotFound();
             }
-
-            createDto.CertificacionRuta = $"Tesis/{fileName}";
-
-            var actualizado = await _service.EditarAsync(id, createDto);
-            if (actualizado)
-                return NoContent();
-
-            return NotFound();
+            catch (Exception ex)
+            {
+                return BadRequest($"Error al actualizar archivo: {ex.Message}");
+            }
         }
 
     }

@@ -31,6 +31,9 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Certificado")]
         public string CertificadoRuta { get; set; } = string.Empty;
 
+        [Display(Name = "URL de Cloudinary")]
+        public string? UrlCloudinary { get; set; }
+
         [Display(Name = "Hash del Contenido")]
         public string ContenidoHash { get; set; } = string.Empty;
 

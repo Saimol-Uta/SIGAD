@@ -8,6 +8,8 @@ namespace SIGAD.Application.DTOs
         public int AnioPublicacion { get; set; }
         public string IdiomaPublicacion { get; set; } = string.Empty;
         public string ArchivoRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
+        public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;
         public string UnidadVerificadora { get; set; } = string.Empty;

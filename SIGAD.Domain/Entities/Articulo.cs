@@ -13,6 +13,7 @@ namespace SIGAD.Domain.Entities
         public required string Revista { get; set; }
         public int AnioPublicacion { get; set; }
         public required string ArchivoRuta { get; set; }
+        public string? UrlCloudinary { get; set; }
         public required string ContenidoHash { get; set; }
         public required string DocenteCedula { get; set; } // Clave foránea
         public string UnidadVerificadora { get; set; } = string.Empty;

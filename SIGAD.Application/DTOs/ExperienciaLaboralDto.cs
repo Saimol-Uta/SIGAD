@@ -13,6 +13,7 @@ namespace SIGAD.Application.DTOs
         public DateTime FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
         public string CertificadoRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public decimal AniosExperiencia { get; set; }
     }

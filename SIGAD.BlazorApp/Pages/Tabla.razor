@@ -690,15 +690,29 @@
 
     private async Task VerPdf(JsonElement doc)
     {
+        // Obtener URLs tanto local como Cloudinary
         var pdfRuta = ObtenerRutaPdf(doc, TipoDocumento);
-        if (!string.IsNullOrEmpty(pdfRuta))
+        var cloudinaryUrl = ObtenerUrlCloudinary(doc, TipoDocumento);
+        
+        // Preferir Cloudinary URL si está disponible
+        string urlParaUsar = null;
+        
+        if (!string.IsNullOrEmpty(cloudinaryUrl))
         {
+            urlParaUsar = cloudinaryUrl;
+        }
+        else if (!string.IsNullOrEmpty(pdfRuta))
+        {
+            // Fallback a URL local
             var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
                 ? pdfRuta
                 : $"/uploads/{pdfRuta.TrimStart('/')}";
-
-            var backendUrl = $"https://localhost:7072{relativePath}";
-            await JSRuntime.InvokeVoidAsync("window.open", backendUrl, "_blank");
+            urlParaUsar = $"https://localhost:7072{relativePath}";
+        }
+        
+        if (!string.IsNullOrEmpty(urlParaUsar))
+        {
+            await JSRuntime.InvokeVoidAsync("window.open", urlParaUsar, "_blank");
         }
         else
         {
@@ -855,8 +869,8 @@
                     doc.TryGetProperty("titulo", out var titulo) ? titulo.GetString() ?? "" : "",
                     doc.TryGetProperty("rolEnInvestigacion", out var rol) ? rol.GetString() ?? "" : "",
                     doc.TryGetProperty("fechaInicio", out var fechaInicio) ? fechaInicio.GetDateTime().ToString("yyyy-MM-dd") : "",
-                    doc.TryGetProperty("fechaFin", out var fechaFin) ? fechaFin.GetDateTime().ToString("yyyy-MM-dd") : "",
-                    doc.TryGetProperty("mesesDeParticipacion", out var meses) ? meses.GetDecimal().ToString("F0") : ""
+                    doc.TryGetProperty("fechaFinalizacion", out var fechaFin) ? fechaFin.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("mesesDeInvestigacion", out var meses) ? meses.GetDecimal().ToString("F0") : ""
                 },
                 "articulos" => new List<string>
                 {
@@ -964,6 +978,20 @@
             "experiencias" => doc.TryGetProperty("certificadoRuta", out var rutaExp) ? rutaExp.GetString() : null,
             "cursos" => doc.TryGetProperty("certificadoRuta", out var rutaCurso) ? rutaCurso.GetString() : null,
             "evaluaciones" => doc.TryGetProperty("informeRuta", out var rutaEval) ? rutaEval.GetString() : null, 
+            _ => null
+        };
+    }
+
+    private string? ObtenerUrlCloudinary(JsonElement doc, string tipo)
+    {
+        return tipo switch
+        {
+            "investigaciones" => doc.TryGetProperty("urlCloudinary", out var urlInv) ? urlInv.GetString() : null,
+            "articulos" => doc.TryGetProperty("urlCloudinary", out var urlArt) ? urlArt.GetString() : null,
+            "tesis" => doc.TryGetProperty("urlCloudinary", out var urlTesis) ? urlTesis.GetString() : null,
+            "experiencias" => doc.TryGetProperty("urlCloudinary", out var urlExp) ? urlExp.GetString() : null,
+            "cursos" => doc.TryGetProperty("urlCloudinary", out var urlCurso) ? urlCurso.GetString() : null,
+            "evaluaciones" => doc.TryGetProperty("urlCloudinary", out var urlEval) ? urlEval.GetString() : null,
             _ => null
         };
     }

@@ -15,28 +15,20 @@ namespace SIGAD.Application.Services
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IOrganizacionRepository _organizacionRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IConfiguration _configuration;
-        private readonly string _fileStoragePath;
+        private readonly IFileStorageService _fileStorageService;
 
         public CursoService(
             ICursoRepository cursoRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IOrganizacionRepository organizacionRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _cursoRepository = cursoRepository;
             _solicitudRepository = solicitudRepository;
             _organizacionRepository = organizacionRepository;
             _unitOfWork = unitOfWork;
-            _configuration = configuration;
-            _fileStoragePath = _configuration["FileStorage:CursosPath"] ?? "Files/Cursos";
-
-            // Crear directorio si no existe
-            if (!Directory.Exists(_fileStoragePath))
-            {
-                Directory.CreateDirectory(_fileStoragePath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<CursoDto>> GetAllAsync()
@@ -69,39 +61,13 @@ namespace SIGAD.Application.Services
             if (certificado == null || certificado.Length == 0)
                 throw new ArgumentException("El certificado es obligatorio");
 
-            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-            var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
-            
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
-
-            if (certificado.Length > 10 * 1024 * 1024) // 10MB
-                throw new ArgumentException("El archivo no puede exceder los 10MB");
-
-            // Generar hash del contenido
-            string contentHash;
-            using (var stream = certificado.OpenReadStream())
-            {
-                using (var sha256 = SHA256.Create())
-                {
-                    var hashBytes = sha256.ComputeHash(stream);
-                    contentHash = Convert.ToHexString(hashBytes);
-                }
-            }
-
-            // Generar nombre único para el archivo
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_fileStoragePath, fileName);
-
-            // Guardar archivo físicamente
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await certificado.CopyToAsync(stream);
-            }
-
-            // Ruta relativa para la base de datos
-            var relativePath = Path.Combine("cursos", fileName).Replace("\\", "/");
-
+            // Subir archivo usando FileStorageService
+            var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
+                certificado, 
+                "cursos", 
+                new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
+                10 * 1024 * 1024 // 10MB
+            );
 
             // Verificar que la solicitud existe
             if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
@@ -128,7 +94,8 @@ namespace SIGAD.Application.Services
                 OrganizacionId = organizacion.Id,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
-                CertificadoRuta = relativePath,
+                CertificadoRuta = localPath,
+                UrlCloudinary = cloudinaryUrl,
                 ContenidoHash = contentHash,
                 TipoCurso = Enum.Parse<TipoCurso>(crearCursoDto.TipoCurso),
                 ImpartidoPorDocente = crearCursoDto.ImpartidoPorDocente,
@@ -153,8 +120,6 @@ namespace SIGAD.Application.Services
             if (cursoExistente == null)
                 throw new ArgumentException("Curso no encontrado");
 
-
-
             // Actualizar propiedades básicas
             cursoExistente.Nombre = actualizarCursoDto.Nombre;
             cursoExistente.OrganizacionId = actualizarCursoDto.OrganizacionId;
@@ -163,51 +128,24 @@ namespace SIGAD.Application.Services
             cursoExistente.DocenteCedula = actualizarCursoDto.DocenteCedula;
             cursoExistente.TipoCurso = Enum.Parse<TipoCurso>(actualizarCursoDto.TipoCurso);
             cursoExistente.ImpartidoPorDocente = actualizarCursoDto.ImpartidoPorDocente;
-            cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas; // <-- Nuevo campo actualizado
+            cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas;
 
             // Si se proporciona nuevo certificado
             if (certificado != null && certificado.Length > 0)
             {
-                var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-                var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
-                
-                if (!allowedExtensions.Contains(extension))
-                    throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
-
-                if (certificado.Length > 10 * 1024 * 1024) // 10MB
-                    throw new ArgumentException("El archivo no puede exceder los 10MB");
-
                 // Eliminar archivo anterior
-                if (File.Exists(cursoExistente.CertificadoRuta))
-                {
-                    File.Delete(cursoExistente.CertificadoRuta);
-                }
+                await _fileStorageService.EliminarArchivoDualAsync(cursoExistente.CertificadoRuta, cursoExistente.UrlCloudinary);
 
-                // Generar nuevo hash
-                string contentHash;
-                using (var stream = certificado.OpenReadStream())
-                {
-                    using (var sha256 = SHA256.Create())
-                    {
-                        var hashBytes = sha256.ComputeHash(stream);
-                        contentHash = Convert.ToHexString(hashBytes);
-                    }
-                }
+                // Subir nuevo archivo
+                var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
+                    certificado, 
+                    "cursos", 
+                    new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
+                    10 * 1024 * 1024 // 10MB
+                );
 
-                // Guardar nuevo archivo
-                // Guardar nuevo archivo físicamente
-                var fileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(_fileStoragePath, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await certificado.CopyToAsync(stream);
-                }
-
-                // Ruta relativa para la base de datos
-                var relativePath = Path.Combine("cursos", fileName).Replace("\\", "/");
-
-                cursoExistente.CertificadoRuta = relativePath; // ← SOLO la ruta relativa
+                cursoExistente.CertificadoRuta = localPath;
+                cursoExistente.UrlCloudinary = cloudinaryUrl;
                 cursoExistente.ContenidoHash = contentHash;
             }
 
@@ -224,13 +162,8 @@ namespace SIGAD.Application.Services
             if (curso == null)
                 return false;
 
-            // Eliminar archivo asociado
-            var physicalPath = Path.Combine(_fileStoragePath, Path.GetFileName(curso.CertificadoRuta));
-            if (File.Exists(physicalPath))
-            {
-                File.Delete(physicalPath);
-            }
-           
+            // Eliminar archivos duales
+            await _fileStorageService.EliminarArchivoDualAsync(curso.CertificadoRuta, curso.UrlCloudinary);
 
             await _cursoRepository.DeleteAsync(id);
             return true;
@@ -327,12 +260,12 @@ namespace SIGAD.Application.Services
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
                 CertificadoRuta = curso.CertificadoRuta,
+                UrlCloudinary = curso.UrlCloudinary,
                 ContenidoHash = curso.ContenidoHash,
                 OrganizacionId = curso.OrganizacionId,
-                TipoCurso = curso.TipoCurso.ToString(), // <-- Agrega esta línea
+                TipoCurso = curso.TipoCurso.ToString(),
                 ImpartidoPorDocente = curso.ImpartidoPorDocente,
-                HorasImpartidas = curso.HorasImpartidas // <-- Nuevo campo mapeado
-
+                HorasImpartidas = curso.HorasImpartidas
             };
         }
 

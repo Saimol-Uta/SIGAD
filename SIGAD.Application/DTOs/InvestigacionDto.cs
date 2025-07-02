@@ -32,6 +32,9 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Informe")]
         public string InformeRuta { get; set; } = string.Empty;
 
+        [Display(Name = "URL de Cloudinary")]
+        public string? UrlCloudinary { get; set; }
+
         [Display(Name = "Hash del Contenido")]
         public string ContenidoHash { get; set; } = string.Empty;
 

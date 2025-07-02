@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SIGAD.Application.Services
 {
@@ -15,7 +13,7 @@ namespace SIGAD.Application.Services
         private readonly IOrganizacionRepository _organizacionRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly string _uploadsPath;
+        private readonly IFileStorageService _fileStorageService;
 
         public ExperienciaLaboralService(
             IExperienciaLaboralRepository experienciaRepository,
@@ -23,20 +21,14 @@ namespace SIGAD.Application.Services
             IOrganizacionRepository organizacionRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _experienciaRepository = experienciaRepository;
             _docenteRepository = docenteRepository;
             _organizacionRepository = organizacionRepository;
             _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
-            _uploadsPath = configuration["FileStorage:ExperienciasPath"] ?? "uploads/experiencias";
-            
-            // Crear directorio si no existe
-            if (!Directory.Exists(_uploadsPath))
-            {
-                Directory.CreateDirectory(_uploadsPath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<ExperienciaLaboralDto>> GetAllExperienciasAsync()
@@ -87,13 +79,15 @@ namespace SIGAD.Application.Services
             }
 
             // Procesar archivo si se proporciona
-            string archivoRuta = string.Empty;
+            string? rutaLocal = null;
+            string? urlCloudinary = null;
             string contenidoHash = string.Empty;
 
             if (archivo != null && archivo.Length > 0)
             {
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                archivoRuta = ruta;
+                var (ruta, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(archivo, "experiencias");
+                rutaLocal = ruta;
+                urlCloudinary = cloudinaryUrl;
                 contenidoHash = hash;
             }
 
@@ -104,7 +98,8 @@ namespace SIGAD.Application.Services
                 Cargo = createDto.Cargo,
                 FechaInicio = createDto.FechaInicio,
                 FechaFin = createDto.FechaFin,
-                CertificadoRuta = archivoRuta,
+                CertificadoRuta = rutaLocal,
+                UrlCloudinary = urlCloudinary,
                 ContenidoHash = contenidoHash
             };
 
@@ -149,37 +144,13 @@ namespace SIGAD.Application.Services
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
-                // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
-                {
-                    // Intentar eliminar desde múltiples ubicaciones
-                    var rutasAEliminar = new List<string>();
-                    
-                    if (Path.IsPathRooted(experiencia.CertificadoRuta))
-                    {
-                        rutasAEliminar.Add(experiencia.CertificadoRuta);
-                    }
-                    else
-                    {
-                        var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
-                        rutasAEliminar.Add(Path.Combine(_uploadsPath, nombreArchivo));
-                        
-                        var baseDirectory = Directory.GetCurrentDirectory();
-                        rutasAEliminar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-                    }
-                    
-                    foreach (var rutaAEliminar in rutasAEliminar)
-                    {
-                        if (File.Exists(rutaAEliminar))
-                        {
-                            File.Delete(rutaAEliminar);
-                            break;
-                        }
-                    }
-                }
+                // Eliminar archivos anteriores si existen
+                await _fileStorageService.EliminarArchivoDualAsync(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
 
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                experiencia.CertificadoRuta = ruta;
+                // Subir nuevo archivo
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(archivo, "experiencias");
+                experiencia.CertificadoRuta = rutaLocal;
+                experiencia.UrlCloudinary = urlCloudinary;
                 experiencia.ContenidoHash = hash;
             }
 
@@ -197,34 +168,8 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
-            // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
-            {
-                // Intentar eliminar desde múltiples ubicaciones
-                var rutasAEliminar = new List<string>();
-                
-                if (Path.IsPathRooted(experiencia.CertificadoRuta))
-                {
-                    rutasAEliminar.Add(experiencia.CertificadoRuta);
-                }
-                else
-                {
-                    var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
-                    rutasAEliminar.Add(Path.Combine(_uploadsPath, nombreArchivo));
-                    
-                    var baseDirectory = Directory.GetCurrentDirectory();
-                    rutasAEliminar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-                }
-                
-                foreach (var rutaAEliminar in rutasAEliminar)
-                {
-                    if (File.Exists(rutaAEliminar))
-                    {
-                        File.Delete(rutaAEliminar);
-                        break;
-                    }
-                }
-            }
+            // Eliminar archivos de ambos almacenamientos
+            await _fileStorageService.EliminarArchivoDualAsync(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
 
             await _experienciaRepository.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
@@ -259,39 +204,29 @@ namespace SIGAD.Application.Services
         public async Task<byte[]?> GetArchivoExperienciaAsync(int id)
         {
             var experiencia = await _experienciaRepository.GetByIdAsync(id);
-            if (experiencia == null || string.IsNullOrEmpty(experiencia.CertificadoRuta))
+            if (experiencia == null || (string.IsNullOrEmpty(experiencia.CertificadoRuta) && string.IsNullOrEmpty(experiencia.UrlCloudinary)))
             {
                 return null;
             }
 
-            // Intentar múltiples ubicaciones para el archivo
-            var rutasAIntentar = new List<string>();
-
-            // 1. Si es una ruta completa (archivos nuevos manuales), usar tal como está
-            if (Path.IsPathRooted(experiencia.CertificadoRuta))
+            // Obtener la mejor URL y usarla para descargar el archivo
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
+            
+            // Si la mejor URL es local, leer el archivo directamente
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && mejorUrl.Contains("localhost"))
             {
-                rutasAIntentar.Add(experiencia.CertificadoRuta);
-            }
-            else
-            {
-                // 2. Ruta para archivos manuales: uploads/experiencias/nombrearchivo.pdf
-                rutasAIntentar.Add(Path.Combine(_uploadsPath, Path.GetFileName(experiencia.CertificadoRuta)));
-
-                // 3. Ruta para archivos importados: wwwroot/uploads/experiencias/nombrearchivo.pdf
-                var baseDirectory = Directory.GetCurrentDirectory();
-                rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-
-                // 4. Si la ruta contiene la estructura completa, intentar construir ambas variantes
-                if (experiencia.CertificadoRuta.Contains("/") || experiencia.CertificadoRuta.Contains("\\"))
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
                 {
-                    rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-                    rutasAIntentar.Add(Path.Combine(baseDirectory, experiencia.CertificadoRuta));
+                    return await File.ReadAllBytesAsync(rutaCompleta);
                 }
             }
 
-            // Intentar cada ruta hasta encontrar el archivo
-            foreach (var rutaCompleta in rutasAIntentar)
+            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
+            // Por ahora, intentamos usar el archivo local como fallback
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
             {
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
                 if (File.Exists(rutaCompleta))
                 {
                     return await File.ReadAllBytesAsync(rutaCompleta);
@@ -320,45 +255,6 @@ namespace SIGAD.Application.Services
             var diferencia = fechaFin - experiencia.FechaInicio;
             var aniosExperiencia = (decimal)diferencia.TotalDays / 365.25m; // Considerar años bisiestos
 
-            // Validar si el archivo existe físicamente en cualquiera de las ubicaciones
-            string rutaCertificadoValida = string.Empty;
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
-            {
-                var rutasAIntentar = new List<string>();
-
-                // 1. Si es una ruta completa (archivos nuevos manuales), usar tal como está
-                if (Path.IsPathRooted(experiencia.CertificadoRuta))
-                {
-                    rutasAIntentar.Add(experiencia.CertificadoRuta);
-                }
-                else
-                {
-                    // 2. Ruta para archivos manuales
-                    rutasAIntentar.Add(Path.Combine(_uploadsPath, Path.GetFileName(experiencia.CertificadoRuta)));
-
-                    // 3. Ruta para archivos importados
-                    var baseDirectory = Directory.GetCurrentDirectory();
-                    rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-
-                    // 4. Si la ruta contiene la estructura completa
-                    if (experiencia.CertificadoRuta.Contains("/") || experiencia.CertificadoRuta.Contains("\\"))
-                    {
-                        rutasAIntentar.Add(Path.Combine(baseDirectory, "wwwroot", "uploads", experiencia.CertificadoRuta));
-                        rutasAIntentar.Add(Path.Combine(baseDirectory, experiencia.CertificadoRuta));
-                    }
-                }
-
-                // Verificar si existe en alguna ubicación
-                foreach (var ruta in rutasAIntentar)
-                {
-                    if (File.Exists(ruta))
-                    {
-                        rutaCertificadoValida = experiencia.CertificadoRuta;
-                        break;
-                    }
-                }
-            }
-
             return new ExperienciaLaboralDto
             {
                 Id = experiencia.Id,
@@ -369,47 +265,12 @@ namespace SIGAD.Application.Services
                 Cargo = experiencia.Cargo,
                 FechaInicio = experiencia.FechaInicio,
                 FechaFin = experiencia.FechaFin,
-                CertificadoRuta = rutaCertificadoValida, // Solo rutas válidas
+                CertificadoRuta = experiencia.CertificadoRuta,
+                UrlCloudinary = experiencia.UrlCloudinary,
                 ContenidoHash = experiencia.ContenidoHash,
                 AniosExperiencia = Math.Round(aniosExperiencia, 1)
             };
         }
 
-        private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)
-        {
-            // Validaciones
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
-            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX, JPG, JPEG, PNG");
-
-            if (archivo.Length > 25 * 1024 * 1024) // 25MB
-                throw new ArgumentException("El archivo no puede exceder los 25MB");
-
-            // Generar nombre único para el archivo
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-
-            // Guardar archivo físicamente
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-            {
-                await archivo.CopyToAsync(stream);
-            }
-
-            // Calcular hash
-            string contentHash;
-            using (var stream = File.OpenRead(rutaCompleta))
-            using (var sha256 = SHA256.Create())
-            {
-                var hashBytes = sha256.ComputeHash(stream);
-                contentHash = Convert.ToHexString(hashBytes);
-            }
-
-            // Ruta relativa para la base de datos (compatible con sistema de importación)
-            var relativePath = Path.Combine("experiencias", nombreArchivo).Replace("\\", "/");
-
-            return (relativePath, contentHash);
-        }
     }
 } 

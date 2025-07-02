@@ -10,5 +10,7 @@
         public DateTime? FechaFin { get; set; }
         public string Institucion { get; set; } = string.Empty;
         public string CertificacionRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; } = string.Empty;
+        public string ContenidoHash { get; set; } = string.Empty;
     }
 }

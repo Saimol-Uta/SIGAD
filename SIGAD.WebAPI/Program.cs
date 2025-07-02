@@ -100,6 +100,10 @@ builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
 builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
 builder.Services.AddScoped<ITesisDirigidaService, TesisDirigidaService>();
 
+// Servicios de almacenamiento
+builder.Services.AddScoped<ICloudinaryService, SIGAD.Infrastructure.Services.CloudinaryService>();
+builder.Services.AddScoped<IFileStorageService, SIGAD.Infrastructure.Services.FileStorageService>();
+
 // Servicios de aplicación específicos para SIGAD
 builder.Services.AddScoped<ConsultaRangoAppService>();
 builder.Services.AddScoped<GestionRangoAppService>();
