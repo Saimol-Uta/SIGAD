@@ -25,4 +25,25 @@ namespace SIGAD.Domain.Enums
         /// </summary>
         Doctorado = 4
     }
+
+    public static class NivelAcademicoHelper
+    {
+        public static NivelAcademico ParseNivelAcademico(string nivelDto)
+        {
+            nivelDto = nivelDto?.Trim();
+            switch (nivelDto)
+            {
+                case "Maestría":
+                    nivelDto = "Maestria";
+                    break;
+                case "Especialización":
+                    nivelDto = "Especializacion";
+                    break;
+                // Agrega más casos si hay otros valores con tildes o diferencias
+            }
+
+            Enum.TryParse<NivelAcademico>(nivelDto, true, out var nivelAcademico);
+            return nivelAcademico;
+        }
+    }
 }

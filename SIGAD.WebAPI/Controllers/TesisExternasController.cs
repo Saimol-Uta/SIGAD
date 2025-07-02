@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs.IntegracionesExternas;
 using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Domain.Entities;
@@ -26,42 +25,67 @@ namespace SIGAD.WebAPI.Controllers
         [HttpPost("importar/{cedula}")]
         public async Task<IActionResult> ImportarTesis(string cedula)
         {
-            var docente = await _unitOfWork.Docentes.ObtenerPorCedulaAsync(cedula);
-            if (docente == null)
-                return NotFound($"Docente con cédula {cedula} no encontrado.");
-
-            var externas = (await _sgth.ObtenerTesisDirigidasAsync(cedula))
-                            .Concat(await _sut.ObtenerTesisDirigidasAsync(cedula))
-                            .DistinctBy(t => t.ContenidoHash);
-
-            int insertadas = 0;
-
-            foreach (var dto in externas)
+            try
             {
-                bool existe = await _unitOfWork.TesisDirigidas.ExistsByHashAsync(dto.ContenidoHash);
-                if (!existe)
+                var docente = await _unitOfWork.Docentes.ObtenerPorCedulaAsync(cedula);
+                if (docente == null)
+                    return NotFound($"Docente con cédula {cedula} no encontrado.");
+
+                var externas = (await _sgth.ObtenerTesisDirigidasAsync(cedula))
+                                .Concat(await _sut.ObtenerTesisDirigidasAsync(cedula))
+                                .DistinctBy(t => t.ContenidoHash);
+
+                int insertadas = 0;
+                foreach (var dto in externas)
                 {
-                    var tesis = new TesisDirigida
+                    bool existe = await _unitOfWork.TesisDirigidas.ExistsByHashAsync(dto.ContenidoHash);
+                    if (!existe)
                     {
-                        DocenteCedula = docente.Cedula,
-                        NivelAcademico = Enum.Parse<NivelAcademico>(dto.NivelAcademico),
-                        TituloTesis = dto.TituloTesis,
-                        Estado = Enum.Parse<EstadoTesis>(dto.Estado),
-                        FechaInicio = dto.FechaInicio,
-                        FechaFin = dto.FechaFin,
-                        Institucion = dto.Institucion,
-                        CertificacionRuta = dto.CertificacionRuta,
-                        ContenidoHash = dto.ContenidoHash
-                    };
+                        // Mapeo de estado externo a enum interno
+                        string estadoDto = dto.Estado?.Trim();
+                        switch (estadoDto)
+                        {
+                            case "Finalizada":
+                                estadoDto = "Culminada";
+                                break;
+                            case "En Curso":
+                                estadoDto = "EnProceso";
+                                break;
+                                // Agrega más casos si hay otros valores posibles
+                        }
 
-                    await _unitOfWork.TesisDirigidas.AddAsync(tesis);
-                    insertadas++;
+                        // Intenta convertir el string a enum, si falla usa EnProceso como valor por defecto
+                        EstadoTesis estadoTesis = EstadoTesis.EnProceso;
+                        Enum.TryParse<EstadoTesis>(estadoDto, true, out estadoTesis);
+
+                        var tesis = new TesisDirigida
+                        {
+                            DocenteCedula = docente.Cedula,
+                            NivelAcademico = NivelAcademicoHelper.ParseNivelAcademico(dto.NivelAcademico),
+                            TituloTesis = dto.TituloTesis,
+                            Estado = estadoTesis,
+                            FechaInicio = dto.FechaInicio,
+                            FechaFin = dto.FechaFin,
+                            Institucion = dto.Institucion,
+                            CertificacionRuta = dto.CertificacionRuta,
+                            ContenidoHash = dto.ContenidoHash
+                        };
+
+                        await _unitOfWork.TesisDirigidas.AddAsync(tesis);
+                        insertadas++;
+                    }
                 }
+
+                await _unitOfWork.CompleteAsync();
+
+                return Ok(new { mensaje = $"Se importaron {insertadas} tesis nuevas." });
             }
-
-            await _unitOfWork.CompleteAsync();
-
-            return Ok(new { mensaje = $"Se importaron {insertadas} tesis nuevas." });
+            catch (Exception ex)
+            {
+                // Muestra el mensaje de la excepción interna si existe, si no el mensaje principal
+                var error = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { success = false, title = "Error interno", message = error });
+            }
         }
     }
 }

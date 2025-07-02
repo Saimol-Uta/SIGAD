@@ -150,9 +150,14 @@ namespace SIGAD.Application.Services
             if (archivo != null && archivo.Length > 0)
             {
                 // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && File.Exists(experiencia.CertificadoRuta))
+                if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
                 {
-                    File.Delete(experiencia.CertificadoRuta);
+                    var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
+                    var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
+                    if (File.Exists(rutaCompleta))
+                    {
+                        File.Delete(rutaCompleta);
+                    }
                 }
 
                 var (ruta, hash) = await GuardarArchivoAsync(archivo);
@@ -175,9 +180,14 @@ namespace SIGAD.Application.Services
             }
 
             // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && File.Exists(experiencia.CertificadoRuta))
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
             {
-                File.Delete(experiencia.CertificadoRuta);
+                var nombreArchivo = Path.GetFileName(experiencia.CertificadoRuta);
+                var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
+                if (File.Exists(rutaCompleta))
+                {
+                    File.Delete(rutaCompleta);
+                }
             }
 
             await _experienciaRepository.DeleteAsync(id);
@@ -234,6 +244,11 @@ namespace SIGAD.Application.Services
 
         private ExperienciaLaboralDto MapToDto(ExperienciaLaboral experiencia)
         {
+            // Calcular años de experiencia
+            var fechaFin = experiencia.FechaFin ?? DateTime.Now;
+            var diferencia = fechaFin - experiencia.FechaInicio;
+            var aniosExperiencia = (decimal)diferencia.TotalDays / 365.25m; // Considerar años bisiestos
+
             return new ExperienciaLaboralDto
             {
                 Id = experiencia.Id,
@@ -245,31 +260,46 @@ namespace SIGAD.Application.Services
                 FechaInicio = experiencia.FechaInicio,
                 FechaFin = experiencia.FechaFin,
                 CertificadoRuta = experiencia.CertificadoRuta,
-                ContenidoHash = experiencia.ContenidoHash
+                ContenidoHash = experiencia.ContenidoHash,
+                AniosExperiencia = Math.Round(aniosExperiencia, 1)
             };
         }
 
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
+        private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)
         {
+            // Validaciones
+            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX, JPG, JPEG, PNG");
+
+            if (archivo.Length > 25 * 1024 * 1024) // 25MB
+                throw new ArgumentException("El archivo no puede exceder los 25MB");
+
             // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
             var nombreArchivo = $"{Guid.NewGuid()}{extension}";
             var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
 
-            // Guardar archivo
+            // Guardar archivo físicamente
             using (var stream = new FileStream(rutaCompleta, FileMode.Create))
             {
                 await archivo.CopyToAsync(stream);
             }
 
-            // Calcular hash del archivo
-            using (var sha256 = SHA256.Create())
+            // Calcular hash
+            string contentHash;
             using (var stream = File.OpenRead(rutaCompleta))
+            using (var sha256 = SHA256.Create())
             {
-                var hash = sha256.ComputeHash(stream);
-                var hashString = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                return (rutaCompleta, hashString);
+                var hashBytes = sha256.ComputeHash(stream);
+                contentHash = Convert.ToHexString(hashBytes);
             }
+
+            // Ruta relativa para la base de datos
+            var relativePath = Path.Combine("experiencias", nombreArchivo).Replace("\\", "/");
+
+            return (relativePath, contentHash);
         }
     }
 } 

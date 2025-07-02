@@ -39,6 +39,6 @@ namespace SIGAD.Application.DTOs
 
         public string TipoCurso { get; set; } = string.Empty;
         public bool ImpartidoPorDocente { get; set; }
-
+        public int? HorasImpartidas { get; internal set; }
     }
 } 

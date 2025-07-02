@@ -11,8 +11,8 @@ namespace SIGAD.Application.Interfaces
         Task<IEnumerable<InvestigacionDto>> GetByDocenteCedulaAsync(string docenteCedula);
         Task<IEnumerable<InvestigacionDto>> GetBySolicitudIdAsync(Guid solicitudId);
         Task<InvestigacionDto> CreateAsync(CrearInvestigacionDto crearInvestigacionDto, IFormFile informe);
-        Task<InvestigacionDto?> UpdateAsync(int id, ActualizarInvestigacionDto actualizarInvestigacionDto);
         Task<bool> DeleteAsync(int id);
+        Task<InvestigacionDto?> UpdateAsync(int id, ActualizarInvestigacionDto actualizarInvestigacionDto, IFormFile? archivo);
 
         // Vistas simplificadas
         Task<IEnumerable<VerInvestigacionDto>> GetVerInvestigacionesAsync();

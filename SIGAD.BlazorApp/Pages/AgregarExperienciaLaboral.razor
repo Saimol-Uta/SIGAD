@@ -1,15 +1,17 @@
 @page "/agregar-experiencia-laboral"
+@page "/editar-experiencia/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.IO
+@using System.Linq
+@using System.ComponentModel.DataAnnotations
 @attribute [Authorize(Roles = "DOCENTE")]
-@using SIGAD.BlazorApp.Layout
-@using SIGAD.BlazorApp.Services
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject ISolicitudService SolicitudService
 
-<PageTitle>Agregar Experiencia Laboral - SIGAD</PageTitle>
+<PageTitle>@(Id != null ? "Editar Experiencia Laboral - SIGAD" : "Agregar Experiencia Laboral - SIGAD")</PageTitle>
 
 <style>
     * {
@@ -266,8 +268,10 @@
 
     <div class="main-content">
         <div class="form-container">
-            <h1>💼 Agregar Experiencia Laboral</h1>
-            <p class="subtitle">Complete la información de su experiencia laboral para incluirla en su solicitud de ascenso</p>
+            <h1>@(Id != null ? "✏️ Editar Experiencia Laboral" : "💼 Agregar Experiencia Laboral")</h1>
+            <p class="subtitle">
+                @(Id != null ? "Modifique los datos de la experiencia laboral" : "Complete la información de su experiencia laboral para incluirla en su solicitud de ascenso")
+            </p>
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {
@@ -279,7 +283,7 @@
             @if (experienciaCreada)
             {
                 <div class="alert alert-success">
-                    ✅ Experiencia laboral agregada exitosamente. Redirigiendo...
+                    ✅ @(Id != null ? "Experiencia laboral actualizada exitosamente. Redirigiendo..." : "Experiencia laboral agregada exitosamente. Redirigiendo...")
                 </div>
             }
             else
@@ -339,15 +343,6 @@
                             </InputSelect>
                             <ValidationMessage For="@(() => experienciaModel.TipoContrato)" />
                         </div>
-
-                        <div class="form-group">
-                            <label class="form-label">
-                                Meses de Experiencia <span class="required">*</span>
-                            </label>
-                            <InputNumber @bind-Value="experienciaModel.MesesExperiencia" class="form-control" 
-                                       placeholder="Ej: 24" min="1" max="600" />
-                            <ValidationMessage For="@(() => experienciaModel.MesesExperiencia)" />
-                        </div>
                     </div>
 
                     <div class="form-group">
@@ -359,12 +354,25 @@
                                      rows="4" />
                     </div>
 
-                                        <div class="form-group">
+                    <div class="form-group">
                         <label class="form-label">Certificado Laboral <span class="required">*</span></label>
                         <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
                         @if (!string.IsNullOrEmpty(archivoSeleccionado))
                         {
                             <p>Archivo: @archivoSeleccionado</p>
+                        }
+                        @if (!string.IsNullOrEmpty(experienciaModel.ArchivoRuta) && string.IsNullOrEmpty(archivoSeleccionado))
+                        {
+                            <p>
+                                Archivo actual:
+                                <a href="@($"https://localhost:7072/uploads/{experienciaModel.ArchivoRuta}")" target="_blank">
+                                    @Path.GetFileName(experienciaModel.ArchivoRuta)
+                                </a>
+                            </p>
+                        }
+                        @if (Id != null)
+                        {
+                            <small style="color: #666;">Deje vacío si no desea cambiar el certificado actual</small>
                         }
                     </div>
 
@@ -373,14 +381,14 @@
                                 @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (Id == null && archivoFormulario == null))">
                             @if (enviandoFormulario)
                             {
-                                <span>Guardando experiencia...</span>
+                                <span>@(Id != null ? "Actualizando experiencia..." : "Guardando experiencia...")</span>
                             }
                             else
                             {
-                                <span>Guardar Experiencia</span>
+                                <span>@(Id != null ? "Actualizar Experiencia" : "Guardar Experiencia")</span>
                             }
                         </button>
                     </div>
@@ -393,6 +401,8 @@
 </body>
 
 @code {
+    [Parameter] public int? Id { get; set; }
+
     // Variables para información del usuario
     private string nombreUsuario = "";
 
@@ -409,7 +419,51 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
-        await VerificarSolicitudActiva();
+
+        if (Id != null)
+        {
+            // Modo edición: cargar datos de la experiencia
+            try
+            {
+                var response = await Http.GetAsync($"api/experienciasLaborales/{Id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonString);
+                    
+                    if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
+                    {
+                        var experiencia = dataElement;
+                        experienciaModel = new ExperienciaLaboralModel
+                        {
+                            Empresa = experiencia.TryGetProperty("organizacionNombre", out var org) ? org.GetString() ?? "" : "",
+                            Cargo = experiencia.TryGetProperty("cargo", out var cargo) ? cargo.GetString() ?? "" : "",
+                            FechaInicio = experiencia.TryGetProperty("fechaInicio", out var fechaInicio) ? fechaInicio.GetDateTime() : DateTime.Today.AddYears(-1),
+                            FechaFinalizacion = experiencia.TryGetProperty("fechaFin", out var fechaFin) && fechaFin.ValueKind != System.Text.Json.JsonValueKind.Null ? fechaFin.GetDateTime() : DateTime.Today,
+                            ArchivoRuta = experiencia.TryGetProperty("certificadoRuta", out var archivo) ? archivo.GetString() ?? "" : ""
+                        };
+                    }
+                    else
+                    {
+                        errorMessage = "Formato de respuesta inválido al cargar la experiencia laboral.";
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"No se pudo cargar la experiencia laboral para editar. Error: {response.StatusCode} - {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al cargar la experiencia laboral: {ex.Message}";
+            }
+        }
+        else
+        {
+            // Modo agregar: verificar solicitud activa
+            await VerificarSolicitudActiva();
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -479,62 +533,104 @@
 
     private async Task HandleSubmit()
     {
-        if (enviandoFormulario || archivoFormulario == null) return;
+        if (enviandoFormulario) return;
 
         enviandoFormulario = true;
         errorMessage = null;
 
+        // Validar archivo (obligatorio al agregar, opcional al editar)
+        if (Id == null && archivoFormulario == null)
+        {
+            errorMessage = "Debe adjuntar el certificado laboral.";
+            enviandoFormulario = false;
+            return;
+        }
+
         try
         {
-            // Obtener cédula del usuario actual
-            var cedula = await ObtenerCedulaUsuario();
-            if (string.IsNullOrEmpty(cedula))
+            if (Id != null)
             {
-                errorMessage = "No se pudo obtener la información del usuario";
-                return;
-            }
+                // EDITAR EXPERIENCIA
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(experienciaModel.Cargo), "Cargo");
+                content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFin");
 
-            // Obtener el ID real de la solicitud activa
-            var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-            if (string.IsNullOrEmpty(solicitudIdString))
-            {
-                errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                return;
-            }
+                // Adjuntar archivo solo si el usuario seleccionó uno nuevo
+                if (archivoFormulario != null)
+                {
+                    var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
+                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
+                    content.Add(fileContent, "archivo", archivoFormulario.Name);
+                }
 
-            // Crear el formulario multipart
-            using var content = new MultipartFormDataContent();
-            
-            // Campos requeridos por CreateExperienciaLaboralDto
-            content.Add(new StringContent(experienciaModel.Empresa), "OrganizacionNombre");
-            content.Add(new StringContent(experienciaModel.Cargo), "Cargo");
-            content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
-            content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFin");
-            content.Add(new StringContent(cedula), "DocenteCedula");
-            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                var response = await Http.PutAsync($"api/experienciasLaborales/{Id}", content);
 
-            // Agregar el archivo
-            var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
-            content.Add(fileContent, "archivo", archivoFormulario.Name);
-
-            // Enviar la solicitud
-            var response = await Http.PostAsync("api/experienciasLaborales", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                experienciaCreada = true;
-                
-                // Redirigir después de 3 segundos
-                await Task.Delay(3000);
-                Navigation.NavigateTo("/gestion-documentos");
+                if (response.IsSuccessStatusCode)
+                {
+                    experienciaCreada = true;
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/gestion-documentos");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al actualizar la experiencia laboral: {errorContent}";
+                }
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error al guardar la experiencia laboral: {errorContent}";
+                // AGREGAR EXPERIENCIA
+                // Obtener cédula del usuario actual
+                var cedula = await ObtenerCedulaUsuario();
+                if (string.IsNullOrEmpty(cedula))
+                {
+                    errorMessage = "No se pudo obtener la información del usuario";
+                    return;
+                }
+
+                // Obtener el ID real de la solicitud activa
+                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
+                if (string.IsNullOrEmpty(solicitudIdString))
+                {
+                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+                    return;
+                }
+
+                // Crear el formulario multipart
+                using var content = new MultipartFormDataContent();
+                
+                // Campos requeridos por CreateExperienciaLaboralDto
+                content.Add(new StringContent(experienciaModel.Empresa), "OrganizacionNombre");
+                content.Add(new StringContent(experienciaModel.Cargo), "Cargo");
+                content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFin");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+
+                // Agregar el archivo
+                var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario!.ContentType);
+                content.Add(fileContent, "archivo", archivoFormulario!.Name);
+
+                // Enviar la solicitud
+                var response = await Http.PostAsync("api/experienciasLaborales", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    experienciaCreada = true;
+                    
+                    // Redirigir después de 3 segundos
+                    await Task.Delay(3000);
+                    Navigation.NavigateTo("/gestion-documentos");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al guardar la experiencia laboral: {errorContent}";
+                }
             }
         }
         catch (Exception ex)
@@ -592,8 +688,8 @@
         public DateTime FechaInicio { get; set; } = DateTime.Today.AddYears(-1);
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today;
         public string TipoContrato { get; set; } = "";
-        public int MesesExperiencia { get; set; } = 1;
         public string? Descripcion { get; set; }
+        public string? ArchivoRuta { get; set; }
     }
 
     public class VerifyTokenResponse

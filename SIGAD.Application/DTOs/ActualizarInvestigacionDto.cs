@@ -4,6 +4,8 @@ namespace SIGAD.Application.DTOs
 {
     public class ActualizarInvestigacionDto
     {
+        public string DocenteCedula { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "El título es requerido")]
         [StringLength(200, ErrorMessage = "El título no puede exceder los 200 caracteres")]
         [Display(Name = "Título de la Investigación")]

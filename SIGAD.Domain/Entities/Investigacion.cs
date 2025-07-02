@@ -24,5 +24,7 @@ namespace SIGAD.Domain.Entities
         public string UnidadVerificadora { get; set; } = string.Empty;
 
         public virtual Docente Docente { get; set; } = default!;
+        public bool EsInternacional { get; set; } = false;
+
     }
 }

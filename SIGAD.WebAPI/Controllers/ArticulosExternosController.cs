@@ -46,6 +46,7 @@ namespace SIGAD.WebAPI.Controllers
                         Titulo = dto.Titulo,
                         Revista = dto.Revista,
                         AnioPublicacion = dto.AnioPublicacion,
+                        IdiomaPublicacion = dto.IdiomaPublicacion ?? "No especificado",
                         ArchivoRuta = dto.ArchivoRuta,
                         ContenidoHash = dto.ContenidoHash,
                         DocenteCedula = docente.Cedula,

@@ -33,6 +33,9 @@ namespace SIGAD.Infrastructure.ExternalServices
                     Titulo = reader["Titulo"].ToString()!,
                     Revista = reader["Revista"].ToString()!,
                     AnioPublicacion = (int)reader["AnioPublicacion"],
+                    IdiomaPublicacion = reader["IdiomaPublicacion"] != DBNull.Value
+                        ? reader["IdiomaPublicacion"].ToString()!
+                        : "No especificado",
                     ArchivoRuta = reader["ArchivoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
                     DocenteCedula = reader["DocenteCedula"].ToString()!,
@@ -76,7 +79,8 @@ namespace SIGAD.Infrastructure.ExternalServices
                     DocenteCedula = reader["DocenteCedula"].ToString()!,
                     TipoCurso = reader["TipoCurso"].ToString()!,
                     ImpartidoPorDocente = (bool)reader["ImpartidoPorDocente"],
-
+                    HorasImpartidas = reader["HorasImpartidas"] != DBNull.Value
+                    ? (int?)reader["HorasImpartidas"]   : null
                 });
             }
 

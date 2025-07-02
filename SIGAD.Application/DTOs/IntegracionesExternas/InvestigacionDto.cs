@@ -15,5 +15,8 @@
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
 
+        public bool EsInternacional { get; set; }
+
+
     }
 }

@@ -1,4 +1,5 @@
 @page "/agregar-articulo"
+@page "/editar-articulo/{Id?}"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
@@ -9,7 +10,7 @@
 @inject HttpClient Http
 @inject ISolicitudService SolicitudService
 
-<PageTitle>Agregar Artículo - SIGAD</PageTitle>
+<PageTitle>@(Id != null ? "Editar Artículo - SIGAD" : "Agregar Artículo - SIGAD")</PageTitle>
 
 <style>
     * {
@@ -266,8 +267,10 @@
 
     <div class="main-content">
         <div class="form-container">
-            <h1>📄 Agregar Artículo</h1>
-            <p class="subtitle">Complete la información del artículo para incluirlo en su solicitud de ascenso</p>
+            <h1>@(Id != null ? "✏️ Editar Artículo" : "📄 Agregar Artículo")</h1>
+            <p class="subtitle">
+                @(Id != null ? "Modifique los datos del artículo" : "Complete la información del artículo para incluirlo en su solicitud de ascenso")
+            </p>
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {
@@ -275,11 +278,10 @@
                     @errorMessage
                 </div>
             }
-
-            @if (articuloCreado)
+            @if (articuloGuardado)
             {
                 <div class="alert alert-success">
-                    ✅ Artículo agregado exitosamente. Redirigiendo...
+                    ✅ @(Id != null ? "Artículo editado exitosamente. Redirigiendo..." : "Artículo agregado exitosamente. Redirigiendo...")
                 </div>
             }
             else
@@ -289,90 +291,95 @@
 
                     <div class="form-group">
                         <label class="form-label">
+                            DOI (Digital Object Identifier) <span class="required">*</span>
+                        </label>
+                        <InputText @bind-Value="articuloModel.DOI" class="form-control" 
+                                   placeholder="Ej: 10.1000/182" 
+                                   disabled="@(Id != null)" />
+                        <ValidationMessage For="@(() => articuloModel.DOI)" />
+                        @if (Id != null)
+                        {
+                            <small style="color: #666;">El DOI no se puede modificar en modo edición</small>
+                        }
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
                             Título del Artículo <span class="required">*</span>
                         </label>
                         <InputText @bind-Value="articuloModel.Titulo" class="form-control" 
-                                 placeholder="Ej: Análisis de Algoritmos de Machine Learning en la Educación" />
+                                   placeholder="Ej: Análisis de Algoritmos de Machine Learning en la Educación" />
                         <ValidationMessage For="@(() => articuloModel.Titulo)" />
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">
-                                Fecha de Publicación <span class="required">*</span>
-                            </label>
-                            <InputDate @bind-Value="articuloModel.FechaPublicacion" class="form-control" />
-                            <ValidationMessage For="@(() => articuloModel.FechaPublicacion)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">
                                 Revista/Editorial <span class="required">*</span>
                             </label>
                             <InputText @bind-Value="articuloModel.Revista" class="form-control" 
-                                     placeholder="Ej: IEEE Transactions, Nature, Science" />
+                                       placeholder="Ej: IEEE Transactions, Nature, Science" />
                             <ValidationMessage For="@(() => articuloModel.Revista)" />
                         </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">
-                                DOI (Digital Object Identifier) <span class="required">*</span>
-                            </label>
-                            <InputText @bind-Value="articuloModel.DOI" class="form-control" 
-                                     placeholder="Ej: 10.1000/182" />
-                        </div>
 
                         <div class="form-group">
                             <label class="form-label">
-                                URL del Artículo
+                                Año de Publicación <span class="required">*</span>
                             </label>
-                            <InputText @bind-Value="articuloModel.URL" class="form-control" 
-                                     placeholder="https://..." />
+                            <InputNumber @bind-Value="articuloModel.AnioPublicacion" class="form-control" 
+                                         placeholder="Ej: 2024" min="1900" max="@DateTime.Now.Year" />
+                            <ValidationMessage For="@(() => articuloModel.AnioPublicacion)" />
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">
-                            Autores <span class="required">*</span>
+                            Idioma de Publicación <span class="required">*</span>
                         </label>
-                        <InputText @bind-Value="articuloModel.Autores" class="form-control" 
-                                 placeholder="Ej: Juan Pérez, María García, Carlos López" />
-                        <ValidationMessage For="@(() => articuloModel.Autores)" />
+                        <InputSelect @bind-Value="articuloModel.IdiomaPublicacion" class="form-control">
+                            <option value="">Seleccione un idioma</option>
+                            <option value="Español">Español</option>
+                            <option value="Inglés">Inglés</option>
+                            <option value="Francés">Francés</option>
+                            <option value="Portugués">Portugués</option>
+                            <option value="Alemán">Alemán</option>
+                            <option value="Italiano">Italiano</option>
+                            <option value="Otro">Otro</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => articuloModel.IdiomaPublicacion)" />
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">
-                            Resumen
-                        </label>
-                        <InputTextArea @bind-Value="articuloModel.Resumen" class="form-control" 
-                                     placeholder="Breve resumen del artículo y su contribución"
-                                     rows="4" />
-                    </div>
-
-                                        <div class="form-group">
                         <label class="form-label">Archivo del Artículo <span class="required">*</span></label>
-                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx" />
+                        <InputFile OnChange="@OnArchivoSelected" accept=".pdf,.doc,.docx" />
                         @if (!string.IsNullOrEmpty(archivoSeleccionado))
                         {
                             <p>Archivo: @archivoSeleccionado</p>
                         }
+                        @if (!string.IsNullOrEmpty(articuloModel.ArchivoRuta) && string.IsNullOrEmpty(archivoSeleccionado))
+                        {
+                            <p>
+                                Archivo actual:
+                                <a href="@($"https://localhost:7072/uploads/{articuloModel.ArchivoRuta}")" target="_blank">
+                                    @Path.GetFileName(articuloModel.ArchivoRuta)
+                                </a>
+                            </p>
+                        }
                     </div>
 
                     <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" 
+                        <button type="button" class="btn btn-secondary"
                                 @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando artículo...</span>
                             }
                             else
                             {
-                                <span>Guardar Artículo</span>
+                                <span>@(Id != null ? "Guardar Cambios" : "Guardar Artículo")</span>
                             }
                         </button>
                     </div>
@@ -385,23 +392,93 @@
 </body>
 
 @code {
-    // Variables para información del usuario
-    private string nombreUsuario = "";
+    [Parameter] public string? Id { get; set; }
 
-    // Variables para el formulario
+    private string nombreUsuario = "";
     private ArticuloModel articuloModel = new();
-    private IBrowserFile? archivoFormulario;
+    private bool enviandoFormulario = false;
+    private bool articuloGuardado = false;
+    private string? errorMessage;
+    private IBrowserFile? archivoFile;
     private string archivoSeleccionado = "";
 
-    // Variables de estado
-    private bool enviandoFormulario = false;
-    private bool articuloCreado = false;
-    private string? errorMessage;
+    private void OnArchivoSelected(InputFileChangeEventArgs e)
+    {
+        archivoFile = e.File;
+        archivoSeleccionado = e.File.Name;
+
+        // Validar tamaño (25MB)
+        if (archivoFile.Size > 25 * 1024 * 1024)
+        {
+            errorMessage = "El archivo es demasiado grande. Máximo permitido: 25MB";
+            archivoFile = null;
+            archivoSeleccionado = "";
+            return;
+        }
+
+        // Validar extensión
+        var extension = Path.GetExtension(archivoFile.Name).ToLower();
+        var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx" };
+        if (!extensionesPermitidas.Contains(extension))
+        {
+            errorMessage = "Formato de archivo no permitido. Use: PDF, DOC o DOCX";
+            archivoFile = null;
+            archivoSeleccionado = "";
+            return;
+        }
+
+        errorMessage = null;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
-        await VerificarSolicitudActiva();
+
+        if (Id != null)
+        {
+            try
+            {
+                // Usar el ID directamente, el servicio se encargará de la decodificación
+                var response = await Http.GetAsync($"api/articulos/{Id}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonString);
+                    
+                    if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
+                    {
+                        var articulo = dataElement;
+                        articuloModel = new ArticuloModel
+                        {
+                            DOI = articulo.TryGetProperty("doi", out var doi) ? doi.GetString() ?? "" : "",
+                            Titulo = articulo.TryGetProperty("titulo", out var titulo) ? titulo.GetString() ?? "" : "",
+                            Revista = articulo.TryGetProperty("revista", out var revista) ? revista.GetString() ?? "" : "",
+                            AnioPublicacion = articulo.TryGetProperty("anioPublicacion", out var anio) ? anio.GetInt32() : DateTime.Now.Year,
+                            IdiomaPublicacion = articulo.TryGetProperty("idiomaPublicacion", out var idioma) ? idioma.GetString() ?? "" : "",
+                            ArchivoRuta = articulo.TryGetProperty("archivoRuta", out var archivo) ? archivo.GetString() ?? "" : ""
+                        };
+                    }
+                    else
+                    {
+                        errorMessage = "Formato de respuesta inválido al cargar el artículo.";
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"No se pudo cargar el artículo para editar. Error: {response.StatusCode} - {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al cargar el artículo: {ex.Message}";
+            }
+        }
+        else
+        {
+            await VerificarSolicitudActiva();
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -439,46 +516,31 @@
         }
     }
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
-    {
-        archivoFormulario = e.File;
-        archivoSeleccionado = e.File.Name;
-        
-        // Validar tamaño del archivo (25MB)
-        if (archivoFormulario.Size > 25 * 1024 * 1024)
-        {
-            errorMessage = "El archivo es demasiado grande. Máximo permitido: 25MB";
-            archivoFormulario = null;
-            archivoSeleccionado = "";
-            return;
-        }
-
-        // Validar extensión
-        var extension = Path.GetExtension(archivoFormulario.Name).ToLower();
-        var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx" };
-        
-        if (!extensionesPermitidas.Contains(extension))
-        {
-            errorMessage = "Formato de archivo no permitido. Use: PDF, DOC o DOCX";
-            archivoFormulario = null;
-            archivoSeleccionado = "";
-            return;
-        }
-
-        errorMessage = null;
-        StateHasChanged();
-    }
-
     private async Task HandleSubmit()
     {
-        if (enviandoFormulario || archivoFormulario == null) return;
+        if (enviandoFormulario) return;
 
         enviandoFormulario = true;
         errorMessage = null;
 
+        // Validar campos requeridos
+        if (string.IsNullOrEmpty(articuloModel.IdiomaPublicacion))
+        {
+            errorMessage = "Debe seleccionar un idioma de publicación.";
+            enviandoFormulario = false;
+            return;
+        }
+
+        // Validar archivo (obligatorio al agregar, opcional al editar)
+        if (Id == null && archivoFile == null)
+        {
+            errorMessage = "Debe adjuntar el archivo del artículo.";
+            enviandoFormulario = false;
+            return;
+        }
+
         try
         {
-            // Obtener cédula del usuario actual
             var cedula = await ObtenerCedulaUsuario();
             if (string.IsNullOrEmpty(cedula))
             {
@@ -486,54 +548,77 @@
                 return;
             }
 
-            // Obtener el ID real de la solicitud activa
-            var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-            if (string.IsNullOrEmpty(solicitudIdString))
+            if (Id != null)
             {
-                errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                return;
-            }
+                // EDITAR ARTÍCULO
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(articuloModel.DOI), "DOI");
+                content.Add(new StringContent(articuloModel.Titulo), "Titulo");
+                content.Add(new StringContent(articuloModel.Revista), "Revista");
+                content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
+                content.Add(new StringContent(articuloModel.IdiomaPublicacion), "IdiomaPublicacion");
+                content.Add(new StringContent(cedula), "DocenteCedula");
 
-            // Crear el formulario multipart
-            using var content = new MultipartFormDataContent();
-            
-            // Validar que el DOI esté presente (es requerido)
-            if (string.IsNullOrEmpty(articuloModel.DOI))
-            {
-                errorMessage = "El DOI es requerido";
-                return;
-            }
+                // Adjuntar archivo solo si el usuario seleccionó uno nuevo
+                if (archivoFile != null)
+                {
+                    var stream = archivoFile.OpenReadStream(25 * 1024 * 1024);
+                    content.Add(new StreamContent(stream), "archivo", archivoFile.Name);
+                }
 
-            // Campos requeridos por CrearArticuloDto
-            content.Add(new StringContent(articuloModel.DOI), "DOI");
-            content.Add(new StringContent(articuloModel.Titulo), "Titulo");
-            content.Add(new StringContent(articuloModel.Revista), "Revista");
-            content.Add(new StringContent(articuloModel.FechaPublicacion.Year.ToString()), "AnioPublicacion");
-            content.Add(new StringContent(cedula), "DocenteCedula");
-            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // Usar el ID directamente, el servicio se encargará de la decodificación
+                var response = await Http.PutAsync($"api/articulos/{Id}", content);
 
-            // Agregar el archivo
-            var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
-            content.Add(fileContent, "archivo", archivoFormulario.Name);
-
-            // Enviar la solicitud
-            var response = await Http.PostAsync("api/articulos", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                articuloCreado = true;
-                
-                // Redirigir después de 3 segundos
-                await Task.Delay(3000);
-                Navigation.NavigateTo("/gestion-documentos");
+                if (response.IsSuccessStatusCode)
+                {
+                    articuloGuardado = true;
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/gestion-documentos");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al actualizar el artículo: {errorContent}";
+                }
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error al guardar el artículo: {errorContent}";
+                // AGREGAR ARTÍCULO
+                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
+                if (string.IsNullOrEmpty(solicitudIdString))
+                {
+                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+                    return;
+                }
+
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(articuloModel.DOI), "DOI");
+                content.Add(new StringContent(articuloModel.Titulo), "Titulo");
+                content.Add(new StringContent(articuloModel.Revista), "Revista");
+                content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
+                content.Add(new StringContent(articuloModel.IdiomaPublicacion), "IdiomaPublicacion");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+
+                // Adjuntar archivo (obligatorio al agregar)
+                var stream = archivoFile!.OpenReadStream(25 * 1024 * 1024);
+                content.Add(new StreamContent(stream), "archivo", archivoFile!.Name);
+
+                var response = await Http.PostAsync("api/articulos", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    articuloGuardado = true;
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/gestion-documentos");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al guardar el artículo: {errorContent}";
+                }
             }
         }
         catch (Exception ex)
@@ -586,13 +671,12 @@
     // Modelos
     public class ArticuloModel
     {
-        public string Titulo { get; set; } = "";
-        public DateTime FechaPublicacion { get; set; } = DateTime.Today;
-        public string Revista { get; set; } = "";
-        public string Autores { get; set; } = "";
         public string DOI { get; set; } = "";
-        public string? URL { get; set; }
-        public string? Resumen { get; set; }
+        public string Titulo { get; set; } = "";
+        public string Revista { get; set; } = "";
+        public int AnioPublicacion { get; set; } = DateTime.Now.Year;
+        public string IdiomaPublicacion { get; set; } = "";
+        public string? ArchivoRuta { get; set; }
     }
 
     public class VerifyTokenResponse

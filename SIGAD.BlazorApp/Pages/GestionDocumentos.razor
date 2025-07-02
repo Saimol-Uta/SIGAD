@@ -482,13 +482,6 @@
                 <p>Docente: <strong>@nombreCompleto</strong> | Cédula: <strong>@cedula</strong></p>
             </div>
 
-            @if (!string.IsNullOrEmpty(mensajeOperacion))
-            {
-                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
-                    @mensajeOperacion
-                </div>
-            }
-
             <div class="documents-grid">
                 <!-- Investigaciones -->
                 <div class="document-card">
@@ -501,11 +494,8 @@
                         Gestione sus proyectos de investigación, informes y documentos relacionados con actividades investigativas.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-investigacion"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("investigaciones"))" disabled="@operacionEnProceso">
+                            📄 Ver documentos
                         </button>
                     </div>
                 </div>
@@ -521,11 +511,8 @@
                         Administre sus publicaciones científicas, artículos de revista y documentos académicos publicados.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("articulos"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-articulo"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("articulos"))" disabled="@operacionEnProceso">
+                            📄 Ver documentos
                         </button>
                     </div>
                 </div>
@@ -541,11 +528,8 @@
                         Gestione su historial profesional, certificados laborales y documentos de experiencia docente.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-experiencia-laboral"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("experiencias"))" disabled="@operacionEnProceso">
+                            📄 Ver documentos
                         </button>
                     </div>
                 </div>
@@ -561,11 +545,8 @@
                         Administre sus evaluaciones docentes, reportes de desempeño y documentos de evaluación académica.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-evaluacion"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("evaluaciones"))" disabled="@operacionEnProceso">
+                            📄 Ver documentos
                         </button>
                     </div>
                 </div>
@@ -581,35 +562,41 @@
                         Gestione sus cursos impartidos, certificados de capacitación y documentos de formación académica.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("cursos"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-curso"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("cursos"))" disabled="@operacionEnProceso">
+                            📄 Ver documentos
                         </button>
                     </div>
                 </div>
-                <!-- Tesis Asignadas -->
-<div class="document-card">
-    <h3>
-        <span class="icon">📘</span>
-        Tesis Asignadas
-        <span class="document-count">@conteoTesis</span>
-    </h3>
-    <p class="description">
-        Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas oficialmente.
-    </p>
-    <div class="document-actions">
-        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("tesis"))" disabled="@operacionEnProceso">
-            📥 Importar
-        </button>
-        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-tesis"))" disabled="@operacionEnProceso">
-            📤 Agregar
-        </button>
-    </div>
-</div>
 
+                <!-- Tesis Asignadas -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon">📘</span>
+                        Tesis Asignadas
+                        <span class="document-count">@conteoTesis</span>
+                    </h3>
+                    <p class="description">
+                        Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas oficialmente.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("tesis"))" disabled="@operacionEnProceso">
+                            📄 Ver tesis
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            <!-- Mostrar tabla cuando se selecciona un tipo -->
+            @if (!string.IsNullOrEmpty(tablaVisible))
+            {
+                <div style="margin-top: 3rem;">
+                    <Tabla TipoDocumento="@tablaVisible" 
+                           Cedula="@cedula" 
+                           OnImportar="ImportarDocumentos" 
+                           OnAgregar="AgregarDocumento"
+                           OnCerrar="CerrarTabla" />
+                </div>
+            }
 
             @if (operacionEnProceso)
             {
@@ -797,6 +784,7 @@
     private string nombreCompleto = "";
     private string cedula = "";
     private string urlFotoPerfil = "/images/IconoUser.png";
+    private string? tablaVisible = null;
 
     // Variables de conteo de documentos
     private int conteoInvestigaciones = 0;
@@ -1101,15 +1089,15 @@
             conteoExperiencias = 0;
         }
     }
-    private async Task CargarConteoTesis()
+  private async Task CargarConteoTesis()
 {
     try
     {
         var response = await Http.GetAsync($"api/TesisDirigidas/docente/{cedula}");
         if (response.IsSuccessStatusCode)
         {
-            var tesis = await response.Content.ReadFromJsonAsync<List<object>>();
-            conteoTesis = tesis?.Count ?? 0;
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+            conteoTesis = result?.Data?.Count ?? 0;
         }
     }
     catch
@@ -1117,8 +1105,7 @@
         conteoTesis = 0;
     }
 }
-
-
+  
     private async Task CargarConteoEvaluaciones()
     {
         try
@@ -1286,6 +1273,32 @@
             Navigation.NavigateTo("/login", true);
         }
     }
+    private void VerTabla(string tipoDocumento)
+{
+    tablaVisible = tipoDocumento;
+    StateHasChanged();
+}
+
+private void CerrarTabla()
+{
+    tablaVisible = null;
+    StateHasChanged();
+}
+
+private void AgregarDocumento(string tipoDocumento)
+{
+    string ruta = tipoDocumento switch
+    {
+        "investigaciones" => "/agregar-investigacion",
+        "articulos" => "/agregar-articulo",
+        "experiencias" => "/agregar-experiencia-laboral",
+        "evaluaciones" => "/agregar-evaluacion",
+        "cursos" => "/agregar-curso",
+        "tesis" => "/agregar-tesis",
+        _ => "/gestion-documentos"
+    };
+    Navigation.NavigateTo(ruta);
+}
 
     // Modelos para las respuestas de API
     public class VerifyTokenResponse
@@ -1356,4 +1369,5 @@
         public string? RangoNombre { get; set; }
         public int TesisDirigidas { get; set; }
     }
+
 } 

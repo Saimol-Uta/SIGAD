@@ -1,44 +1,60 @@
-﻿@page "/tabla-articulos"
-@using SIGAD.BlazorApp.Layout
+﻿@using SIGAD.BlazorApp.Layout
 @attribute [Layout(typeof(EmptyLayout))]
 @using SIGAD.BlazorApp.Components
 @using SIGAD.BlazorApp.Models
 @using SIGAD.BlazorApp.Services
-@inject ISolicitudesService SolicitudesService
+@using System.Text.Json
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<!-- Parámetros del componente -->
+@{
+    // Configuración dinámica según el tipo de documento
+    var config = ObtenerConfiguracion(TipoDocumento);
+}
 
 <div class="page-wrapper">
-    <Encabezado />
-
     <div class="admin-dashboard">
-
         <!-- CONTENIDO PRINCIPAL -->
         <div class="main-content">
-
-
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                 <div class="flex bloque-izquierdo">
-                    <h2>Artículos</h2>
-                    <select class="select-documento">
-                        <option value="articulos">Artículos</option>
-                        <option value="investigaciones">Investigaciones</option>
-                        <option value="experiencia">Experiencia</option>
-                        <option value="cursos">Cursos</option>
-                        <option value="evaluaciones">Evaluaciones</option>
-                    </select>
+                    <h2>@config.Titulo</h2>
+                    <button class="btn-cerrar" @onclick="CerrarTabla">✕ Cerrar</button>
                 </div>
-                <a class="flex btn-añadir" href="#">
-                    <p>Añadir</p>
-                    <p class="txt-mas">+</p>
-                </a>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-import" @onclick="@(() => ImportarDocumentos())" disabled="@operacionEnProceso">
+                        📥 Importar
+                    </button>
+                    <button class="btn btn-añadir" @onclick="@(() => AgregarDocumento())">
+                        <p>Añadir</p>
+                        <p class="txt-mas">+</p>
+                    </button>
+                </div>
             </div>
 
-            <!-- TABLA DE SOLICITUDES -->
+            <!-- Mensajes de estado -->
+            @if (!string.IsNullOrEmpty(mensajeOperacion))
+            {
+                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
+                    @mensajeOperacion
+                </div>
+            }
+
+            @if (operacionEnProceso)
+            {
+                <div class="alert alert-info">
+                    <strong>Procesando...</strong> @mensajeProceso
+                </div>
+            }
+
+            <!-- TABLA DE DOCUMENTOS -->
             @if (!string.IsNullOrEmpty(mensajeError))
             {
                 <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb;">
                     <strong>Error:</strong> @mensajeError
-                    <button @onclick="CargarSolicitudes" style="margin-left: 10px; padding: 5px 10px; background-color: #0a1d44; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    <button @onclick="CargarDocumentos" style="margin-left: 10px; padding: 5px 10px; background-color: #0a1d44; color: white; border: none; border-radius: 3px; cursor: pointer;">
                         Reintentar
                     </button>
                 </div>
@@ -47,110 +63,75 @@
             @if (cargando)
             {
                 <div style="text-align: center; padding: 40px; color: #666;">
-                    <div style="margin-bottom: 15px;">Cargando solicitudes...</div>
+                    <div style="margin-bottom: 15px;">Cargando @config.Titulo.ToLower()...</div>
                     <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0a1d44; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
                 </div>
             }
             else
             {
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
-                    <thead style="background-color: #0a1d44; color: white;">
-                        <tr style="text-align: left;">
-                            <th style="padding: 12px 20px;">DOI</th>
-                            <th style="padding: 12px 20px;">Título</th>
-                            <th style="padding: 12px 20px;">Revista</th>
-                            <th style="padding: 12px 20px;">Año</th>
-                            <th style="padding: 12px 20px;">Opciones</th>
-                            <th style="padding: 12px 20px;">Seleccionar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                            <!-- FILA DE DATOS ESTÁTICOS PARA PRUEBA -->
-                            <tr style="border-bottom: 1px solid #eee; text-align: left;">
-                                <td style="padding: 10px 20px;">10.1234/abcd</td>
-                                <td style="padding: 10px 20px;">Ejemplo de Título de Artículo</td>
-                                <td style="padding: 10px 20px;">Revista Científica X</td>
-                                <td style="padding: 10px 20px;">2023</td>
-                                <td style="padding: 10px 0px; display: flex; align-items: center; justify-content: space-evenly;">
-                                    <a href="#" class="contenedor-img-documento">
-                                        <img src="/images/pdf.png" alt="pdf" title="Descargar PDF" class="img-documento" />
-                                    </a>
-                                    <a href="#" class="contenedor-img-documento">
-                                        <img src="/images/editar.png" alt="modificar" title="Modificar" class="img-documento" />
-                                    </a>
-                                    <a href="#" class="contenedor-img-documento">
-                                        <img src="/images/borrar.png" alt="Retirar" title="Retirar" class="img-documento" />
-                                    </a>
-                                </td>
-                                <td style="padding: 10px 0px;">
-                                    <div class="flex-center">
-                                        <label class="custom-checkbox">
-                                            <input type="checkbox" />
-                                            <span class="checkmark"></span>
-                                        </label>
-                                    </div>
-                                </td>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+                        <thead style="background-color: #0a1d44; color: white;">
+                            <tr style="text-align: left;">
+                                @foreach (var columna in config.Columnas)
+                                {
+                                    <th style="padding: 12px 20px;">@columna</th>
+                                }
+                                <th style="padding: 12px 20px;">Opciones</th>
+    
                             </tr>
-
-
-                        @if (Filtradas.Any())
-                        {                            foreach (var solicitud in Filtradas)
+                        </thead>
+                        <tbody>
+                            @if (documentos.Any())
                             {
+                                @foreach (var doc in documentosPaginados)
+                                {
                                     <tr style="border-bottom: 1px solid #eee; text-align: left;">
-                                        <td style="padding: 10px 20px;">@solicitud.Id</td>
-                                        <td style="padding: 10px 20px;">@solicitud.DocenteNombreCompleto</td>
-                                        <td style="padding: 10px 20px;">@solicitud.RangoSolicitadoNombre</td>
-                                        <td style="padding: 10px 20px;">@(solicitud.FechaEnvio?.ToString("yyyy"))</td>
+                                        @foreach (var valor in ObtenerValoresDocumento(doc, TipoDocumento))
+                                        {
+                                            <td style="padding: 10px 20px;">@valor</td>
+                                        }
                                         <td style="padding: 10px 0px; display: flex; align-items: center; justify-content: space-evenly;">
-                                            <a href="#" class="contenedor-img-documento">
-                                                <img src="/images/pdf.png" alt="pdf" title="Descargar PDF" class="img-documento" />
-                                            </a>
-                                            <a href="#" class="contenedor-img-documento">
-                                                <img src="/images/editar.png" alt="modificar" title="Modificar" class="img-documento" />
-                                            </a>
-                                            <a href="#" class="contenedor-img-documento">
-                                                <img src="/images/borrar.png" alt="Retirar" title="Retirar" class="img-documento" />
-                                            </a>
-                                        </td>
-                                        <td style="padding: 10px 0px;">
-                                            <div class="flex-center">
-                                                <label class="custom-checkbox">
-                                                    <input type="checkbox" />
-                                                    <span class="checkmark"></span>
-                                                </label>
-                                            </div>
+                                            <button class="contenedor-img-documento" title="Ver PDF" @onclick="() => VerPdf(doc)">
+    <img src="/images/pdf.png" alt="pdf" class="img-documento" />
+</button>
+<button class="contenedor-img-documento" title="Modificar" @onclick="() => EditarDocumento(doc)">
+    <img src="/images/editar.png" alt="modificar" class="img-documento" />
+</button>
+<button class="contenedor-img-documento" title="Retirar" @onclick="() => EliminarDocumento(doc)">
+    <img src="/images/borrar.png" alt="Retirar" class="img-documento" />
+</button>
                                         </td>
                                     </tr>
-
+                                }
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 20px;">No se encontraron resultados.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>            </div>
-
-
-            <div class="flex bloque-bajo">
-
-            <!-- PAGINACIÓN -->
-                <div style="display: flex; justify-content: center;">
-                    @for (int i = 1; i <= PaginasTotales; i++)
-                    {
-                        <button @onclick="() => CambiarPagina(i)"
-                                style="margin: 0 4px; padding: 6px 14px; border-radius: 6px; border: none; background: @(paginaActual == i ? "#0a1d44" : "#e0e0e0"); color: @(paginaActual == i ? "white" : "#333"); font-weight: bold; cursor: pointer;">
-                            @i
-                        </button>
-                    }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="@(config.Columnas.Count + 2)" style="text-align: center; padding: 20px;">
+                                        No se encontraron @config.Titulo.ToLower().
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-                <a href="#" class="btn-continuar flex"> 
-                        <p>Continuar Proceso</p>
-                </a>
-            </div>
+
+                <!-- PAGINACIÓN -->
+                <div class="flex bloque-bajo">
+                    <div style="display: flex; justify-content: center;">
+                        @for (int i = 1; i <= PaginasTotales; i++)
+                        {
+                            <button @onclick="() => CambiarPagina(i)"
+                                    style="margin: 0 4px; padding: 6px 14px; border-radius: 6px; border: none; background: @(paginaActual == i ? "#0a1d44" : "#e0e0e0"); color: @(paginaActual == i ? "white" : "#333"); font-weight: bold; cursor: pointer;">
+                                @i
+                            </button>
+                        }
+                    </div>
+                    <div style="color: #666; font-size: 14px;">
+                        Total: @documentos.Count @config.Titulo.ToLower()
+                    </div>
+                </div>
             }
         </div>
     </div>
@@ -171,20 +152,8 @@
     .admin-dashboard {
         display: flex;
         flex-grow: 1;
-        min-height: calc(100vh - 90px); /* espacio para header */
+        min-height: calc(100vh - 90px);
     }
-
-    .nav-item {
-        padding: 15px 20px;
-        color: white;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-        .nav-item:hover,
-        .nav-item.active {
-            background-color: #112855;
-        }
 
     .main-content {
         flex: 1;
@@ -192,62 +161,59 @@
         background-color: #f9f9f9;
     }
 
-    .btn-añadir, .select-documento, .btn-continuar {
+    .btn-añadir, .btn-import, .btn-cerrar {
         background-color: #0a1d44;
         color: white;
         padding: 12px 18px;
         border-radius: 4px;
-    }
-
-    .btn-añadir, .btn-continuar {
-        width: 150px;
+        border: none;
+        cursor: pointer;
         text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
-    .btn-continuar {
-        cursor: pointer;
-        width: 200px;
+    .btn-cerrar {
+        background-color: #6c757d;
+        padding: 8px 12px;
+        font-size: 14px;
     }
 
-        .btn-continuar::after {
-            content: '➔';
-            font-weight: bold;
-            color: white;
-            margin-left: 10px;
-        }
-
-
-    .select-documento {
-        width: 175px;
-        cursor: pointer;
+    .btn-cerrar:hover {
+        background-color: #5a6268;
     }
 
-    .select-documento option {
-        background-color:white;
-        color: #0a1d44;
+    .btn-import:hover {
+        background-color: #218838;
+    }
 
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .bloque-izquierdo {
         display: flex;
         align-items: center;
-        gap: 60px;
+        gap: 20px;
     }
 
     .bloque-izquierdo h2 {
         font-size: 36px;
-        font-weight: 00;
+        font-weight: 400;
         margin: 0;
     }
 
-    .flex, .flex-center{
+    .flex, .flex-center {
         display: flex;
         align-items: center;
-        
     }
+
     .flex {
         justify-content: space-between;
     }
+
     .flex-center {
         justify-content: center;
     }
@@ -261,7 +227,7 @@
     }
 
     .txt-mas {
-        font-weight:900;
+        font-weight: 900;
     }
 
     .bloque-bajo {
@@ -276,11 +242,11 @@
         height: 25px;
     }
 
-        .custom-checkbox input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+    .custom-checkbox input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
 
     .checkmark {
         position: absolute;
@@ -294,149 +260,515 @@
         box-sizing: border-box;
     }
 
-        /* El check */
-        .checkmark::after {
-            content: "";
-            position: absolute;
-            display: none;
-            left: 8px;
-            top: 4px;
-            width: 7px;
-            height: 12px;
-            border: solid black;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
+    .checkmark::after {
+        content: "";
+        position: absolute;
+        display: none;
+        left: 8px;
+        top: 4px;
+        width: 7px;
+        height: 12px;
+        border: solid black;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
 
-    /* Mostrar check cuando está marcado */
     .custom-checkbox input:checked + .checkmark::after {
         display: block;
     }
 
+    .alert {
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
+    }
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
 
 </style>
 
 @code {
-    int NuevasSolicitudes = 0;
-    int SolicitudesEnProceso = 0;
-    int SolicitudesFinalizadas = 0;
+    // Parámetros del componente
+    [Parameter] public string TipoDocumento { get; set; } = "";
+    [Parameter] public string Cedula { get; set; } = "";
+    [Parameter] public EventCallback<string> OnImportar { get; set; }
+    [Parameter] public EventCallback<string> OnAgregar { get; set; }
+    [Parameter] public EventCallback OnCerrar { get; set; }
 
-    private string filtroNombre = "";
+    // Variables de estado
+    private bool cargando = true;
+    private bool operacionEnProceso = false;
+    private bool operacionExitosa = false;
+    private string? mensajeError = null;
+    private string? mensajeOperacion = null;
+    private string mensajeProceso = "";
+
+    // Variables de paginación
     private int paginaActual = 1;
     private int porPagina = 6;
-    private bool cargando = true;
-    private string? mensajeError = null;
 
-    private List<SolicitudDto> TodasSolicitudes = new();
+    // Datos dinámicos
+    private List<JsonElement> documentos = new();
+    private IEnumerable<JsonElement> documentosPaginados => documentos
+        .Skip((paginaActual - 1) * porPagina)
+        .Take(porPagina);
 
-    private string estadoSeleccionado = "";
+    private int PaginasTotales => (int)Math.Ceiling(documentos.Count / (double)porPagina);
 
-    private readonly string[] ESTADOS_NUEVOS = new[] { "Enviada", "Pendiente" };
-    private readonly string[] ESTADOS_EN_PROCESO = new[] { "EnRevision", "En Revisión" };
-    private readonly string[] ESTADOS_FINALIZADOS = new[] { "Aprobada", "Rechazada" };
-
-    
     protected override async Task OnInitializedAsync()
     {
-        await CargarSolicitudes();
+        await CargarDocumentos();
     }
-    
-   /*
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnParametersSetAsync()
+{
+    // Solo recargar si los parámetros han cambiado y no estamos ya cargando
+    if (!cargando && !string.IsNullOrEmpty(TipoDocumento) && !string.IsNullOrEmpty(Cedula))
     {
-        // Simulación para probar paginación
-        TodasSolicitudes = Enumerable.Range(1, 25).Select(i => new SolicitudDto
+        await CargarDocumentos();
+    }
+}
+private async Task CargarDocumentos()
+{
+    if (string.IsNullOrEmpty(Cedula) || string.IsNullOrEmpty(TipoDocumento))
+        return;
+
+    try
+    {
+        cargando = true;
+        mensajeError = null;
+        StateHasChanged();
+
+        string endpoint = TipoDocumento switch
         {
-            Id = Guid.NewGuid(),
-            DocenteNombreCompleto = $"Docente {i}",
-            RangoSolicitadoNombre = $"Rango {i}",
-            FechaEnvio = DateTime.Today.AddDays(-i),
-            Estado = i % 3 == 0 ? "Aprobada" : (i % 3 == 1 ? "En Revisión" : "Rechazada")
-            }).ToList();
+            "investigaciones" => $"api/investigaciones/docente/{Cedula}",
+            "articulos" => $"api/articulos/docente/{Cedula}",
+            "experiencias" => $"api/experienciaslaborales/docente/{Cedula}",
+            "evaluaciones" => $"api/evaluaciones/docente/{Cedula}",
+            "cursos" => $"api/cursos/docente/{Cedula}",
+            "tesis" => $"api/TesisDirigidas/docente/{Cedula}",
+            _ => ""
+        };
 
-        ActualizarContadores();
-        cargando = false;
+        if (!string.IsNullOrEmpty(endpoint))
+        {
+            var response = await Http.GetAsync(endpoint);
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonString);
+
+                // Ajuste aquí para tesis
+                if (TipoDocumento == "articulos" || TipoDocumento == "experiencias" || TipoDocumento == "evaluaciones" || TipoDocumento == "tesis")
+                {
+                    if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) && dataElement.ValueKind == JsonValueKind.Array)
+                    {
+                        documentos = dataElement.EnumerateArray().ToList();
+                    }
+                    else
+                    {
+                        documentos = new List<JsonElement>();
+                    }
+                }
+                else
+                {
+                    if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        documentos = jsonDoc.RootElement.EnumerateArray().ToList();
+                    }
+                    else
+                    {
+                        documentos = new List<JsonElement>();
+                    }
+                }
+            }
+            else
+            {
+                mensajeError = "Error al cargar los documentos";
+            }
         }
-         */
-
-    private async Task CargarSolicitudes()
+    }
+    catch (Exception ex)
     {
+        mensajeError = $"Error al cargar documentos: {ex.Message}";
+    }
+    finally
+    {
+        cargando = false;
+        StateHasChanged();
+    }
+}
+private string? ObtenerRutaPdf(JsonElement doc, string tipo)
+{
+    return tipo switch
+    {
+        "investigaciones" => doc.TryGetProperty("informeRuta", out var rutaInv) ? rutaInv.GetString() : null,
+        "articulos" => doc.TryGetProperty("archivoRuta", out var rutaArt) ? rutaArt.GetString() : null,
+        "tesis" => doc.TryGetProperty("certificacionRuta", out var rutaTesis) ? rutaTesis.GetString() : null,
+        "experiencias" => doc.TryGetProperty("certificadoRuta", out var rutaExp) ? rutaExp.GetString() : null,
+        "cursos" => doc.TryGetProperty("certificadoRuta", out var rutaCurso) ? rutaCurso.GetString() : null,
+        "evaluaciones" => doc.TryGetProperty("informeRuta", out var rutaEval) ? rutaEval.GetString() : null, 
+        _ => null
+    };
+}
+    
+    private async Task ImportarDocumentos()
+    {
+        if (operacionEnProceso) return;
+
+        operacionEnProceso = true;
+        mensajeProceso = $"Importando {TipoDocumento} desde sistemas externos...";
+        mensajeOperacion = null;
+
         try
         {
-            cargando = true;
-            mensajeError = null;
-            StateHasChanged();
-
-            var solicitudesApi = await SolicitudesService.GetAllSolicitudesAsync();
-            
-            TodasSolicitudes = solicitudesApi;
-            ActualizarContadores();
+            if (OnImportar.HasDelegate)
+            {
+                await OnImportar.InvokeAsync(TipoDocumento);
+                
+                // Recargar documentos después de importar
+                await Task.Delay(1000); // Pequeña pausa para asegurar que la importación termine
+                await CargarDocumentos();
+                
+                mensajeOperacion = "✅ Importación completada exitosamente";
+                operacionExitosa = true;
+            }
         }
         catch (Exception ex)
         {
-            mensajeError = $"Error al cargar las solicitudes: {ex.Message}";
-            Console.WriteLine($"Error en CargarSolicitudes: {ex.Message}");
+            mensajeOperacion = $"❌ Error al importar: {ex.Message}";
+            operacionExitosa = false;
         }
         finally
         {
-            cargando = false;
+            operacionEnProceso = false;
+            mensajeProceso = "";
             StateHasChanged();
-        }
-    }
 
-    private void ActualizarContadores()
-    {
-        NuevasSolicitudes = TodasSolicitudes.Count(s => ESTADOS_NUEVOS.Contains(s.Estado));
-        SolicitudesEnProceso = TodasSolicitudes.Count(s => ESTADOS_EN_PROCESO.Contains(s.Estado));
-        SolicitudesFinalizadas = TodasSolicitudes.Count(s => ESTADOS_FINALIZADOS.Contains(s.Estado));
-    }
-
-    private IEnumerable<SolicitudDto> Filtradas =>
-        TodasSolicitudes
-            .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
-            .Where(s => estadoSeleccionado switch
+            // Limpiar mensaje después de 3 segundos
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
-                "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
-                "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
-                "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
-                _ => true
-            })
-            .Skip((paginaActual - 1) * porPagina)
-            .Take(porPagina);
-
-    private int PaginasTotales
-    {
-        get
-        {
-            var totalFiltradas = TodasSolicitudes
-                .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
-                .Where(s => estadoSeleccionado switch
-                {
-                    "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
-                    "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
-                    "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
-                    _ => true
-                })
-                .Count();
-            
-            return (int)Math.Ceiling(totalFiltradas / (double)porPagina);
+                mensajeOperacion = null;
+                InvokeAsync(StateHasChanged);
+            });
         }
     }
 
-    private void CambiarPagina(int nueva) => paginaActual = nueva;    private void FiltrarPor(string estadoGrupo)
+    private async Task AgregarDocumento()
     {
-        estadoSeleccionado = estadoGrupo;
-        paginaActual = 1;
+        if (OnAgregar.HasDelegate)
+        {
+            await OnAgregar.InvokeAsync(TipoDocumento);
+        }
     }
 
-    private void VerDetalles(Guid solicitudId)
+    private async Task CerrarTabla()
     {
-        Navigation.NavigateTo($"/admin/solicitud/{solicitudId}");
+        if (OnCerrar.HasDelegate)
+        {
+            await OnCerrar.InvokeAsync();
+        }
+    }
+    // Abrir PDF en nueva pestaña
+    private async Task VerPdf(JsonElement doc)
+{
+    var pdfRuta = ObtenerRutaPdf(doc, TipoDocumento);
+    if (!string.IsNullOrEmpty(pdfRuta))
+    {
+        // Para todos los tipos de documentos, usar la lógica existente
+        var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
+            ? pdfRuta
+            : $"/uploads/{pdfRuta.TrimStart('/')}";
+        
+        var backendUrl = $"https://localhost:7072{relativePath}";
+        
+        await JSRuntime.InvokeVoidAsync("window.open", backendUrl, "_blank");
+    }
+    else
+    {
+        mensajeOperacion = "No hay PDF disponible para este documento.";
+        operacionExitosa = false;
+    }
+}
+
+private string ObtenerEndpointEliminar(string tipo, string id)
+{
+    return tipo switch
+    {
+        "investigaciones" => $"api/investigaciones/{id}",
+        "articulos" => $"api/articulos/{id}",
+        "tesis" => $"api/TesisDirigidas/{id}",
+        "experiencias" => $"api/experienciaslaborales/{id}",
+        "cursos" => $"api/cursos/{id}",
+        "evaluaciones" => $"api/evaluaciones/{id}",
+        _ => ""
+    };
+}
+
+// Editar documento
+private async Task EditarDocumento(JsonElement doc)
+{
+    var id = ObtenerIdDocumento(doc, TipoDocumento);
+    if (!string.IsNullOrEmpty(id))
+    {
+        switch (TipoDocumento)
+        {
+            case "tesis":
+                Navigation.NavigateTo($"/editar-tesis/{id}");
+                break;
+            case "cursos":
+                Navigation.NavigateTo($"/editar-curso/{id}");
+                break;
+            case "articulos":
+                // Para artículos, codificar el DOI para la URL
+                var encodedDoi = Uri.EscapeDataString(id);
+                Navigation.NavigateTo($"/editar-articulo/{encodedDoi}");
+                break;
+            case "investigaciones":
+                Navigation.NavigateTo($"/editar-investigacion/{id}");
+                break;
+            case "experiencias":
+                Navigation.NavigateTo($"/editar-experiencia/{id}");
+                break;
+            case "evaluaciones":
+                Navigation.NavigateTo($"/editar-evaluacion/{id}");
+                break;
+            default:
+                mensajeOperacion = "Funcionalidad de edición aún no implementada para este tipo de documento.";
+                operacionExitosa = false;
+                break;
+        }
+    }
+    else
+    {
+        mensajeOperacion = "No se pudo obtener el identificador del documento.";
+        operacionExitosa = false;
+    }
+}
+
+// Eliminar documento
+private async Task EliminarDocumento(JsonElement doc)
+{
+    var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar este documento?");
+    if (!confirmado) return;
+
+    try
+    {
+        var id = ObtenerIdDocumento(doc, TipoDocumento);
+        if (string.IsNullOrEmpty(id))
+        {
+            mensajeOperacion = "No se pudo obtener el identificador del documento.";
+            operacionExitosa = false;
+            return;
+        }
+
+        // Para artículos, codificar el DOI
+        var encodedId = TipoDocumento == "articulos" ? Uri.EscapeDataString(id) : id;
+        var endpoint = ObtenerEndpointEliminar(TipoDocumento, encodedId);
+        var response = await Http.DeleteAsync(endpoint);
+
+        if (response.IsSuccessStatusCode)
+        {
+            mensajeOperacion = "Documento eliminado correctamente.";
+            operacionExitosa = true;
+            await CargarDocumentos();
+        }
+        else
+        {
+            mensajeOperacion = "Error al eliminar el documento.";
+            operacionExitosa = false;
+        }
+    }
+    catch (Exception ex)
+    {
+        mensajeOperacion = $"Error: {ex.Message}";
+        operacionExitosa = false;
+    }
+}
+
+    private void CambiarPagina(int nueva)
+    {
+        paginaActual = nueva;
     }
 
-    private string ObtenerColorEstado(string estado) =>
-        estado.Contains("Aprobad") ? "green" :
-        estado.Contains("Revision") || estado.Contains("Revisión") ? "orange" :
-        estado.Contains("Rechazad") ? "red" :
-        "blue";
+    // Configuración dinámica según el tipo de documento
+    private DocumentConfig ObtenerConfiguracion(string tipo)
+    {
+        return tipo switch
+        {
+            "investigaciones" => new DocumentConfig
+            {
+                Titulo = "Investigaciones",
+                Columnas = new() { "Título", "Rol", "Fecha Inicio", "Fecha Fin", "Meses" }
+            },
+            "articulos" => new DocumentConfig
+            {
+                Titulo = "Artículos",
+                Columnas = new() { "DOI", "Título", "Revista", "Año", "Idioma Publicación" }
+            },
+            "experiencias" => new DocumentConfig
+            {
+                Titulo = "Experiencias Laborales",
+                Columnas = new() { "Institución", "Cargo", "Fecha Inicio", "Fecha Fin", "Años" }
+            },
+            "evaluaciones" => new DocumentConfig
+            {
+                Titulo = "Evaluaciones",
+                Columnas = new() { "Periodo Académico", "Calificación", "Fecha Evaluación"}
+            },
+            "cursos" => new DocumentConfig
+{
+    Titulo = "Cursos",
+    Columnas = new() { "Nombre", "Tipo de Curso", "Horas Impartidas", "Fecha", "Institución" }
+},
+            
+            "tesis" => new DocumentConfig
+            {
+                Titulo = "Tesis Dirigidas",
+                Columnas = new() { "Título", "Nivel", "Estado", "Fecha Inicio", "Institución" }
+            },
+            _ => new DocumentConfig { Titulo = "Documentos", Columnas = new() { "Información" } }
+        };
+    }
+
+    // Extraer valores dinámicos según el tipo de documento
+    private List<string> ObtenerValoresDocumento(JsonElement doc, string tipo)
+    {
+        try
+        {
+            var valores = new List<string>();
+            
+            switch (tipo)
+            {
+                case "investigaciones":
+                    valores.AddRange(new[]
+                    {
+                        doc.TryGetProperty("titulo", out var titulo) ? titulo.GetString() ?? "" : "",
+                        doc.TryGetProperty("rolEnInvestigacion", out var rol) ? rol.GetString() ?? "" : "",
+                        doc.TryGetProperty("fechaInicio", out var fechaInicio) ? fechaInicio.GetDateTime().ToString("yyyy-MM-dd") : "",
+                        doc.TryGetProperty("fechaFinalizacion", out var fechaFin) ? fechaFin.GetDateTime().ToString("yyyy-MM-dd") : "",
+                        doc.TryGetProperty("mesesDeInvestigacion", out var meses) ? meses.GetInt32().ToString() : ""
+                    });
+                    break;
+                    
+                case "articulos":
+                    valores.AddRange(new[]
+                    {
+                        doc.TryGetProperty("doi", out var doi) ? doi.GetString() ?? "" : "",
+                        doc.TryGetProperty("titulo", out var tituloArt) ? tituloArt.GetString() ?? "" : "",
+                        doc.TryGetProperty("revista", out var revista) ? revista.GetString() ?? "" : "",
+                        doc.TryGetProperty("anioPublicacion", out var anio) ? anio.GetInt32().ToString() : "",
+                        doc.TryGetProperty("idiomaPublicacion", out var idioma) ? idioma.GetString() ?? "" : ""
+                    });
+                    break;
+                    
+                case "tesis":
+                    valores.AddRange(new[]
+                    {
+                        doc.TryGetProperty("tituloTesis", out var tituloTesis) ? tituloTesis.GetString() ?? "" : "",
+                        doc.TryGetProperty("nivelAcademico", out var nivel) ? nivel.GetString() ?? "" : "",
+                        doc.TryGetProperty("estado", out var estado) ? estado.GetString() ?? "" : "",
+                        doc.TryGetProperty("fechaInicio", out var fechaInicioTesis) ? fechaInicioTesis.GetDateTime().ToString("yyyy-MM-dd") : "",
+                        doc.TryGetProperty("institucion", out var institucion) ? institucion.GetString() ?? "" : ""
+                    });
+                    break;
+
+                case "experiencias":
+                    valores.AddRange(new[]
+                    {
+                        doc.TryGetProperty("organizacionNombre", out var inst) ? inst.GetString() ?? "" : "",
+                        doc.TryGetProperty("cargo", out var cargo) ? cargo.GetString() ?? "" : "",
+                        doc.TryGetProperty("fechaInicio", out var fechaInicioExp) ? fechaInicioExp.GetDateTime().ToString("yyyy-MM-dd") : "",
+                        doc.TryGetProperty("fechaFin", out var fechaFinExp) ? fechaFinExp.GetDateTime().ToString("yyyy-MM-dd") : "",
+                        doc.TryGetProperty("aniosExperiencia", out var aniosExp) ? aniosExp.GetDecimal().ToString("F1") : ""
+                    });
+                    break;
+                    case "evaluaciones":
+    valores.AddRange(new[]
+    {
+        doc.TryGetProperty("periodoAcademico", out var periodo) ? periodo.GetString() ?? "" : "",
+        doc.TryGetProperty("puntajePorcentual", out var calificacion) ? calificacion.GetDecimal().ToString("F1") : "",
+        doc.TryGetProperty("fechaEvaluacion", out var fechaEval) ? fechaEval.GetDateTime().ToString("yyyy-MM-dd") : ""
+    });
+    break; 
+                    case "cursos":
+    valores.AddRange(new[]
+    {
+        doc.TryGetProperty("nombre", out var nombreCurso) ? nombreCurso.GetString() ?? "" : "",
+        doc.TryGetProperty("tipoCurso", out var tipoCurso) ? tipoCurso.GetString() ?? "" : "",
+        doc.TryGetProperty("horasImpartidas", out var horas) && horas.ValueKind == JsonValueKind.Number ? horas.GetInt32().ToString() : "",
+        doc.TryGetProperty("fechaFinalizacion", out var fechaCurso) && fechaCurso.ValueKind == JsonValueKind.String
+            ? (DateTime.TryParse(fechaCurso.GetString(), out var fecha) ? fecha.ToString("yyyy-MM-dd") : "")
+            : "",
+        doc.TryGetProperty("nombreOrganizacion", out var institucionCurso) ? institucionCurso.GetString() ?? "" : ""
+    });
+    break;
+         
+                default:
+                    valores.Add("Información no disponible");
+                    break;
+            }
+            
+            return valores;
+        }
+        catch (Exception ex)
+        {
+            return new List<string> { $"Error: {ex.Message}" };
+        }
+    }
+    private string? ObtenerIdDocumento(JsonElement doc, string tipo)
+{
+    switch (tipo)
+    {
+        case "articulos":
+            // Para artículos, el identificador es el DOI
+            if (doc.TryGetProperty("doi", out var doiElement))
+            {
+                return doiElement.GetString();
+            }
+            break;
+        
+        default:
+            // Para otros tipos de documentos, usar el campo "id"
+            if (doc.TryGetProperty("id", out var idElement))
+            {
+                // Si el id es un número, conviértelo a string
+                if (idElement.ValueKind == JsonValueKind.Number)
+                    return idElement.GetInt32().ToString();
+                if (idElement.ValueKind == JsonValueKind.String)
+                    return idElement.GetString();
+            }
+            break;
+    }
+    return null;
+}
+
+    // Clases auxiliares
+    public class DocumentConfig
+    {
+        public string Titulo { get; set; } = "";
+        public List<string> Columnas { get; set; } = new();
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public T? Data { get; set; }
+    }
 }

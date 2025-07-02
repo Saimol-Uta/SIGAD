@@ -6,6 +6,7 @@ namespace SIGAD.Application.DTOs
         public string Titulo { get; set; } = string.Empty;
         public string Revista { get; set; } = string.Empty;
         public int AnioPublicacion { get; set; }
+        public string IdiomaPublicacion { get; set; } = string.Empty;
         public string ArchivoRuta { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;

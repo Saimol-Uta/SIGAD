@@ -14,5 +14,8 @@
         public bool Verificado { get; set; }
         public DateTime? FechaVerificacion { get; set; }
 
+        public string? IdiomaPublicacion { get; set; }
+
+
     }
 }

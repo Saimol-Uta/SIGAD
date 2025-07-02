@@ -61,7 +61,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Datos del artículo</returns>
-        [HttpGet("{doi}")]
+        [HttpGet("{*doi}")]
         [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -231,7 +231,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="updateDto">Datos actualizados</param>
         /// <param name="archivo">Nuevo archivo (opcional)</param>
         /// <returns>Artículo actualizado</returns>
-        [HttpPut("{doi}")]
+        [HttpPut("{*doi}")]
         [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
@@ -289,7 +289,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Resultado de la eliminación</returns>
-        [HttpDelete("{doi}")]
+        [HttpDelete("{*doi}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -389,7 +389,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="solicitudId">ID de la solicitud</param>
         /// <param name="articuloDoi">DOI del artículo</param>
         /// <returns>Resultado de la desasociación</returns>
-        [HttpDelete("desasociar-solicitud/{solicitudId}/{articuloDoi}")]
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{*articuloDoi}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DesasociarArticuloDeSolicitud(Guid solicitudId, string articuloDoi)
@@ -421,7 +421,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Archivo del artículo</returns>
-        [HttpGet("{doi}/archivo")]
+        [HttpGet("archivo/{*doi}")]
         [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -516,7 +516,7 @@ namespace SIGAD.WebAPI.Controllers
         private static string GenerarCSV(IEnumerable<ArticuloDto> articulos)
         {
             var csv = new StringBuilder();
-            csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,DocenteCedula,DocenteNombreCompleto");
+            csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,IdiomaPublicacion,DocenteCedula,DocenteNombreCompleto");
             
             foreach (var articulo in articulos)
             {
@@ -524,6 +524,7 @@ namespace SIGAD.WebAPI.Controllers
                               $"\"{articulo.Titulo}\"," +
                               $"\"{articulo.Revista}\"," +
                               $"{articulo.AnioPublicacion}," +
+                              $"\"{articulo.IdiomaPublicacion}\"," +
                               $"\"{articulo.DocenteCedula}\"," +
                               $"\"{articulo.DocenteNombreCompleto}\"");
             }

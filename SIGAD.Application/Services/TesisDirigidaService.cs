@@ -1,30 +1,18 @@
 ﻿using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using SIGAD.Domain.Enums;
-using System.Security.Cryptography;
-using System.Text;
+using SIGAD.Application.Interfaces;
+using SIGAD.Domain.Enums; // Asegúrate de tener este using
 
 namespace SIGAD.Application.Services
 {
-    public interface ITesisDirigidaService
-    {
-        Task<IEnumerable<TesisDirigidaDto>> ObtenerPorDocenteAsync(string cedula);
-        Task<TesisDirigidaDto> CrearAsync(CreateTesisDirigidaDto dto);
-        Task AsociarASolicitudAsync(Guid solicitudId, int tesisId);
-        Task DesasociarDeSolicitudAsync(Guid solicitudId, int tesisId);
-        Task<bool> ExistePorHashAsync(string hash);
-    }
-
     public class TesisDirigidaService : ITesisDirigidaService
     {
         private readonly ITesisDirigidaRepository _repository;
-        private readonly IUnitOfWork _unitOfWork;
 
-        public TesisDirigidaService(ITesisDirigidaRepository repository, IUnitOfWork unitOfWork)
+        public TesisDirigidaService(ITesisDirigidaRepository repository)
         {
             _repository = repository;
-            _unitOfWork = unitOfWork;
         }
 
         public async Task<IEnumerable<TesisDirigidaDto>> ObtenerPorDocenteAsync(string cedula)
@@ -34,7 +22,7 @@ namespace SIGAD.Application.Services
             {
                 Id = t.Id,
                 DocenteCedula = t.DocenteCedula,
-                NivelAcademico = t.NivelAcademico.ToString(),
+                NivelAcademico = t.NivelAcademico.ToString(), // Enum a string
                 TituloTesis = t.TituloTesis,
                 Estado = t.Estado.ToString(),
                 FechaInicio = t.FechaInicio,
@@ -46,22 +34,92 @@ namespace SIGAD.Application.Services
 
         public async Task<TesisDirigidaDto> CrearAsync(CreateTesisDirigidaDto dto)
         {
+            // Conversión segura de string a enum
+            EstadoTesis estadoTesis = EstadoTesis.EnProceso;
+            Enum.TryParse<EstadoTesis>(dto.Estado, true, out estadoTesis);
+
             var tesis = new TesisDirigida
             {
                 DocenteCedula = dto.DocenteCedula,
-                NivelAcademico = Enum.Parse<NivelAcademico>(dto.NivelAcademico),
+                NivelAcademico = NivelAcademicoHelper.ParseNivelAcademico(dto.NivelAcademico),
                 TituloTesis = dto.TituloTesis,
-                Estado = Enum.Parse<EstadoTesis>(dto.Estado),
+                Estado = estadoTesis,
                 FechaInicio = dto.FechaInicio,
                 FechaFin = dto.FechaFin,
                 Institucion = dto.Institucion,
                 CertificacionRuta = dto.CertificacionRuta,
-                ContenidoHash = GenerarHash(dto) // Generar hash basado en el contenido
+                ContenidoHash = string.Empty // Puedes calcular el hash si es necesario
             };
 
             await _repository.AddAsync(tesis);
-            await _unitOfWork.SaveChangesAsync(); // ¡Aquí estaba el problema!
+            return new TesisDirigidaDto
+            {
+                Id = tesis.Id,
+                DocenteCedula = tesis.DocenteCedula,
+                NivelAcademico = tesis.NivelAcademico.ToString(),
+                TituloTesis = tesis.TituloTesis,
+                Estado = tesis.Estado.ToString(), // Convierte enum a string para el DTO
+                FechaInicio = tesis.FechaInicio,
+                FechaFin = tesis.FechaFin,
+                Institucion = tesis.Institucion,
+                CertificacionRuta = tesis.CertificacionRuta
+            };
+        }
 
+        public async Task AsociarASolicitudAsync(Guid solicitudId, int tesisId)
+        {
+            await _repository.AddToSolicitudAsync(solicitudId, tesisId);
+        }
+
+        public async Task DesasociarDeSolicitudAsync(Guid solicitudId, int tesisId)
+        {
+            await _repository.RemoveFromSolicitudAsync(solicitudId, tesisId);
+        }
+
+        public async Task<bool> ExistePorHashAsync(string hash)
+        {
+            return await _repository.ExistsByHashAsync(hash);
+        }
+        public async Task<bool> EliminarAsync(int id)
+        {
+            var tesis = await _repository.GetByIdAsync(id);
+            if (tesis == null)
+                return false;
+
+            await _repository.DeleteAsync(id);
+            return true;
+        }
+        public async Task<bool> EditarAsync(int id, CreateTesisDirigidaDto dto)
+        {
+            var tesis = await _repository.GetByIdAsync(id);
+            if (tesis == null)
+                return false;
+
+            tesis.TituloTesis = dto.TituloTesis;
+            tesis.NivelAcademico = NivelAcademicoHelper.ParseNivelAcademico(dto.NivelAcademico);
+            EstadoTesis estadoTesis = EstadoTesis.EnProceso;
+            Enum.TryParse<EstadoTesis>(dto.Estado, true, out estadoTesis);
+            tesis.Estado = estadoTesis;
+            tesis.FechaInicio = dto.FechaInicio;
+            tesis.FechaFin = dto.FechaFin;
+            tesis.Institucion = dto.Institucion;
+            tesis.CertificacionRuta = dto.CertificacionRuta;
+
+            await _repository.UpdateAsync(tesis);
+            return true;
+        }
+        public async Task<string?> ObtenerRutaPdfAsync(int id)
+        {
+            var tesis = await _repository.GetByIdAsync(id);
+            return tesis?.CertificacionRuta;
+        }
+        public async Task<TesisDirigidaDto?> ObtenerPorIdAsync(int id)
+        {
+            var tesis = await _repository.GetByIdAsync(id);
+            if (tesis == null)
+                return null;
+
+            // Mapea la entidad a DTO (ajusta según tu mapeo real)
             return new TesisDirigidaDto
             {
                 Id = tesis.Id,
@@ -76,29 +134,5 @@ namespace SIGAD.Application.Services
             };
         }
 
-        public async Task AsociarASolicitudAsync(Guid solicitudId, int tesisId)
-        {
-            await _repository.AddToSolicitudAsync(solicitudId, tesisId);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task DesasociarDeSolicitudAsync(Guid solicitudId, int tesisId)
-        {
-            await _repository.RemoveFromSolicitudAsync(solicitudId, tesisId);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task<bool> ExistePorHashAsync(string hash)
-        {
-            return await _repository.ExistsByHashAsync(hash);
-        }
-
-        private string GenerarHash(CreateTesisDirigidaDto dto)
-        {
-            var contenido = $"{dto.DocenteCedula}|{dto.TituloTesis}|{dto.NivelAcademico}|{dto.Estado}|{dto.Institucion}|{dto.FechaInicio:yyyy-MM-dd}";
-            using var sha256 = SHA256.Create();
-            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(contenido));
-            return Convert.ToBase64String(hash);
-        }
     }
 }

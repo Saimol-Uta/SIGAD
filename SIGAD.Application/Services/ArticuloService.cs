@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
+using System;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -45,7 +46,9 @@ namespace SIGAD.Application.Services
 
         public async Task<ArticuloDto?> GetArticuloByIdAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             return articulo != null ? MapToDto(articulo) : null;
         }
 
@@ -94,6 +97,7 @@ namespace SIGAD.Application.Services
                 Titulo = createDto.Titulo,
                 Revista = createDto.Revista,
                 AnioPublicacion = createDto.AnioPublicacion,
+                IdiomaPublicacion = createDto.IdiomaPublicacion,
                 DocenteCedula = createDto.DocenteCedula,
                 ArchivoRuta = archivoRuta,
                 ContenidoHash = contenidoHash
@@ -127,7 +131,9 @@ namespace SIGAD.Application.Services
 
         public async Task<ArticuloDto> UpdateArticuloAsync(string doi, ActualizarArticuloDto updateDto, IFormFile? archivo)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null)
             {
                 throw new ArgumentException("El artículo no existe");
@@ -137,14 +143,19 @@ namespace SIGAD.Application.Services
             articulo.Titulo = updateDto.Titulo;
             articulo.Revista = updateDto.Revista;
             articulo.AnioPublicacion = updateDto.AnioPublicacion;
+            articulo.IdiomaPublicacion = updateDto.IdiomaPublicacion;
 
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
                 // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(articulo.ArchivoRuta) && File.Exists(articulo.ArchivoRuta))
+                if (!string.IsNullOrEmpty(articulo.ArchivoRuta))
                 {
-                    File.Delete(articulo.ArchivoRuta);
+                    var rutaFisicaAnterior = Path.Combine(_uploadsPath, Path.GetFileName(articulo.ArchivoRuta));
+                    if (File.Exists(rutaFisicaAnterior))
+                    {
+                        File.Delete(rutaFisicaAnterior);
+                    }
                 }
 
                 var (ruta, hash) = await GuardarArchivoAsync(archivo);
@@ -160,19 +171,25 @@ namespace SIGAD.Application.Services
 
         public async Task<bool> DeleteArticuloAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null)
             {
                 return false;
             }
 
             // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(articulo.ArchivoRuta) && File.Exists(articulo.ArchivoRuta))
+            if (!string.IsNullOrEmpty(articulo.ArchivoRuta))
             {
-                File.Delete(articulo.ArchivoRuta);
+                var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(articulo.ArchivoRuta));
+                if (File.Exists(rutaFisica))
+                {
+                    File.Delete(rutaFisica);
+                }
             }
 
-            await _articuloRepository.DeleteAsync(doi);
+            await _articuloRepository.DeleteAsync(decodedDoi);
             await _unitOfWork.SaveChangesAsync();
             return true;
         }
@@ -205,23 +222,29 @@ namespace SIGAD.Application.Services
 
         public async Task<byte[]?> GetArchivoArticuloAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null || string.IsNullOrEmpty(articulo.ArchivoRuta))
             {
                 return null;
             }
 
-            if (!File.Exists(articulo.ArchivoRuta))
+            // Construir la ruta física completa desde la ruta relativa
+            var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(articulo.ArchivoRuta));
+            if (!File.Exists(rutaFisica))
             {
                 return null;
             }
 
-            return await File.ReadAllBytesAsync(articulo.ArchivoRuta);
+            return await File.ReadAllBytesAsync(rutaFisica);
         }
 
         public async Task<string?> GetNombreArchivoAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null || string.IsNullOrEmpty(articulo.ArchivoRuta))
             {
                 return null;
@@ -230,23 +253,41 @@ namespace SIGAD.Application.Services
             return Path.GetFileName(articulo.ArchivoRuta);
         }
 
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
+        private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)
         {
+            // Validaciones
+            var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX");
+
+            if (archivo.Length > 25 * 1024 * 1024) // 25MB
+                throw new ArgumentException("El archivo no puede exceder los 25MB");
+
             // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
             var nombreArchivo = $"{Guid.NewGuid()}{extension}";
             var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
 
-            // Guardar archivo
+            // Guardar archivo físicamente
             using (var stream = new FileStream(rutaCompleta, FileMode.Create))
             {
                 await archivo.CopyToAsync(stream);
             }
 
-            // Calcular hash del archivo
-            var hash = await CalcularHashArchivoAsync(rutaCompleta);
+            // Calcular hash
+            string contentHash;
+            using (var stream = File.OpenRead(rutaCompleta))
+            using (var sha256 = SHA256.Create())
+            {
+                var hashBytes = sha256.ComputeHash(stream);
+                contentHash = Convert.ToHexString(hashBytes);
+            }
 
-            return (rutaCompleta, hash);
+            // Ruta relativa para la base de datos
+            var relativePath = Path.Combine("articulos", nombreArchivo).Replace("\\", "/");
+
+            return (relativePath, contentHash);
         }
 
         private async Task<string> CalcularHashArchivoAsync(string rutaArchivo)
@@ -265,11 +306,15 @@ namespace SIGAD.Application.Services
                 Titulo = articulo.Titulo,
                 Revista = articulo.Revista,
                 AnioPublicacion = articulo.AnioPublicacion,
+                IdiomaPublicacion = articulo.IdiomaPublicacion ?? string.Empty,
                 ArchivoRuta = articulo.ArchivoRuta,
                 DocenteCedula = articulo.DocenteCedula,
                 DocenteNombreCompleto = articulo.Docente != null 
                     ? $"{articulo.Docente.Nombre1} {articulo.Docente.Nombre2 ?? ""} {articulo.Docente.Apellido1} {articulo.Docente.Apellido2}".Trim()
-                    : string.Empty
+                    : string.Empty,
+                UnidadVerificadora = articulo.UnidadVerificadora,
+                Verificado = articulo.Verificado,
+                FechaVerificacion = articulo.FechaVerificacion
             };
         }
     }

@@ -14,6 +14,7 @@ namespace SIGAD.Application.DTOs
         public DateTime? FechaFin { get; set; }
         public string CertificadoRuta { get; set; } = string.Empty;
         public string ContenidoHash { get; set; } = string.Empty;
+        public decimal AniosExperiencia { get; set; }
     }
 
     public class CreateExperienciaLaboralDto

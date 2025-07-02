@@ -57,7 +57,8 @@ namespace SIGAD.WebAPI.Controllers
                         DocenteCedula = docente.Cedula,
                         OrganizacionId = organizacion.Id,
                         TipoCurso = Enum.Parse<TipoCurso>(dto.TipoCurso),
-                        ImpartidoPorDocente = dto.ImpartidoPorDocente
+                        ImpartidoPorDocente = dto.ImpartidoPorDocente,
+                        HorasImpartidas = dto.HorasImpartidas
                     };
 
                     await _unitOfWork.Cursos.AgregarAsync(curso);

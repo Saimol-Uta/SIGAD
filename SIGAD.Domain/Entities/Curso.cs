@@ -24,6 +24,7 @@ namespace SIGAD.Domain.Entities
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = default!;
         public Organizacion Organizacion { get; set; } = default!;
+        public int? HorasImpartidas { get;  set; }
 
     }
 }

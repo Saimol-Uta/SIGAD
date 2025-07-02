@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
+using SIGAD.Domain.Enums;
 using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 
@@ -92,11 +93,15 @@ namespace SIGAD.Application.Services
             var fileName = $"{Guid.NewGuid()}{extension}";
             var filePath = Path.Combine(_fileStoragePath, fileName);
 
-            // Guardar archivo
+            // Guardar archivo físicamente
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await certificado.CopyToAsync(stream);
             }
+
+            // Ruta relativa para la base de datos
+            var relativePath = Path.Combine("cursos", fileName).Replace("\\", "/");
+
 
             // Verificar que la solicitud existe
             if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
@@ -121,11 +126,15 @@ namespace SIGAD.Application.Services
             {
                 Nombre = crearCursoDto.Nombre,
                 OrganizacionId = organizacion.Id,
-                NumeroHoras = crearCursoDto.NumeroHoras,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
-                CertificadoRuta = filePath,
-                ContenidoHash = contentHash
+                CertificadoRuta = relativePath,
+                ContenidoHash = contentHash,
+                TipoCurso = Enum.Parse<TipoCurso>(crearCursoDto.TipoCurso),
+                ImpartidoPorDocente = crearCursoDto.ImpartidoPorDocente,
+                HorasImpartidas = crearCursoDto.HorasImpartidas 
+
+
             };
 
             await _cursoRepository.AddAsync(curso);
@@ -144,12 +153,15 @@ namespace SIGAD.Application.Services
             if (cursoExistente == null)
                 throw new ArgumentException("Curso no encontrado");
 
+
+
             // Actualizar propiedades básicas
             cursoExistente.Nombre = actualizarCursoDto.Nombre;
             cursoExistente.OrganizacionId = actualizarCursoDto.OrganizacionId;
-            cursoExistente.NumeroHoras = actualizarCursoDto.NumeroHoras;
             cursoExistente.FechaFinalizacion = actualizarCursoDto.FechaFinalizacion;
             cursoExistente.DocenteCedula = actualizarCursoDto.DocenteCedula;
+            cursoExistente.TipoCurso = Enum.Parse<TipoCurso>(actualizarCursoDto.TipoCurso);
+            cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas; // <-- Nuevo campo actualizado
 
             // Si se proporciona nuevo certificado
             if (certificado != null && certificado.Length > 0)
@@ -181,6 +193,7 @@ namespace SIGAD.Application.Services
                 }
 
                 // Guardar nuevo archivo
+                // Guardar nuevo archivo físicamente
                 var fileName = $"{Guid.NewGuid()}{extension}";
                 var filePath = Path.Combine(_fileStoragePath, fileName);
 
@@ -189,7 +202,10 @@ namespace SIGAD.Application.Services
                     await certificado.CopyToAsync(stream);
                 }
 
-                cursoExistente.CertificadoRuta = filePath;
+                // Ruta relativa para la base de datos
+                var relativePath = Path.Combine("cursos", fileName).Replace("\\", "/");
+
+                cursoExistente.CertificadoRuta = relativePath; // ← SOLO la ruta relativa
                 cursoExistente.ContenidoHash = contentHash;
             }
 
@@ -207,10 +223,12 @@ namespace SIGAD.Application.Services
                 return false;
 
             // Eliminar archivo asociado
-            if (File.Exists(curso.CertificadoRuta))
+            var physicalPath = Path.Combine(_fileStoragePath, Path.GetFileName(curso.CertificadoRuta));
+            if (File.Exists(physicalPath))
             {
-                File.Delete(curso.CertificadoRuta);
+                File.Delete(physicalPath);
             }
+           
 
             await _cursoRepository.DeleteAsync(id);
             return true;
@@ -308,7 +326,11 @@ namespace SIGAD.Application.Services
                 DocenteCedula = curso.DocenteCedula,
                 CertificadoRuta = curso.CertificadoRuta,
                 ContenidoHash = curso.ContenidoHash,
-                OrganizacionId = curso.OrganizacionId
+                OrganizacionId = curso.OrganizacionId,
+                TipoCurso = curso.TipoCurso.ToString(), // <-- Agrega esta línea
+                ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                HorasImpartidas = curso.HorasImpartidas // <-- Nuevo campo mapeado
+
             };
         }
 
@@ -325,7 +347,10 @@ namespace SIGAD.Application.Services
                     ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}" 
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
-                TieneCertificado = !string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta)
+                TieneCertificado = !string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta),
+                TipoCurso = curso.TipoCurso.ToString(),
+                ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                HorasImpartidas = curso.HorasImpartidas
             };
         }
     }

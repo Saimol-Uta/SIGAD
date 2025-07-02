@@ -29,13 +29,36 @@ namespace SIGAD.WebAPI.Controllers
         /// Obtiene una investigación por ID
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<InvestigacionDto>> GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var investigacion = await _investigacionService.GetByIdAsync(id);
-            if (investigacion == null)
-                return NotFound($"Investigación con ID {id} no encontrada");
+            try
+            {
+                var investigacion = await _investigacionService.GetByIdAsync(id);
+                if (investigacion == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = $"Investigación con ID {id} no encontrada"
+                    });
+                }
 
-            return Ok(investigacion);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigación obtenida exitosamente",
+                    data = investigacion
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -76,22 +99,56 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
-        /// Actualiza una investigación existente (solo datos básicos, no el archivo)
+        /// Actualiza una investigación existente (datos y archivo)
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult<InvestigacionDto>> Update(int id, [FromBody] ActualizarInvestigacionDto actualizarInvestigacionDto)
+        [RequestSizeLimit(25 * 1024 * 1024)]
+        public async Task<IActionResult> UpdateInvestigacion(int id)
         {
             try
             {
-                var investigacionActualizada = await _investigacionService.UpdateAsync(id, actualizarInvestigacionDto);
-                if (investigacionActualizada == null)
-                    return NotFound($"Investigación con ID {id} no encontrada");
+                var form = await Request.ReadFormAsync();
 
-                return Ok(investigacionActualizada);
+                // Extraer campos del formulario
+                var titulo = form["Titulo"];
+                var fechaInicio = DateTime.Parse(form["FechaInicio"]);
+                var fechaFinalizacion = DateTime.Parse(form["FechaFinalizacion"]);
+                var rol = form["RolEnInvestigacion"];
+                var meses = int.Parse(form["MesesDeInvestigacion"]);
+                var docenteCedula = form["DocenteCedula"];
+
+                var dto = new ActualizarInvestigacionDto
+                {
+                    Titulo = titulo,
+                    FechaInicio = fechaInicio,
+                    FechaFinalizacion = fechaFinalizacion,
+                    RolEnInvestigacion = rol,
+                    MesesDeInvestigacion = meses,
+                    DocenteCedula = docenteCedula
+                };
+
+                // Archivo (opcional)
+                var archivo = form.Files.FirstOrDefault();
+
+                var result = await _investigacionService.UpdateAsync(id, dto, archivo);
+
+                if (result == null)
+                    return NotFound(new { success = false, message = "Investigación no encontrada" });
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigación actualizada exitosamente",
+                    data = result
+                });
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Error interno del servidor", error = ex.Message });
             }
         }
 
@@ -127,10 +184,10 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var (fileContent, contentType, fileName) = await _investigacionService.DownloadInformeAsync(id);
-                
+
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
                 Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
-                
+
                 return File(fileContent, contentType, fileName);
             }
             catch (FileNotFoundException ex)

@@ -6,7 +6,6 @@ using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
-
 namespace SIGAD.Application.Services
 {
     public class EvaluacionDocenteService : IEvaluacionDocenteService
@@ -29,7 +28,7 @@ namespace SIGAD.Application.Services
             _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
             _uploadsPath = configuration["FileStorage:EvaluacionesPath"] ?? "uploads/evaluaciones";
-            
+
             // Crear directorio si no existe
             if (!Directory.Exists(_uploadsPath))
             {
@@ -92,7 +91,7 @@ namespace SIGAD.Application.Services
             };
 
             await _evaluacionRepository.AddAsync(evaluacion);
-            
+
             // Guardar cambios para generar el ID
             await _unitOfWork.SaveChangesAsync();
 
@@ -133,9 +132,13 @@ namespace SIGAD.Application.Services
             if (archivo != null && archivo.Length > 0)
             {
                 // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && File.Exists(evaluacion.InformeRuta))
+                if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
                 {
-                    File.Delete(evaluacion.InformeRuta);
+                    var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
+                    if (File.Exists(rutaFisica))
+                    {
+                        File.Delete(rutaFisica);
+                    }
                 }
 
                 var (ruta, hash) = await GuardarArchivoAsync(archivo);
@@ -158,9 +161,13 @@ namespace SIGAD.Application.Services
             }
 
             // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && File.Exists(evaluacion.InformeRuta))
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
             {
-                File.Delete(evaluacion.InformeRuta);
+                var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
+                if (File.Exists(rutaFisica))
+                {
+                    File.Delete(rutaFisica);
+                }
             }
 
             await _evaluacionRepository.DeleteAsync(id);
@@ -202,12 +209,13 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
-            if (!File.Exists(evaluacion.InformeRuta))
+            var rutaFisica = Path.Combine(_uploadsPath, Path.GetFileName(evaluacion.InformeRuta));
+            if (!File.Exists(rutaFisica))
             {
                 return null;
             }
 
-            return await File.ReadAllBytesAsync(evaluacion.InformeRuta);
+            return await File.ReadAllBytesAsync(rutaFisica);
         }
 
         public async Task<string?> GetNombreArchivoAsync(int id)
@@ -221,23 +229,40 @@ namespace SIGAD.Application.Services
             return Path.GetFileName(evaluacion.InformeRuta);
         }
 
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
+        private async Task<(string rutaRelativa, string hash)> GuardarArchivoAsync(IFormFile archivo)
         {
-            // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
+            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+            var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
 
-            // Guardar archivo
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+            if (!allowedExtensions.Contains(extension))
+                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
+
+            if (archivo.Length > 25 * 1024 * 1024) // 25MB
+                throw new ArgumentException("El archivo no puede exceder los 25MB");
+
+            // Generar nombre único
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(_uploadsPath, fileName);
+
+            // Guardar archivo físicamente
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await archivo.CopyToAsync(stream);
             }
 
-            // Calcular hash del contenido
-            var contenidoHash = await CalcularHashArchivoAsync(rutaCompleta);
+            // Calcular hash
+            string contentHash;
+            using (var stream = File.OpenRead(filePath))
+            using (var sha256 = SHA256.Create())
+            {
+                var hashBytes = sha256.ComputeHash(stream);
+                contentHash = Convert.ToHexString(hashBytes);
+            }
 
-            return (rutaCompleta, contenidoHash);
+            // Ruta relativa para la base de datos
+            var relativePath = Path.Combine("evaluaciones", fileName).Replace("\\", "/");
+
+            return (relativePath, contentHash);
         }
 
         private async Task<string> CalcularHashArchivoAsync(string rutaArchivo)
@@ -267,4 +292,4 @@ namespace SIGAD.Application.Services
             };
         }
     }
-} 
+}

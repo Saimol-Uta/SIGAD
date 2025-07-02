@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIGAD.Application.Interfaces;
@@ -12,7 +13,6 @@ using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
-using SIGAD.Infrastructure.Services;
 using SIGAD.WebAPI.Middleware;
 using System.Text;
 
@@ -105,6 +105,7 @@ builder.Services.AddScoped<ValidacionRequisitosService>();
 builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
 builder.Services.AddScoped<ReporteBackendService>();
 // 4. Agregar servicios para controladores de API
@@ -158,7 +159,16 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 var app = builder.Build();
+app.UseStaticFiles(); // Esto sirve wwwroot por defecto
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
+    RequestPath = "/uploads"
+});
 
 // --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
 
@@ -168,6 +178,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 
 // 2. Middleware personalizado de validación y manejo de errores
 app.UseValidationMiddleware();

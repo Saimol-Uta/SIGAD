@@ -27,5 +27,13 @@ namespace SIGAD.Application.DTOs
 
         [Display(Name = "Archivo")]
         public bool TieneCertificado { get; set; }
+        [Display(Name = "Tipo Curso")]
+        public string TipoCurso { get; set; } = string.Empty;
+
+        [Display(Name = "Impartido por el docente")]
+        public bool ImpartidoPorDocente { get; set; }
+        [Display(Name = "Horas impartidas")]
+               
+        public int? HorasImpartidas { get; set; } // Nuevo campo para horas impartidas
     }
 } 
