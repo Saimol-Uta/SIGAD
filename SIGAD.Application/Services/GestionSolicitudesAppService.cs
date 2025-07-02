@@ -316,6 +316,30 @@ namespace SIGAD.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
+        public async Task<IEnumerable<SolicitudDetalleDto>> ObtenerHistorialPorDocenteAsync(string docenteCedula)
+        {
+            var solicitudes = await _solicitudRepository.GetByDocenteAsync(docenteCedula);
+
+            return solicitudes
+                .OrderByDescending(s => s.FechaCreacion)
+                .Select(s => new SolicitudDetalleDto
+                {
+                    Id = s.Id,
+                    Estado = s.Estado.ToString(),
+                    FechaCreacion = s.FechaCreacion,
+                    FechaEnvio = s.FechaEnvio,
+                    FechaResolucion = s.FechaResolucion,
+                    ObservacionesAdmin = s.ObservacionesAdmin,
+                    DocenteCedula = s.DocenteCedula,
+                    DocenteNombreCompleto = s.Docente != null
+                        ? $"{s.Docente.Nombre1} {s.Docente.Nombre2} {s.Docente.Apellido1} {s.Docente.Apellido2}".Replace("  ", " ").Trim()
+                        : "N/A",
+                    RangoActualNombre = s.RangoActual?.Nombre ?? "N/A",
+                    RangoSolicitadoNombre = s.RangoSolicitado?.Nombre ?? "N/A"
+                })
+                .ToList();
+        }
+
         public async Task AprobarPorConsejoAsync(Guid id, string observaciones)
         {
             var solicitud = await _solicitudRepository.GetByIdAsync(id);
