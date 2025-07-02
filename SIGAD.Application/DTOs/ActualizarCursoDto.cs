@@ -30,5 +30,10 @@ namespace SIGAD.Application.DTOs
         [StringLength(10, MinimumLength = 8, ErrorMessage = "La cédula debe tener entre 8 y 10 caracteres")]
         [Display(Name = "Cédula del Docente")]
         public string DocenteCedula { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Número de horas de capacitación impartidas por el docente (opcional, para validación de rangos principales)
+        /// </summary>
+        public int? HorasImpartidas { get; set; }
     }
-} 
+}

@@ -320,7 +320,7 @@
     body {
         font-family: Arial, sans-serif;
         background-color: #fff;
-        color: #0a1d44;
+        color: #86011c;
         height: 100%;
         overflow-x: hidden;
     }
@@ -356,7 +356,7 @@
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        border: 2px solid #0a1d44;
+            border: 2px solid #86011c;
         object-fit: cover;
     }
 
@@ -400,7 +400,7 @@
         font-size: 6.5rem;
         font-weight: 500;
         line-height: 1.2;
-        color: #0a1d44;
+            color: #86011c;
     }
 
     .left p {
@@ -409,12 +409,36 @@
         color: #3a3a3a;
     }
 
-    .notifications {
-        display: flex;
+    .notifications a{
+        display: inline-flex;
         align-items: center;
         gap: 10px;
         margin-top: 0.5rem;
+        position: relative;
+        text-decoration: none;
+        color: #930038;
+        padding: 0.25rem 0;
+        cursor: pointer; /* Cambia el cursor a mano */
     }
+
+        .notifications a::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 100%;
+            background-color: #930038; 
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .notifications a:hover::after {
+            transform: scaleX(1);
+        }
+
+
 
     .notifications img {
         width: 24px;
@@ -446,27 +470,27 @@
     }
 
     .primary-btn {
-        background-color: #0a1d44;
+        background-color: #86011c;
         color: white;
         border: none;
     }
 
     .primary-btn:hover {
         background-color: #f1f1f1;
-        color: #09203f;
-        border: 1px solid #09203f;
+            color: #3f0922;
+            border: 1px solid #3f0922;
     }
 
     .secondary-btn {
         background-color: white;
-        border: 1px solid #09203f;
+        border: 1px solid #660e31;
         color: #333;
     }
 
     .secondary-btn:hover {
-        background-color: #09203f;
+            background-color: #3f0919;
         color: #fff;
-        border: 1px solid #09203f;
+            border: 1px solid #3f0919;
     }
 
     .promotion-card {
@@ -477,7 +501,7 @@
         background: white;
         padding: 1.5rem;
         max-width: 500px;
-        border: 0.1px solid #09203f;
+        border: 0.1px solid #3f0925;
         border-radius: 0.1vw;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         transition: transform 0.3s ease;
@@ -501,7 +525,7 @@
         text-align: right;
         font-size: 1.2rem;
         font-weight: bold;
-        color: #0a1d44;
+            color: #86011c;
     }
 
     .promotion-card button {
@@ -510,14 +534,14 @@
         padding: 0.75rem;
         border: none;
         border-radius: 6px;
-        background-color: #0a1d44;
+            background-color: #86011c;
         color: white;
         font-size: 1rem;
         cursor: pointer;
     }
 
     .promotion-card button:hover {
-        background-color: #09203f;
+                background-color: #3f0926;
     }
 
     /* Estilos para la sección de progreso */
@@ -541,7 +565,7 @@
     .progress-percentage {
         font-size: 1.1rem;
         font-weight: bold;
-        color: #0a1d44;
+        color: #86011c;
     }
 
     .progress-bar {
@@ -588,7 +612,7 @@
     .no-process {
         margin: 1.5rem 0;
         text-align: center;
-        color: #856404;
+        color: #da012d;
     }
 
     .no-process p {
@@ -641,8 +665,8 @@
             <div style="display: flex; justify-content: center; align-items: center; height: 50vh; width: 100%;">
                 <div style="text-align: center; color: red;">
                     <p>@errorMessage</p>
-                    <button @onclick="@(() => Navigation.NavigateTo("/login"))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0a1d44; color: white; border: none; border-radius: 4px;">
-                        Volver al Login
+                    <button @onclick="@(() => Navigation.NavigateTo("/login"))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #86011c; color: white; border: none; border-radius: 4px;">
+                        Volver al Inicio de Sesión
                     </button>
                 </div>
             </div>
@@ -650,7 +674,7 @@
         else
         {
             <div class="left">
-                <h1>Welcome<br />System</h1>
+                <h1>Bienvenido<br />al Sistema</h1>
                 <p>@NombreCompletoUsuario</p>
                 @if (!string.IsNullOrEmpty(RangoActual))
                 {
@@ -665,22 +689,28 @@
                     {
                         <span class="badge">@CantidadNotificaciones</span>
                     }
-                    <span>Notifications</span>
+                    <a class="notifications" @onclick="@(() => Navigation.NavigateTo("/notificaciones"))">
+                        Notificaciones
+                    </a>
                 </div>
 
             <div class="buttons">
                 @if (tieneSolicitudActiva)
                 {
-                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continue Promotion Process</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
-                        Documents</button>
+                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continuar con el Proceso de Promoción</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar
+                        Documentos</button>
+                        <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📄 Mis Solicitudes</button>
+
                 }
                 else
                 {
                     <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">🚀
-                        Start New Promotion Process</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
-                        Documents</button>
+                        Empezar Nuevo Proceso de Promoción</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar
+                        Documentos</button>
+                        <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📄 Mis Solicitudes</button>
+
                 }
             </div>
         </div>

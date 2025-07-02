@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace SIGAD.Application.Services
 {
@@ -139,6 +140,14 @@ namespace SIGAD.Application.Services
                     : "N/A",
                 RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
                 RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
+
+                // Campos de aprobación UTA
+                AprobadoPorComision = solicitud.AprobadoPorComision,
+                AprobadoPorConsejo = solicitud.AprobadoPorConsejo,
+                FechaAprobacionComision = solicitud.FechaAprobacionComision,
+                FechaAprobacionConsejo = solicitud.FechaAprobacionConsejo,
+                ObservacionesComision = solicitud.ObservacionesComision,
+                ObservacionesConsejo = solicitud.ObservacionesConsejo,
 
                 ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
                 {
@@ -294,6 +303,63 @@ namespace SIGAD.Application.Services
         public async Task<Docente?> ObtenerDocentePorCedulaAsync(string cedula)
         {
             return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
+        }
+
+        public async Task AprobarPorComisionAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorComision(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<SolicitudDetalleDto>> ObtenerHistorialPorDocenteAsync(string docenteCedula)
+        {
+            var solicitudes = await _solicitudRepository.GetByDocenteAsync(docenteCedula);
+
+            return solicitudes
+                .OrderByDescending(s => s.FechaCreacion)
+                .Select(s => new SolicitudDetalleDto
+                {
+                    Id = s.Id,
+                    Estado = s.Estado.ToString(),
+                    FechaCreacion = s.FechaCreacion,
+                    FechaEnvio = s.FechaEnvio,
+                    FechaResolucion = s.FechaResolucion,
+                    ObservacionesAdmin = s.ObservacionesAdmin,
+                    DocenteCedula = s.DocenteCedula,
+                    DocenteNombreCompleto = s.Docente != null
+                        ? $"{s.Docente.Nombre1} {s.Docente.Nombre2} {s.Docente.Apellido1} {s.Docente.Apellido2}".Replace("  ", " ").Trim()
+                        : "N/A",
+                    RangoActualNombre = s.RangoActual?.Nombre ?? "N/A",
+                    RangoSolicitadoNombre = s.RangoSolicitado?.Nombre ?? "N/A"
+                })
+                .ToList();
+        }
+
+        public async Task AprobarPorConsejoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorConsejo(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task FinalizarProcesoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.FinalizarProceso(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

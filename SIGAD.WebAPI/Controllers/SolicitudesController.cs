@@ -188,6 +188,62 @@ namespace SIGAD.WebAPI.Controllers
             }
         }
 
+        // PUT: api/solicitudes/{id}/aprobar-comision
+        [HttpPut("{id}/aprobar-comision")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> AprobarPorComision(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.AprobarPorComisionAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Solicitud aprobada por Comisión Académica exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al aprobar por Comisión la solicitud {SolicitudId}: {Message}", id, ex.Message);
+
+                // Obtener detalles del inner exception si existe
+                var innerMessage = ex.InnerException?.Message ?? "Sin detalles adicionales";
+                var fullMessage = $"Error: {ex.Message}. Detalles: {innerMessage}";
+
+                return BadRequest(new { success = false, message = fullMessage });
+            }
+        }
+
+        // PUT: api/solicitudes/{id}/aprobar-consejo
+        [HttpPut("{id}/aprobar-consejo")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> AprobarPorConsejo(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.AprobarPorConsejoAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Solicitud aprobada por Consejo Universitario exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al aprobar por Consejo la solicitud {SolicitudId}", id);
+                return BadRequest(new { success = false, message = $"Error interno del servidor: {ex.Message}" });
+            }
+        }
+
+        // PUT: api/solicitudes/{id}/finalizar
+        [HttpPut("{id}/finalizar")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> FinalizarProceso(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.FinalizarProcesoAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Proceso de ascenso finalizado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al finalizar el proceso de la solicitud {SolicitudId}", id);
+                return BadRequest(new { success = false, message = $"Error interno del servidor: {ex.Message}" });
+            }
+        }
+
         // Endpoint de prueba sin autorización
         [HttpGet("test")]
         public IActionResult Test()
@@ -200,15 +256,15 @@ namespace SIGAD.WebAPI.Controllers
         [Authorize]
         public IActionResult TestAuth()
         {
-            var userInfo = new
+            var userClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
+            return Ok(new
             {
-                IsAuthenticated = User.Identity?.IsAuthenticated,
-                Name = User.Identity?.Name,
-                Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
-                Roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
-            };
-
-            return Ok(userInfo);
+                message = "Autenticación exitosa",
+                user = User.Identity?.Name,
+                roles = User.Claims.Where(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                                  .Select(c => c.Value).ToArray(),
+                allClaims = userClaims
+            });
         }
 
         // GET: api/solicitudes/verif-solicitud-activa
@@ -251,5 +307,28 @@ namespace SIGAD.WebAPI.Controllers
                 return StatusCode(500, "Error interno del servidor");
             }
         }
+
+        public class AprobacionRequest
+        {
+            public string Observaciones { get; set; } = string.Empty;
+        }
+        // GET: api/solicitudes/historial/{cedulaDocente}
+        [HttpGet("historial/{cedulaDocente}")]
+        [Authorize(Roles = "DOCENTE,ADMINISTRADOR")]
+        public async Task<IActionResult> ObtenerHistorialPorCedula(string cedulaDocente)
+        {
+            try
+            {
+                var historial = await _solicitudesService.ObtenerHistorialPorDocenteAsync(cedulaDocente);
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el historial del docente con cédula {Cedula}", cedulaDocente);
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
     }
+
 }
