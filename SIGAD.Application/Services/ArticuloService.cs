@@ -26,7 +26,7 @@ namespace SIGAD.Application.Services
             IFileStorageService fileStorageService)
         {
             _articuloRepository = articuloRepository;
-            _docenteRepository = docenteRepository;            _solicitudRepository = solicitudRepository;
+            _docenteRepository = docenteRepository; _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
             _fileStorageService = fileStorageService;
         }
@@ -81,8 +81,8 @@ namespace SIGAD.Application.Services
             if (archivo != null && archivo.Length > 0)
             {
                 var (localPath, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(
-                    archivo, 
-                    "articulos", 
+                    archivo,
+                    "articulos",
                     new[] { ".pdf" },
                     10 * 1024 * 1024 // 10MB
                 );
@@ -101,12 +101,11 @@ namespace SIGAD.Application.Services
                 DocenteCedula = createDto.DocenteCedula,
                 ArchivoRuta = archivoRuta,
                 UrlCloudinary = urlCloudinary,
-                ContenidoHash = contenidoHash,
-                IdiomaPublicacion = createDto.IdiomaPublicacion // Nuevo campo mapeado
+                ContenidoHash = contenidoHash
             };
 
             await _articuloRepository.AddAsync(articulo);
-            
+
             // Guardar cambios
             await _unitOfWork.SaveChangesAsync();
 
@@ -155,12 +154,12 @@ namespace SIGAD.Application.Services
 
                 // Subir nuevo archivo
                 var (localPath, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(
-                    archivo, 
-                    "articulos", 
+                    archivo,
+                    "articulos",
                     new[] { ".pdf" },
                     10 * 1024 * 1024 // 10MB
                 );
-                
+
                 articulo.ArchivoRuta = localPath;
                 articulo.UrlCloudinary = cloudinaryUrl;
                 articulo.ContenidoHash = hash;
@@ -194,10 +193,10 @@ namespace SIGAD.Application.Services
         {
             // Log temporal
             Console.WriteLine($"[SERVICE] Asociando artículo - DOI: '{asociarDto.ArticuloDOI}', SolicitudId: {asociarDto.SolicitudId}");
-            
+
             var articuloExists = await _articuloRepository.ExistsAsync(asociarDto.ArticuloDOI);
             Console.WriteLine($"[SERVICE] Artículo existe: {articuloExists}");
-            
+
             if (!articuloExists)
             {
                 return false;
@@ -205,7 +204,7 @@ namespace SIGAD.Application.Services
 
             var solicitud = await _solicitudRepository.GetByIdAsync(asociarDto.SolicitudId);
             Console.WriteLine($"[SERVICE] Solicitud existe: {solicitud != null}");
-            
+
             if (solicitud == null)
             {
                 return false;
@@ -235,14 +234,14 @@ namespace SIGAD.Application.Services
 
             // Obtener la mejor URL disponible y descargar
             var mejorUrl = _fileStorageService.ObtenerMejorUrl(articulo.ArchivoRuta, articulo.UrlCloudinary);
-            
+
             // Si es una URL de Cloudinary, descargar desde allí
             if (!string.IsNullOrEmpty(articulo.UrlCloudinary) && mejorUrl == articulo.UrlCloudinary)
             {
                 using var httpClient = new HttpClient();
                 return await httpClient.GetByteArrayAsync(mejorUrl);
             }
-            
+
             // Si no, intentar desde archivo local
             if (File.Exists(articulo.ArchivoRuta))
             {
@@ -278,13 +277,13 @@ namespace SIGAD.Application.Services
                 UrlCloudinary = articulo.UrlCloudinary,
                 ContenidoHash = articulo.ContenidoHash,
                 DocenteCedula = articulo.DocenteCedula,
-                DocenteNombreCompleto = articulo.Docente != null 
+                DocenteNombreCompleto = articulo.Docente != null
                     ? $"{articulo.Docente.Nombre1} {articulo.Docente.Nombre2 ?? ""} {articulo.Docente.Apellido1} {articulo.Docente.Apellido2}".Trim()
                     : string.Empty,
                 UnidadVerificadora = articulo.UnidadVerificadora,
                 Verificado = articulo.Verificado,
                 FechaVerificacion = articulo.FechaVerificacion,
-                
+
                 // Mapeo de solicitudes asociadas
                 SolicitudId = articulo.ArticulosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
                 Solicitudes = articulo.ArticulosPorSolicitud?.Select(es => new SolicitudBasicaDto

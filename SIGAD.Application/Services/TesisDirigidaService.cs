@@ -38,13 +38,13 @@ namespace SIGAD.Application.Services
                 Institucion = t.Institucion,
                 CertificacionRuta = t.CertificacionRuta,
                 UrlCloudinary = t.UrlCloudinary,
-                
+
                 // Mapeo de solicitudes asociadas
                 SolicitudId = t.TesisPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
                 Solicitudes = t.TesisPorSolicitud?.Select(tps => new SolicitudBasicaDto
                 {
                     SolicitudId = tps.SolicitudId.ToString(),
-                    Estado = tps.Solicitud?.Estado.ToString() ?? "Desconocido"
+                    Estado = tps.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
                 }).ToList()
             });
         }

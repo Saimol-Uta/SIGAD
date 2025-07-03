@@ -63,9 +63,9 @@ namespace SIGAD.Application.Services
             );
 
             // Verificar que la solicitud existe (solo si se proporciona una solicitudId)
-            if (crearInvestigacionDto.SolicitudId.HasValue)
+            if (crearInvestigacionDto.SolicitudId != Guid.Empty)
             {
-                if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId.Value))
+                if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
                     throw new ArgumentException("La solicitud especificada no existe");
             }
 
@@ -90,9 +90,9 @@ namespace SIGAD.Application.Services
             await _investigacionRepository.AddAsync(investigacion);
 
             // Asociar a la solicitud solo si se proporcionó un SolicitudId
-            if (crearInvestigacionDto.SolicitudId.HasValue)
+            if (crearInvestigacionDto.SolicitudId != Guid.Empty)        
             {
-                await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId.Value, investigacion.Id);
+                await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId, investigacion.Id);
             }
 
             // Obtener investigación completa con relaciones
@@ -227,15 +227,11 @@ namespace SIGAD.Application.Services
                 InformeRuta = investigacion.InformeRuta,
                 UrlCloudinary = investigacion.UrlCloudinary,
                 ContenidoHash = investigacion.ContenidoHash,
-                
+
                 // Mapeo de solicitudes asociadas
-                SolicitudId = investigacion.InvestigacionesPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
-                Solicitudes = investigacion.InvestigacionesPorSolicitud?.Select(ips => new SolicitudBasicaDto
-                {
-                    SolicitudId = ips.SolicitudId.ToString(),
-                    Estado = ips.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
-                }).ToList()
-                EsInternacional = investigacion.EsInternacional // Exponer en el DTO
+                SolicitudId = null, // Ajuste temporal hasta que se defina InvestigacionesPorSolicitud
+                Solicitudes = new List<SolicitudBasicaDto>(), // Ajuste temporal
+                EsInternacional = investigacion.EsInternacional
             };
         }
 

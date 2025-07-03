@@ -35,9 +35,5 @@ namespace SIGAD.Application.DTOs
 
         public Guid? SolicitudId { get; set; }
 
-        /// <summary>
-        /// Idioma de publicación del artículo (opcional, para validación de rangos principales)
-        /// </summary>
-        public string? IdiomaPublicacion { get; set; }
     }
 }

@@ -809,7 +809,11 @@
             @if (!string.IsNullOrEmpty(tipoDocumentoSeleccionado) && !string.IsNullOrEmpty(rangoSolicitado))
             {
                 <div style="margin: 2rem 0;">
-                    <RequirementsGuideSimple RangoSolicitadoNombre="@rangoSolicitado" TipoDocumento="@tipoDocumentoSeleccionado" />
+                    @* <RequirementsGuideSimple RangoSolicitadoNombre="@rangoSolicitado" TipoDocumento="@tipoDocumentoSeleccionado" /> *@
+                    <div class="alert alert-info">
+                        <strong>Guía de Requisitos para @rangoSolicitado</strong>
+                        <p>Tipo de documento: @tipoDocumentoSeleccionado</p>
+                    </div>
                 </div>
             }
 

@@ -652,7 +652,7 @@
             content.Add(new StringContent(articuloModel.DOI), "DOI");
             content.Add(new StringContent(articuloModel.Titulo), "Titulo");
             content.Add(new StringContent(articuloModel.Revista), "Revista");
-            content.Add(new StringContent(articuloModel.FechaPublicacion.Year.ToString()), "AnioPublicacion");
+            content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
             content.Add(new StringContent(articuloModel.IdiomaPublicacion ?? string.Empty), "IdiomaPublicacion"); // Nuevo campo
@@ -737,14 +737,16 @@
     // Modelos
     public class ArticuloModel
     {
-        public string DOI { get; set; } = "";
+        public string DOI { get; set; } = ""; // Mantener una sola definición de DOI
         public string Titulo { get; set; } = "";
         public string Revista { get; set; } = "";
         public string Autores { get; set; } = "";
-        public string DOI { get; set; } = "";
         public string? URL { get; set; }
         public string? Resumen { get; set; }
         public string? IdiomaPublicacion { get; set; } // Nuevo campo
+        public int AnioPublicacion { get; set; } = DateTime.Now.Year;
+        public DateTime? FechaPublicacion { get; set; }
+        public string? ArchivoRuta { get; set; }
     }
 
     public class VerifyTokenResponse

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
+using SIGAD.Domain.Enums;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.Persistence;
 
@@ -19,7 +20,7 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.TesisDirigidas
                 .Include(t => t.Docente)
                 .Include(t => t.TesisPorSolicitud!)
-                    .ThenInclude(tps => tps.Solicitud)
+                    .ThenInclude(tps => tps.SolicitudAscenso)
                 .Where(t => t.DocenteCedula == docenteCedula)
                 .OrderByDescending(t => t.FechaInicio)
                 .ToListAsync();
@@ -80,15 +81,31 @@ namespace SIGAD.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
         public async Task<bool> ExistsByHashAsync(string hash)
         {
             return await _context.TesisDirigidas.AnyAsync(t => t.ContenidoHash == hash);
         }
+
         public async Task<TesisDirigida?> GetByIdAsync(int id)
         {
             return await _context.TesisDirigidas
                 .Include(t => t.Docente)
                 .FirstOrDefaultAsync(t => t.Id == id);
+        }
+
+        public async Task<int> GetCantidadTesisDirigidasAsync(string docenteCedula, string? estado = null)
+        {
+            var query = _context.TesisDirigidas.AsQueryable();
+
+            query = query.Where(t => t.DocenteCedula == docenteCedula);
+
+            if (!string.IsNullOrEmpty(estado) && Enum.TryParse<EstadoTesis>(estado, out var estadoEnum))
+            {
+                query = query.Where(t => t.Estado == estadoEnum);
+            }       
+
+            return await query.CountAsync();
         }
     }
 }

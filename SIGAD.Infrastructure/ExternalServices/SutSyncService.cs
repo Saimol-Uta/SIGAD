@@ -14,9 +14,9 @@ namespace SIGAD.Infrastructure.ExternalServices
             _connectionString = connectionString;
         }
 
-        public async Task<IEnumerable<ArticuloDto>> ObtenerArticulosAsync(string cedula)
+        public async Task<IEnumerable<ArticuloExternoDto>> ObtenerArticulosAsync(string cedula)
         {
-            var articulos = new List<ArticuloDto>();
+            var articulos = new List<ArticuloExternoDto>();
 
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -27,7 +27,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                articulos.Add(new ArticuloDto
+                articulos.Add(new ArticuloExternoDto
                 {
                     DOI = reader["DOI"].ToString()!,
                     Titulo = reader["Titulo"].ToString()!,
@@ -48,7 +48,7 @@ namespace SIGAD.Infrastructure.ExternalServices
                     FechaVerificacion = reader["FechaVerificacion"] != DBNull.Value
          ? (DateTime?)reader["FechaVerificacion"]
          : null,
-                    
+
                     // Leer el PDF binario desde la BD externa
                     PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
@@ -83,7 +83,7 @@ namespace SIGAD.Infrastructure.ExternalServices
                     TipoCurso = reader["TipoCurso"].ToString()!,
                     ImpartidoPorDocente = (bool)reader["ImpartidoPorDocente"],
                     HorasImpartidas = reader["HorasImpartidas"] != DBNull.Value
-                    ? (int?)reader["HorasImpartidas"]   : null,
+                    ? (int?)reader["HorasImpartidas"] : null,
                     // Leer el PDF binario desde la BD externa
                     PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
@@ -157,7 +157,7 @@ namespace SIGAD.Infrastructure.ExternalServices
                     UnidadVerificadora = reader["UnidadVerificadora"] != DBNull.Value
         ? reader["UnidadVerificadora"].ToString()!
         : string.Empty,
-                    
+
                     // Leer el PDF binario desde la BD externa
                     PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
@@ -189,7 +189,7 @@ namespace SIGAD.Infrastructure.ExternalServices
                     CertificadoRuta = reader["CertificadoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
                     DocenteCedula = reader["DocenteCedula"].ToString()!,
-                    
+
                     // Leer el PDF binario desde la BD externa
                     PdfDocumento = reader["PdfDocumento"] as byte[]
                 });

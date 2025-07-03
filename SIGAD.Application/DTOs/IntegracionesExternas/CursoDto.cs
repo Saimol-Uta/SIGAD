@@ -1,6 +1,6 @@
 ﻿namespace SIGAD.Application.DTOs.IntegracionesExternas
 {
-    public class CursoDto
+    public class CursoExternoDto
     {
         public string Nombre { get; set; } = default!;
         public string Organizacion { get; set; } = default!;

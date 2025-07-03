@@ -22,16 +22,13 @@ namespace SIGAD.Domain.Entities
         public TipoCurso TipoCurso { get; set; } = TipoCurso.ActualizacionCientifica;
         public bool ImpartidoPorDocente { get; set; }
 
-      
         public int? HorasImpartidas { get; set; }
 
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = default!;
         public Organizacion Organizacion { get; set; } = default!;
-        public int? HorasImpartidas { get;  set; }
         
         // Propiedad de navegación hacia las solicitudes que incluyen este curso
         public virtual ICollection<CursosPorSolicitud>? CursosPorSolicitud { get; set; }
-
     }
 }
