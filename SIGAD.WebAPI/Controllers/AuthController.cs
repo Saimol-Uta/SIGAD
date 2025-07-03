@@ -1311,7 +1311,8 @@ namespace SIGAD.WebAPI.Controllers
                 requisitosFaltantes.Add($"Artículos: Tiene {articulosCount}, requiere {rango.ArticulosRequeridos}");
             }
 
-            if (totalAniosExperiencia < rango.AniosExperienciaRequeridos)
+            // Usar tolerancia para comparación de decimales (0.1 años = aproximadamente 1 mes)
+            if (totalAniosExperiencia < (rango.AniosExperienciaRequeridos - 0.1m))
             {
                 requisitosFaltantes.Add($"Años de experiencia: Tiene {totalAniosExperiencia:F1}, requiere {rango.AniosExperienciaRequeridos}");
             }

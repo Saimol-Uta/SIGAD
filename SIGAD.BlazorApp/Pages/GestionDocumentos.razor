@@ -980,9 +980,9 @@
                                             </div>
                                             <div class="requirement-item">
                                                 <span class="label">­Experiencia:</span>
-                                                <span class="value @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "success" : "error")">
+                                                <span class="value @((requisitosInfo.ValoresActuales.AniosExperiencia >= (requisitosInfo.ValoresRequeridos.AniosExperiencia - 0.1m)) ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.AniosExperiencia años / @requisitosInfo.ValoresRequeridos.AniosExperiencia años 
-                                                    @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "✅" : "❌")
+                                                    @((requisitosInfo.ValoresActuales.AniosExperiencia >= (requisitosInfo.ValoresRequeridos.AniosExperiencia - 0.1m)) ? "✅" : "❌")
                                                 </span>
                                             </div>
                                             <div class="requirement-item">

@@ -69,9 +69,12 @@ namespace SIGAD.Application.Services
                 10 * 1024 * 1024 // 10MB
             );
 
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
+            // Verificar que la solicitud existe SOLO si se proporciona un SolicitudId
+            if (crearCursoDto.SolicitudId.HasValue && 
+                !await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId.Value))
+            {
                 throw new ArgumentException("La solicitud especificada no existe");
+            }
 
             // Buscar o crear la organización
             var organizacion = await _organizacionRepository.GetByNombreAsync(crearCursoDto.OrganizacionNombre);
@@ -92,6 +95,7 @@ namespace SIGAD.Application.Services
             {
                 Nombre = crearCursoDto.Nombre,
                 OrganizacionId = organizacion.Id,
+                NumeroHoras = crearCursoDto.NumeroHoras,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
                 CertificadoRuta = localPath,
@@ -100,14 +104,15 @@ namespace SIGAD.Application.Services
                 TipoCurso = Enum.Parse<TipoCurso>(crearCursoDto.TipoCurso),
                 ImpartidoPorDocente = crearCursoDto.ImpartidoPorDocente,
                 HorasImpartidas = crearCursoDto.HorasImpartidas 
-
-
             };
 
             await _cursoRepository.AddAsync(curso);
 
-            // Asociar automáticamente a la solicitud
-            await _cursoRepository.AddToSolicitudAsync(crearCursoDto.SolicitudId, curso.Id);
+            // Asociar automáticamente a la solicitud SOLO si se proporciona un SolicitudId
+            if (crearCursoDto.SolicitudId.HasValue)
+            {
+                await _cursoRepository.AddToSolicitudAsync(crearCursoDto.SolicitudId.Value, curso.Id);
+            }
 
             // Obtener curso completo con relaciones
             var cursoCreado = await _cursoRepository.GetByIdAsync(curso.Id);

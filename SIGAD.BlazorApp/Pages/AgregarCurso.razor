@@ -592,7 +592,12 @@
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(cursoModel.Nombre), "Nombre");
-                content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
+                
+                // Obtener el nombre de la organización a partir del ID seleccionado
+                var organizacionSeleccionada = organizaciones.FirstOrDefault(o => o.Id == cursoModel.OrganizacionId);
+                var organizacionNombre = organizacionSeleccionada?.Nombre ?? "";
+                content.Add(new StringContent(organizacionNombre), "OrganizacionNombre");
+                
                 content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
                 content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
                 content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
@@ -600,7 +605,8 @@
                 content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // No incluir SolicitudId para que el curso no se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
 
                 // Adjuntar archivo (obligatorio al agregar)
                 var stream = certificadoFile!.OpenReadStream(10 * 1024 * 1024);
