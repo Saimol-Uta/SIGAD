@@ -38,7 +38,7 @@ namespace SIGAD.Application.DTOs
 
 
         [Required(ErrorMessage = "El número de horas es requerido")]
-        [Range(0, 1000, ErrorMessage = "El número de horas debe estar entre 1 y 1000")]
+        [Range(0, 1000, ErrorMessage = "El número de horas debe estar entre 0 y 1000")]
         [Display(Name = "Horas impartidas")]
         public int? HorasImpartidas { get; set; }
                                                             

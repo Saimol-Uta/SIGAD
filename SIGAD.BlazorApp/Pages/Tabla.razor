@@ -955,6 +955,10 @@
     {
         if (operacionEnProceso) return;
 
+        // Primero verificamos si hay documentos nuevos para importar
+        // Para esto comparamos la cantidad de documentos actual con la cantidad después de la importación
+        int documentosInicialesCount = documentos.Count;
+
         operacionEnProceso = true;
         mensajeProceso = $"Importando {TipoDocumento} desde sistemas externos...";
         StateHasChanged();
@@ -966,13 +970,38 @@
                 await OnImportar.InvokeAsync(TipoDocumento);
                 await Task.Delay(2000); // Esperar a que termine la importación
                 await CargarDocumentos(); // Recargar los datos
-                mensajeOperacion = "✅ Importación completada exitosamente.";
-                operacionExitosa = true;
+                
+                // Verificamos si se importaron nuevos documentos
+                if (documentos.Count > documentosInicialesCount)
+                {
+                    int documentosNuevos = documentos.Count - documentosInicialesCount;
+                    // Mostrar SweetAlert para importación exitosa con documentos nuevos
+                    await MostrarSweetAlert(
+                        "¡Importación exitosa!", 
+                        $"Se han importado {documentosNuevos} {config.Titulo.ToLower()} desde sistemas externos.",
+                        "success"
+                    );
+                    operacionExitosa = true;
+                }
+                else
+                {
+                    // Mostrar SweetAlert informativo cuando no hay nuevos documentos
+                    await MostrarSweetAlert(
+                        "No hay documentos nuevos", 
+                        $"No se encontraron {config.Titulo.ToLower()} adicionales para importar.",
+                        "info"
+                    );
+                }
             }
         }
         catch (Exception ex)
         {
-            mensajeOperacion = $"❌ Error en la importación: {ex.Message}";
+            // Mostrar SweetAlert para errores
+            await MostrarSweetAlert(
+                "Error en la importación", 
+                $"No se pudieron importar los documentos: {ex.Message}",
+                "error"
+            );
             operacionExitosa = false;
         }
         finally
@@ -980,13 +1009,6 @@
             operacionEnProceso = false;
             mensajeProceso = "";
             StateHasChanged();
-
-            // Limpiar mensaje después de 3 segundos
-            _ = Task.Delay(3000).ContinueWith(_ =>
-            {
-                mensajeOperacion = null;
-                InvokeAsync(StateHasChanged);
-            });
         }
     }
 
@@ -1203,20 +1225,32 @@
                 }
             }
 
-            // Mostrar resultado
+            // Mostrar resultado con SweetAlert
             if (aplicados > 0 && fallidos == 0)
             {
-                mensajeOperacion = $"✅ Se aplicaron {aplicados} documento(s) exitosamente.";
+                await MostrarSweetAlert(
+                    "Asociación exitosa", 
+                    $"Se asociaron {aplicados} {(aplicados == 1 ? "documento" : "documentos")} exitosamente.",
+                    "success"
+                );
                 operacionExitosa = true;
             }
             else if (aplicados > 0 && fallidos > 0)
             {
-                mensajeOperacion = $"⚠️ Se aplicaron {aplicados} documento(s), pero {fallidos} fallaron.";
+                await MostrarSweetAlert(
+                    "Asociación parcial", 
+                    $"Se asociaron {aplicados} {(aplicados == 1 ? "documento" : "documentos")}, pero {fallidos} {(fallidos == 1 ? "falló" : "fallaron")}.",
+                    "warning"
+                );
                 operacionExitosa = false;
             }
             else
             {
-                mensajeOperacion = $"❌ No se pudo aplicar ningún documento.";
+                await MostrarSweetAlert(
+                    "Error en la asociación", 
+                    "No se pudo asociar ningún documento.",
+                    "error"
+                );
                 operacionExitosa = false;
             }
 
@@ -1298,10 +1332,21 @@
             var id = ObtenerIdDocumento(doc, TipoDocumento);
             if (string.IsNullOrEmpty(id))
             {
-                mensajeOperacion = "No se pudo obtener el identificador del documento.";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "No se pudo obtener el identificador del documento", "error");
                 return;
             }
+
+            // Obtener nombre descriptivo para el mensaje
+            var nombreDocumento = TipoDocumento switch
+            {
+                "investigaciones" => "investigación",
+                "articulos" => "artículo",
+                "experiencias" => "experiencia laboral",
+                "evaluaciones" => "evaluación",
+                "cursos" => "curso",
+                "tesis" => "tesis",
+                _ => "documento"
+            };
 
             // Redirigir a la página de edición correspondiente según el tipo de documento
             string ruta = TipoDocumento switch
@@ -1317,35 +1362,57 @@
 
             if (!string.IsNullOrEmpty(ruta))
             {
+                // Mostrar mensaje de navegación
+                await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                {
+                    position = "center",
+                    icon = "info",
+                    title = $"Editando {nombreDocumento}",
+                    text = "Redirigiendo al formulario de edición...",
+                    showConfirmButton = false,
+                    timer = 1000
+                });
+                
+                // Esperar y redirigir
+                await Task.Delay(1000);
                 Navigation.NavigateTo(ruta);
             }
             else
             {
-                mensajeOperacion = "Tipo de documento no soportado para edición.";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "Tipo de documento no soportado para edición", "error");
             }
         }
         catch (Exception ex)
         {
-            mensajeOperacion = $"❌ Error al editar documento: {ex.Message}";
-            operacionExitosa = false;
+            await MostrarSweetAlert("Error", $"Error al editar documento: {ex.Message}", "error");
         }
-        
-        await Task.CompletedTask;
     }
 
     private async Task EliminarDocumento(JsonElement doc)
     {
-        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar este documento?");
-        if (!confirmado) return;
+        // Usar SweetAlert para confirmar eliminación
+        var result = await JSRuntime.InvokeAsync<object>("Swal.fire", new
+        {
+            title = "¿Eliminar documento?",
+            text = "Esta acción no se puede deshacer",
+            icon = "warning",
+            showCancelButton = true,
+            confirmButtonColor = "#d33",
+            cancelButtonColor = "#3085d6",
+            confirmButtonText = "Sí, eliminar",
+            cancelButtonText = "Cancelar"
+        });
+
+        // Verificar si el usuario confirmó la eliminación
+        if (result == null || !result.ToString().Contains("isConfirmed\":true"))
+            return;
 
         try
         {
             var id = ObtenerIdDocumento(doc, TipoDocumento);
             if (string.IsNullOrEmpty(id))
             {
-                mensajeOperacion = "No se pudo obtener el identificador del documento.";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "No se pudo obtener el identificador del documento", "error");
                 return;
             }
 
@@ -1364,20 +1431,17 @@
 
             if (response.IsSuccessStatusCode)
             {
-                mensajeOperacion = "✅ Documento eliminado correctamente.";
-                operacionExitosa = true;
+                await MostrarSweetAlert("¡Documento eliminado!", "El documento se eliminó correctamente", "success", true);
                 await CargarDocumentos();
             }
             else
             {
-                mensajeOperacion = "❌ Error al eliminar el documento.";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "No se pudo eliminar el documento", "error");
             }
         }
         catch (Exception ex)
         {
-            mensajeOperacion = $"❌ Error: {ex.Message}";
-            operacionExitosa = false;
+            await MostrarSweetAlert("Error", $"Error al eliminar: {ex.Message}", "error");
         }
     }
 
@@ -1388,8 +1452,7 @@
             var documentoId = ObtenerIdDocumento(doc, TipoDocumento);
             if (string.IsNullOrEmpty(documentoId))
             {
-                mensajeOperacion = "❌ No se pudo obtener el ID del documento";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "No se pudo obtener el ID del documento", "error");
                 return;
             }
 
@@ -1397,8 +1460,7 @@
             var solicitudId = await ObtenerSolicitudActivaId();
             if (string.IsNullOrEmpty(solicitudId))
             {
-                mensajeOperacion = "❌ No hay una solicitud activa para desasociar documentos";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "No hay una solicitud activa para desasociar documentos", "error");
                 return;
             }
 
@@ -1427,7 +1489,7 @@
                     Console.WriteLine($"[FRONTEND] Desasociando experiencia - ID: {documentoId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
                     requestData = null; // No se necesita body para este endpoint
                     break;
-                    
+
                 case "evaluaciones":
                     endpoint = $"api/evaluaciones/{documentoId}/desasociar-solicitud";
                     requestData = new { SolicitudId = Guid.Parse(solicitudId) };
@@ -1447,8 +1509,7 @@
 
             if (endpoint == null)
             {
-                mensajeOperacion = "❌ Tipo de documento no válido para desasociación";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "Tipo de documento no válido para desasociación", "error");
                 return;
             }
 
@@ -1467,8 +1528,7 @@
             }
             else
             {
-                mensajeOperacion = "❌ Error en la configuración del endpoint";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", "Error en la configuración del endpoint", "error");
                 return;
             }
 
@@ -1479,8 +1539,15 @@
             
             if (response.IsSuccessStatusCode)
             {
-                mensajeOperacion = "✅ Documento desasociado exitosamente";
-                operacionExitosa = true;
+                // Usar un SweetAlert que cierre automáticamente
+                await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                {
+                    position = "center",
+                    icon = "success",
+                    title = "Documento desasociado correctamente",
+                    showConfirmButton = false,
+                    timer = 1500
+                });
                 
                 // Recargar los datos para reflejar los cambios
                 await CargarDocumentos();
@@ -1495,25 +1562,12 @@
                     Console.WriteLine($"[FRONTEND] Error desasociación {TipoDocumento}: {response.StatusCode} - {errorContent}");
                 }
                 
-                mensajeOperacion = $"❌ Error al desasociar documento: {response.StatusCode} - {errorContent}";
-                operacionExitosa = false;
+                await MostrarSweetAlert("Error", $"No se pudo desasociar el documento: {response.StatusCode}", "error");
             }
         }
         catch (Exception ex)
         {
-            mensajeOperacion = $"❌ Error inesperado: {ex.Message}";
-            operacionExitosa = false;
-        }
-        finally
-        {
-            StateHasChanged();
-
-            // Limpiar mensaje después de 3 segundos
-            _ = Task.Delay(3000).ContinueWith(_ =>
-            {
-                mensajeOperacion = null;
-                InvokeAsync(StateHasChanged);
-            });
+            await MostrarSweetAlert("Error inesperado", ex.Message, "error");
         }
     }
 
@@ -1740,6 +1794,30 @@
         catch
         {
             return "N/A";
+        }
+    }
+
+    // Función auxiliar para mostrar SweetAlert
+    private async Task MostrarSweetAlert(string titulo, string mensaje, string icono, bool autoClose = false)
+    {
+        if (autoClose)
+        {
+            // Versión con cierre automático
+            await JSRuntime.InvokeVoidAsync("Swal.fire", new
+            {
+                position = "center",
+                icon = icono,
+                title = titulo,
+                text = mensaje,
+                showConfirmButton = false,
+                timer = 1500
+            });
+        }
+        else
+        {
+            // Versión estándar con botón de confirmación
+            await JSRuntime.InvokeVoidAsync("Swal.fire", 
+                new { title = titulo, text = mensaje, icon = icono, confirmButtonColor = "#0a1d44" });
         }
     }
 }

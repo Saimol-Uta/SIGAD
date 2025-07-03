@@ -39,7 +39,7 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Número de Horas")]
         public int NumeroHoras { get; set; }
 
-        [Range(1, 1000, ErrorMessage = "Las horas impartidas deben estar entre 1 y 1000")]
+        [Range(0, 1000, ErrorMessage = "Las horas impartidas deben estar entre 1 y 1000")]
         [Display(Name = "Horas impartidas")]
         public int? HorasImpartidas { get; set; } // Nuevo campo para horas impartidas
         [Display(Name = "Contenido Hash")]

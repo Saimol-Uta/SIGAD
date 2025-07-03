@@ -565,8 +565,19 @@
 
                 if (response.IsSuccessStatusCode)
                 {
+                    // Mostrar SweetAlert con cierre automático
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                    {
+                        position = "center",
+                        icon = "success",
+                        title = Id != null ? "¡Investigación actualizada!" : "¡Investigación guardada!",
+                        text = "La información se ha guardado correctamente",
+                        showConfirmButton = false,
+                        timer = 2000
+                    });
+                    
                     investigacionCreada = true;
-                    await Task.Delay(2000);
+                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else

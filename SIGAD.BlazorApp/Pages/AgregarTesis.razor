@@ -564,6 +564,17 @@
 
             if (response.IsSuccessStatusCode)
             {
+                // Mostrar SweetAlert con cierre automático
+                await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                {
+                    position = "center",
+                    icon = "success",
+                    title = Id.HasValue ? "¡Tesis actualizada!" : "¡Tesis dirigida guardada!",
+                    text = "La información se ha guardado correctamente",
+                    showConfirmButton = false,
+                    timer = 2000
+                });
+                
                 mensajeOperacion = Id.HasValue
                     ? "✅ Tesis editada exitosamente."
                     : "✅ Tesis dirigida guardada exitosamente.";

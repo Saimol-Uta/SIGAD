@@ -579,7 +579,7 @@
                 if (response.IsSuccessStatusCode)
                 {
                     experienciaCreada = true;
-                    await Task.Delay(2000);
+                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
@@ -604,7 +604,7 @@
                 if (string.IsNullOrEmpty(solicitudIdString))
                 {
                     errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
+                    await Task.Delay(1000);
                     Navigation.NavigateTo("/iniciar-solicitud-ascenso");
                     return;
                 }
@@ -631,10 +631,19 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    experienciaCreada = true;
+                    // Mostrar SweetAlert con cierre automático
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                    {
+                        position = "center",
+                        icon = "success",
+                        title = Id != null ? "¡Experiencia actualizada!" : "¡Experiencia guardada!",
+                        text = "La información se ha guardado correctamente",
+                        showConfirmButton = false,
+                        timer = 2000
+                    });
                     
-                    // Redirigir después de 3 segundos
-                    await Task.Delay(3000);
+                    // Esperar y redirigir
+                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
