@@ -1287,9 +1287,27 @@
     {
         try
         {
+            // Log de depuración solo para tesis
+            if (TipoDocumento == "tesis")
+            {
+                Console.WriteLine($"[DEBUG TESIS] Propiedades disponibles:");
+                foreach (var prop in doc.EnumerateObject())
+                {
+                    var valor = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() : prop.Value.ToString();
+                    Console.WriteLine($"  {prop.Name}: {valor}");
+                }
+            }
+
             // Obtener las rutas del documento
             var pdfRuta = ObtenerRutaPdf(doc, TipoDocumento);
             var cloudinaryUrl = ObtenerUrlCloudinary(doc, TipoDocumento);
+            
+            // Log de depuración solo para tesis
+            if (TipoDocumento == "tesis")
+            {
+                Console.WriteLine($"[DEBUG TESIS] PDF Ruta encontrada: '{pdfRuta}'");
+                Console.WriteLine($"[DEBUG TESIS] Cloudinary URL encontrada: '{cloudinaryUrl}'");
+            }
             
             string? urlParaUsar = null;
             
@@ -1411,7 +1429,7 @@
         });
 
         // Verificar si el usuario confirmó la eliminación
-        if (result == null || !result.ToString().Contains("isConfirmed\":true"))
+        if (result == null || !result.ToString()?.Contains("isConfirmed\":true") == true)
             return;
 
         try
@@ -1685,7 +1703,7 @@
                 "investigaciones" => new[] { "informeRuta", "rutaPdf" }, 
                 "articulos" => new[] { "archivoRuta" },
                 "evaluaciones" => new[] { "informeRuta", "rutaPdf" },
-                "tesis" => new[] { "certificadoRuta", "rutaPdf" },
+                "tesis" => new[] { "certificacionRuta", "CertificacionRuta", "certificadoRuta", "rutaPdf" },
                 _ => new[] { "rutaPdf" }
             };
 
@@ -1740,6 +1758,7 @@
             // Lista de propiedades posibles para buscar la URL de Cloudinary
             var propiedadesPosibles = new[] {
                 "urlCloudinary",  // ✅ Propiedad estándar para todos los tipos
+                "UrlCloudinary",  // Con U mayúscula (usado en TesisDirigidaDto)
                 "cloudinaryUrl",
                 "urlDocumento",
                 "cloudUrl",
