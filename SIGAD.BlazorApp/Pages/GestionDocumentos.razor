@@ -174,16 +174,16 @@
     }
 
     .btn-import {
-        background-color: #28a745;
+        background-color: #031a3b;
         color: white;
     }
 
     .btn-import:hover {
-        background-color: #218838;
+        background-color: #031a3b;
     }
 
     .btn-export {
-        background-color: #007bff;
+        background-color: #031a3b;
         color: white;
     }
 
@@ -753,7 +753,7 @@
                     </div>
                 </div>
 
-                <!-- Artáculos -->
+                <!-- Artículos -->
                 <div class="document-card">
                     <h3>
                         <span class="icon"><i class="fas fa-newspaper text-info"></i></span>
@@ -852,7 +852,8 @@
                            Cedula="@cedula" 
                            OnImportar="ImportarDocumentos" 
                            OnAgregar="AgregarDocumento"
-                           OnCerrar="CerrarTabla" />
+                           OnCerrar="CerrarTabla"
+                           OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
                 </div>
             }
 
@@ -1709,6 +1710,27 @@
         {
             // Log del error pero no mostrar al usuario para no interrumpir la experiencia
             Console.WriteLine($"Error actualizando contador de {tipoDocumento}: {ex.Message}");
+        }
+    }
+
+    // Método para actualizar automáticamente los requisitos cuando cambian los documentos
+    private async Task ActualizarRequisitosAutomaticamente()
+    {
+        try
+        {
+            // Actualizar conteo de documentos primero
+            await CargarConteoDocumentos();
+            
+            // Verificar si hay requisitos para verificar
+            if (!string.IsNullOrEmpty(solicitudId) && tieneDocumentosCompletos)
+            {
+                // Verificar los requisitos automáticamente
+                await VerificarRequisitos();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar requisitos automáticamente: {ex.Message}");
         }
     }
 

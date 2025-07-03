@@ -558,6 +558,7 @@
     [Parameter] public EventCallback<string> OnImportar { get; set; }
     [Parameter] public EventCallback<string> OnAgregar { get; set; }
     [Parameter] public EventCallback OnCerrar { get; set; }
+    [Parameter] public EventCallback OnDocumentosActualizados { get; set; }
 
     // Variables de estado
     private bool cargando = true;
@@ -1256,6 +1257,12 @@
 
             // Recargar documentos para actualizar las listas
             await CargarDocumentos();
+            
+            // Notificar al componente padre para que actualice los requisitos
+            if (OnDocumentosActualizados.HasDelegate)
+            {
+                await OnDocumentosActualizados.InvokeAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -1433,6 +1440,12 @@
             {
                 await MostrarSweetAlert("¡Documento eliminado!", "El documento se eliminó correctamente", "success", true);
                 await CargarDocumentos();
+                
+                // Notificar al componente padre para que actualice los requisitos
+                if (OnDocumentosActualizados.HasDelegate)
+                {
+                    await OnDocumentosActualizados.InvokeAsync();
+                }
             }
             else
             {
@@ -1552,6 +1565,12 @@
                 // Recargar los datos para reflejar los cambios
                 await CargarDocumentos();
                 StateHasChanged();
+                
+                // Notificar al componente padre para que actualice los requisitos
+                if (OnDocumentosActualizados.HasDelegate)
+                {
+                    await OnDocumentosActualizados.InvokeAsync();
+                }
             }
             else
             {
