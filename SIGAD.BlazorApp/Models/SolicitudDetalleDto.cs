@@ -11,7 +11,8 @@ namespace SIGAD.BlazorApp.Models
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;
         public string? RangoActualNombre { get; set; }
-        public string RangoSolicitadoNombre { get; set; } = string.Empty;        // La evidencia que se presentó en esta solicitud específica
+        public string RangoSolicitadoNombre { get; set; } = string.Empty;        
+         public List<VerTesisDirigidaDto> TesisDirigidas { get; set; } = new();
         public List<VerArticuloDto> ArticulosPresentados { get; set; } = new();
         public List<VerInvestigacionDto> InvestigacionesPresentadas { get; set; } = new();
         public List<VerCursoDto> CursosPresentados { get; set; } = new();
@@ -25,6 +26,15 @@ namespace SIGAD.BlazorApp.Models
         public DateTime? FechaAprobacionConsejo { get; set; }
         public string? ObservacionesComision { get; set; }
         public string? ObservacionesConsejo { get; set; }
+    }
+     // DTO para la tabla de Tesis Dirigidas en la UI
+    public class VerTesisDirigidaDto
+    {
+        public int Id { get; set; }
+        public string TituloTesis { get; set; } = string.Empty;
+        public string NivelAcademico { get; set; } = string.Empty;
+        public string Institucion { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
     }
 
     public class VerArticuloDto

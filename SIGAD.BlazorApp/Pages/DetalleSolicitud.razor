@@ -420,7 +420,8 @@
                                     }
                                 </div>
                             </div>
-                        </div>                        <!-- Sub-sección de Evaluaciones Docentes -->
+                        </div>                  
+                              <!-- Sub-sección de Evaluaciones Docentes -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="evaluacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#evaluacionesCollapse" aria-expanded="true" aria-controls="evaluacionesCollapse">
                                     Evaluaciones Docentes (@solicitud.EvaluacionesDocente.Count)
@@ -476,6 +477,62 @@
                                 </div>
                             </div>
                         </div>
+
+<div class="accordion-item">
+    <h2 class="accordion-header" id="tesisHeader">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tesisCollapse" aria-expanded="true" aria-controls="tesisCollapse">
+            Tesis Dirigidas (@solicitud.TesisDirigidas.Count)
+        </button>
+    </h2>
+    <div id="tesisCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+        <div class="accordion-body">
+            @if (solicitud.TesisDirigidas.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Título de la Tesis</th>
+                                <th>Nivel Académico</th>
+                                <th>Institución</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tesis in solicitud.TesisDirigidas)
+                            {
+                                <tr>
+                                    <td>@tesis.TituloTesis</td>
+                                    <td>
+                                        <span class="badge @(tesis.NivelAcademico == "Doctorado" ? "bg-primary" : "bg-secondary")">
+                                            @tesis.NivelAcademico
+                                        </span>
+                                    </td>
+                                    <td>@tesis.Institucion</td>
+                                    <td>
+                                        <span class="badge @(tesis.Estado == "Culminada" ? "bg-success" : "bg-warning")">
+                                            @tesis.Estado
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("tesis", tesis.Id.ToString(), tesis.TituloTesis))">
+                                            <i class="fas fa-eye"></i> Ver Certificación
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">No se presentaron tesis dirigidas en esta solicitud.</p>
+            }
+        </div>
+    </div>
+</div>
                     </div>
                 </div>
             </div>
