@@ -16,6 +16,7 @@ namespace SIGAD.Domain.Entities
         public string RolEnInvestigacion { get; set; } = string.Empty;
         public int MesesDeInvestigacion { get; set; }
         public string InformeRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 

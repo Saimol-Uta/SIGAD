@@ -1,4 +1,6 @@
 @page "/agregar-tesis"
+@page "/editar-tesis/{Id:int?}"
+
 @using Microsoft.AspNetCore.Authorization
 @using System.IO
 @attribute [Authorize(Roles = "DOCENTE")]
@@ -10,7 +12,7 @@
 @inject HttpClient Http
 @inject ISolicitudService SolicitudService
 
-<PageTitle>Agregar Tesis Dirigida - SIGAD</PageTitle>
+<PageTitle>@(Id.HasValue ? "Editar Tesis Dirigida - SIGAD" : "Agregar Tesis Dirigida - SIGAD")</PageTitle>
 
 <style>
     * {
@@ -356,8 +358,10 @@
 
     <div class="main-content">
         <div class="form-container">
-            <h1>📘 Agregar Tesis Dirigida</h1>
-            <p class="subtitle">Registre una nueva tesis dirigida o co-dirigida</p>
+            <h1>@(Id.HasValue ? "✏️ Editar Tesis Dirigida" : "📘 Agregar Tesis Dirigida")</h1>
+            <p class="subtitle">
+                @(Id.HasValue ? "Modifique los datos de la tesis dirigida o co-dirigida" : "Registre una nueva tesis dirigida o co-dirigida")
+            </p>
 
             @if (!string.IsNullOrEmpty(mensajeOperacion))
             {
@@ -372,7 +376,7 @@
                 <div class="form-group">
                     <label class="form-label">Título de la Tesis <span class="required">*</span></label>
                     <InputText @bind-Value="nuevaTesis.TituloTesis" class="form-control"
-                        placeholder="Ingrese el título de la tesis" />
+                               placeholder="Ingrese el título de la tesis" />
                     <ValidationMessage For="@(() => nuevaTesis.TituloTesis)" />
                 </div>
 
@@ -405,7 +409,7 @@
                 <div class="form-group">
                     <label class="form-label">Institución <span class="required">*</span></label>
                     <InputText @bind-Value="nuevaTesis.Institucion" class="form-control"
-                        placeholder="Nombre de la institución" />
+                               placeholder="Nombre de la institución" />
                     <ValidationMessage For="@(() => nuevaTesis.Institucion)" />
                 </div>
 
@@ -445,7 +449,7 @@
                         }
                         else
                         {
-                            <span>💾 Guardar Tesis</span>
+                            <span>@(Id.HasValue ? "💾 Guardar Cambios" : "💾 Guardar Tesis")</span>
                         }
                     </button>
                 </div>
@@ -458,6 +462,8 @@
 
 @code {
     // Variables para información del usuario
+
+    [Parameter] public int? Id { get; set; }
     private string nombreUsuario = "";
     private string urlFotoPerfil = "/images/IconoUser.png";
 
@@ -471,11 +477,47 @@
     private IBrowserFile? archivoFormulario;
     private string archivoSeleccionado = "";
 
+
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
-        nuevaTesis.FechaInicio = DateTime.Today;
+
+        if (Id.HasValue)
+        {
+            // Cargar datos de la tesis para edición
+            var response = await Http.GetAsync($"api/TesisDirigidas/{Id.Value}");
+            if (response.IsSuccessStatusCode)
+            {
+                var tesis = await response.Content.ReadFromJsonAsync<TesisDirigidaDto>();
+                if (tesis != null)
+                {
+                    nuevaTesis = new CreateTesisDirigidaDto
+                    {
+                        DocenteCedula = tesis.DocenteCedula,
+                        NivelAcademico = tesis.NivelAcademico,
+                        TituloTesis = tesis.TituloTesis,
+                        Estado = tesis.Estado,
+                        FechaInicio = tesis.FechaInicio,
+                        FechaFin = tesis.FechaFin,
+                        Institucion = tesis.Institucion,
+                        CertificacionRuta = tesis.CertificacionRuta
+                    };
+                    archivoSeleccionado = Path.GetFileName(tesis.CertificacionRuta ?? "");
+                }
+            }
+            else
+            {
+                mensajeOperacion = "No se pudo cargar la tesis para editar.";
+                operacionExitosa = false;
+            }
+        }
+        else
+        {
+            nuevaTesis.FechaInicio = DateTime.Today;
+        }
     }
+
+   
 
     private async Task CargarInformacionUsuario()
     {
@@ -502,87 +544,81 @@
             operacionExitosa = false;
         }
     }
-
     private async Task GuardarTesis()
     {
         if (guardandoTesis) return;
-
         guardandoTesis = true;
         mensajeOperacion = null;
 
         try
         {
-            // Validar campos requeridos
-            if (string.IsNullOrWhiteSpace(nuevaTesis.TituloTesis))
-            {
-                mensajeOperacion = "El título de la tesis es requerido.";
-                operacionExitosa = false;
-                return;
-            }
+            HttpResponseMessage response;
 
-            if (string.IsNullOrWhiteSpace(nuevaTesis.NivelAcademico))
-            {
-                mensajeOperacion = "El nivel académico es requerido.";
-                operacionExitosa = false;
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(nuevaTesis.Estado))
-            {
-                mensajeOperacion = "El estado es requerido.";
-                operacionExitosa = false;
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(nuevaTesis.Institucion))
-            {
-                mensajeOperacion = "La institución es requerida.";
-                operacionExitosa = false;
-                return;
-            }
-
-            // Validar fechas
-            if (nuevaTesis.FechaFin.HasValue && nuevaTesis.FechaFin.Value < nuevaTesis.FechaInicio)
-            {
-                mensajeOperacion = "La fecha de finalización no puede ser anterior a la fecha de inicio.";
-                operacionExitosa = false;
-                return;
-            }
-
-            // Subir archivo si existe (separadamente)
             if (archivoFormulario != null)
             {
-                var rutaArchivo = await SubirArchivo(archivoFormulario);
-                if (!string.IsNullOrEmpty(rutaArchivo))
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(archivoFormulario.OpenReadStream(25 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
+                content.Add(fileContent, "file", archivoFormulario.Name);
+
+                var dtoJson = System.Text.Json.JsonSerializer.Serialize(nuevaTesis);
+                content.Add(new StringContent(dtoJson, System.Text.Encoding.UTF8, "application/json"), "dto");
+
+                if (Id.HasValue)
                 {
-                    nuevaTesis.CertificacionRuta = rutaArchivo;
+                    // EDITAR con archivo
+                    response = await Http.PutAsync($"api/TesisDirigidas/editar-pdf/{Id.Value}", content);
+                }
+                else
+                {
+                    // AGREGAR con archivo
+                    response = await Http.PostAsync("api/TesisDirigidas/subir-pdf", content);
+                }
+            }
+            else
+            {
+                if (Id.HasValue)
+                {
+                    // EDITAR sin archivo
+                    response = await Http.PutAsJsonAsync($"api/TesisDirigidas/{Id.Value}", nuevaTesis);
+                }
+                else
+                {
+                    // AGREGAR sin archivo
+                    response = await Http.PostAsJsonAsync("api/TesisDirigidas", nuevaTesis);
                 }
             }
 
-            // Enviar al API como JSON
-            var response = await Http.PostAsJsonAsync("api/TesisDirigidas", nuevaTesis);
-
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<TesisDirigidaDto>();
-
-                mensajeOperacion = "✅ Tesis dirigida guardada exitosamente.";
+                // Mostrar SweetAlert con cierre automático
+                await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                {
+                    position = "center",
+                    icon = "success",
+                    title = Id.HasValue ? "¡Tesis actualizada!" : "¡Tesis dirigida guardada!",
+                    text = "La información se ha guardado correctamente",
+                    showConfirmButton = false,
+                    timer = 2000
+                });
+                
+                mensajeOperacion = Id.HasValue
+                    ? "✅ Tesis editada exitosamente."
+                    : "✅ Tesis dirigida guardada exitosamente.";
                 operacionExitosa = true;
-
-                // Redirigir después de 2 segundos
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/gestion-documentos");
+                await Task.Delay(1000);
+                Navigation.NavigateTo("/gestion-documentos", true);
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                mensajeOperacion = $"❌ Error al guardar la tesis: {errorContent}";
+                mensajeOperacion = $"❌ Error: {errorContent}";
                 operacionExitosa = false;
             }
         }
         catch (Exception ex)
         {
-            mensajeOperacion = $"❌ Error al guardar la tesis: {ex.Message}";
+            mensajeOperacion = $"❌ Error: {ex.Message}";
             operacionExitosa = false;
         }
         finally
@@ -591,6 +627,8 @@
             StateHasChanged();
         }
     }
+
+   
 
     private void OnFileSelected(InputFileChangeEventArgs e)
     {

@@ -14,5 +14,11 @@
         public bool Verificado { get; set; }
         public DateTime? FechaVerificacion { get; set; }
 
+        public string? IdiomaPublicacion { get; set; }
+
+        // Nuevo campo para el PDF en binario desde BD externa
+        public byte[]? PdfDocumento { get; set; }
+
+
     }
 }

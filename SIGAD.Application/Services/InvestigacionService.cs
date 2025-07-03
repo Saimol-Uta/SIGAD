@@ -12,24 +12,16 @@ namespace SIGAD.Application.Services
     {
         private readonly IInvestigacionRepository _investigacionRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
-        private readonly IConfiguration _configuration;
-        private readonly string _fileStoragePath;
+        private readonly IFileStorageService _fileStorageService;
 
         public InvestigacionService(
             IInvestigacionRepository investigacionRepository,
             ISolicitudAscensoRepository solicitudRepository,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _investigacionRepository = investigacionRepository;
             _solicitudRepository = solicitudRepository;
-            _configuration = configuration;
-            _fileStoragePath = _configuration["FileStorage:InvestigacionesPath"] ?? "Files/Investigaciones";
-
-            // Crear directorio si no existe
-            if (!Directory.Exists(_fileStoragePath))
-            {
-                Directory.CreateDirectory(_fileStoragePath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<InvestigacionDto>> GetAllAsync()
@@ -62,39 +54,20 @@ namespace SIGAD.Application.Services
             if (informe == null || informe.Length == 0)
                 throw new ArgumentException("El informe es obligatorio");
 
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
-            var extension = Path.GetExtension(informe.FileName).ToLowerInvariant();
+            // Subir archivo usando FileStorageService
+            var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
+                informe, 
+                "investigaciones", 
+                new[] { ".pdf", ".doc", ".docx" },
+                10 * 1024 * 1024 // 10MB
+            );
 
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, DOC, DOCX");
-
-            if (informe.Length > 25 * 1024 * 1024) // 25MB para informes
-                throw new ArgumentException("El archivo no puede exceder los 25MB");
-
-            // Generar hash del contenido
-            string contentHash;
-            using (var stream = informe.OpenReadStream())
+            // Verificar que la solicitud existe (solo si se proporciona una solicitudId)
+            if (crearInvestigacionDto.SolicitudId.HasValue)
             {
-                using (var sha256 = SHA256.Create())
-                {
-                    var hashBytes = sha256.ComputeHash(stream);
-                    contentHash = Convert.ToHexString(hashBytes);
-                }
+                if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId.Value))
+                    throw new ArgumentException("La solicitud especificada no existe");
             }
-
-            // Generar nombre único para el archivo
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_fileStoragePath, fileName);
-
-            // Guardar archivo
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await informe.CopyToAsync(stream);
-            }
-
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
-                throw new ArgumentException("La solicitud especificada no existe");
 
             // Validar fechas
             if (crearInvestigacionDto.FechaFinalizacion <= crearInvestigacionDto.FechaInicio)
@@ -109,22 +82,25 @@ namespace SIGAD.Application.Services
                 RolEnInvestigacion = crearInvestigacionDto.RolEnInvestigacion,
                 MesesDeInvestigacion = crearInvestigacionDto.MesesDeInvestigacion,
                 DocenteCedula = crearInvestigacionDto.DocenteCedula,
-                InformeRuta = filePath,
-                ContenidoHash = contentHash,
-                EsInternacional = crearInvestigacionDto.EsInternacional // Nuevo campo mapeado
+                InformeRuta = localPath,
+                UrlCloudinary = cloudinaryUrl,
+                ContenidoHash = contentHash
             };
 
             await _investigacionRepository.AddAsync(investigacion);
 
-            // Asociar automáticamente a la solicitud
-            await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId, investigacion.Id);
+            // Asociar a la solicitud solo si se proporcionó un SolicitudId
+            if (crearInvestigacionDto.SolicitudId.HasValue)
+            {
+                await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId.Value, investigacion.Id);
+            }
 
             // Obtener investigación completa con relaciones
             var investigacionCreada = await _investigacionRepository.GetByIdAsync(investigacion.Id);
             return MapToDto(investigacionCreada!);
         }
 
-        public async Task<InvestigacionDto?> UpdateAsync(int id, ActualizarInvestigacionDto actualizarInvestigacionDto)
+        public async Task<InvestigacionDto?> UpdateAsync(int id, ActualizarInvestigacionDto actualizarInvestigacionDto, IFormFile? archivo)
         {
             var investigacion = await _investigacionRepository.GetByIdAsync(id);
             if (investigacion == null)
@@ -140,6 +116,26 @@ namespace SIGAD.Application.Services
             investigacion.FechaFinalizacion = actualizarInvestigacionDto.FechaFinalizacion;
             investigacion.RolEnInvestigacion = actualizarInvestigacionDto.RolEnInvestigacion;
             investigacion.MesesDeInvestigacion = actualizarInvestigacionDto.MesesDeInvestigacion;
+            investigacion.DocenteCedula = actualizarInvestigacionDto.DocenteCedula;
+
+            // Procesar nuevo archivo si se proporciona
+            if (archivo != null && archivo.Length > 0)
+            {
+                // Eliminar archivos anteriores
+                await _fileStorageService.EliminarArchivoDualAsync(investigacion.InformeRuta, investigacion.UrlCloudinary);
+
+                // Subir nuevo archivo
+                var (localPath, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(
+                    archivo, 
+                    "investigaciones", 
+                    new[] { ".pdf", ".doc", ".docx" },
+                    10 * 1024 * 1024 // 10MB
+                );
+                
+                investigacion.InformeRuta = localPath;
+                investigacion.UrlCloudinary = cloudinaryUrl;
+                investigacion.ContenidoHash = hash;
+            }
 
             await _investigacionRepository.UpdateAsync(investigacion);
 
@@ -154,11 +150,8 @@ namespace SIGAD.Application.Services
             if (investigacion == null)
                 return false;
 
-            // Eliminar archivo asociado
-            if (File.Exists(investigacion.InformeRuta))
-            {
-                File.Delete(investigacion.InformeRuta);
-            }
+            // Eliminar archivos duales
+            await _fileStorageService.EliminarArchivoDualAsync(investigacion.InformeRuta, investigacion.UrlCloudinary);
 
             await _investigacionRepository.DeleteAsync(id);
             return true;
@@ -167,10 +160,29 @@ namespace SIGAD.Application.Services
         public async Task<(byte[] FileContent, string ContentType, string FileName)> DownloadInformeAsync(int id)
         {
             var investigacion = await _investigacionRepository.GetByIdAsync(id);
-            if (investigacion == null || !File.Exists(investigacion.InformeRuta))
+            if (investigacion == null || string.IsNullOrEmpty(investigacion.InformeRuta))
                 throw new FileNotFoundException("Informe no encontrado");
 
-            var fileContent = await File.ReadAllBytesAsync(investigacion.InformeRuta);
+            // Obtener la mejor URL disponible y descargar
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(investigacion.InformeRuta, investigacion.UrlCloudinary);
+            
+            byte[] fileContent;
+            
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(investigacion.UrlCloudinary) && mejorUrl == investigacion.UrlCloudinary)
+            {
+                using var httpClient = new HttpClient();
+                fileContent = await httpClient.GetByteArrayAsync(mejorUrl);
+            }
+            else if (File.Exists(investigacion.InformeRuta))
+            {
+                fileContent = await File.ReadAllBytesAsync(investigacion.InformeRuta);
+            }
+            else
+            {
+                throw new FileNotFoundException("Informe no encontrado");
+            }
+
             var extension = Path.GetExtension(investigacion.InformeRuta).ToLowerInvariant();
 
             var contentType = extension switch
@@ -213,8 +225,41 @@ namespace SIGAD.Application.Services
                 MesesDeInvestigacion = investigacion.MesesDeInvestigacion,
                 DocenteCedula = investigacion.DocenteCedula,
                 InformeRuta = investigacion.InformeRuta,
+                UrlCloudinary = investigacion.UrlCloudinary,
+                ContenidoHash = investigacion.ContenidoHash,
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = investigacion.InvestigacionesPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = investigacion.InvestigacionesPorSolicitud?.Select(ips => new SolicitudBasicaDto
+                {
+                    SolicitudId = ips.SolicitudId.ToString(),
+                    Estado = ips.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
                 EsInternacional = investigacion.EsInternacional // Exponer en el DTO
             };
+        }
+
+        public async Task<bool> AsociarInvestigacionASolicitudAsync(AsociarInvestigacionSolicitudDto asociarDto)
+        {
+            var investigacionExists = await _investigacionRepository.ExistsAsync(asociarDto.InvestigacionId);
+            if (!investigacionExists)
+            {
+                return false;
+            }
+
+            var solicitudExists = await _solicitudRepository.ExistsAsync(asociarDto.SolicitudId);
+            if (!solicitudExists)
+            {
+                return false;
+            }
+
+            await _investigacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.InvestigacionId);
+            return true;
+        }
+
+        public async Task DesasociarInvestigacionDeSolicitudAsync(Guid solicitudId, int investigacionId)
+        {
+            await _investigacionRepository.RemoveFromSolicitudAsync(solicitudId, investigacionId);
         }
     }
 }

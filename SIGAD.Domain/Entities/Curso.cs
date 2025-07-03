@@ -15,6 +15,7 @@ namespace SIGAD.Domain.Entities
         public int NumeroHoras { get; set; }
         public DateTime FechaFinalizacion { get; set; }
         public string CertificadoRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 
@@ -27,6 +28,10 @@ namespace SIGAD.Domain.Entities
         // Propiedades de navegación
         public virtual Docente Docente { get; set; } = default!;
         public Organizacion Organizacion { get; set; } = default!;
+        public int? HorasImpartidas { get;  set; }
+        
+        // Propiedad de navegación hacia las solicitudes que incluyen este curso
+        public virtual ICollection<CursosPorSolicitud>? CursosPorSolicitud { get; set; }
 
     }
 }
