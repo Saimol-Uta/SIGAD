@@ -468,12 +468,22 @@
 
     private async Task VerificarSolicitudActiva()
     {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
+        // Ya no es necesario verificar la solicitud activa, pues la experiencia
+        // se puede crear sin estar asociada a una solicitud
+        // Solo verificamos si el usuario está autenticado
+        try
         {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                errorMessage = "No se ha iniciado sesión. Redirigiendo...";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error de verificación: {ex.Message}";
         }
     }
 
@@ -608,7 +618,8 @@
                 content.Add(new StringContent(experienciaModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
                 content.Add(new StringContent(experienciaModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFin");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // Quitamos el SolicitudId para evitar que se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
 
                 // Agregar el archivo
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));

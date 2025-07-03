@@ -265,7 +265,15 @@ namespace SIGAD.Application.Services
                 OrganizacionId = curso.OrganizacionId,
                 TipoCurso = curso.TipoCurso.ToString(),
                 ImpartidoPorDocente = curso.ImpartidoPorDocente,
-                HorasImpartidas = curso.HorasImpartidas
+                HorasImpartidas = curso.HorasImpartidas,
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = curso.CursosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = curso.CursosPorSolicitud?.Select(cs => new SolicitudBasicaDto
+                {
+                    SolicitudId = cs.SolicitudId.ToString(),
+                    Estado = cs.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
 

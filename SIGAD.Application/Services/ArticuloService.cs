@@ -191,13 +191,20 @@ namespace SIGAD.Application.Services
 
         public async Task<bool> AsociarArticuloASolicitudAsync(AsociarArticuloSolicitudDto asociarDto)
         {
+            // Log temporal
+            Console.WriteLine($"[SERVICE] Asociando artículo - DOI: '{asociarDto.ArticuloDOI}', SolicitudId: {asociarDto.SolicitudId}");
+            
             var articuloExists = await _articuloRepository.ExistsAsync(asociarDto.ArticuloDOI);
+            Console.WriteLine($"[SERVICE] Artículo existe: {articuloExists}");
+            
             if (!articuloExists)
             {
                 return false;
             }
 
             var solicitud = await _solicitudRepository.GetByIdAsync(asociarDto.SolicitudId);
+            Console.WriteLine($"[SERVICE] Solicitud existe: {solicitud != null}");
+            
             if (solicitud == null)
             {
                 return false;
@@ -205,13 +212,13 @@ namespace SIGAD.Application.Services
 
             await _articuloRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.ArticuloDOI);
             await _unitOfWork.SaveChangesAsync();
+            Console.WriteLine($"[SERVICE] Asociación completada");
             return true;
         }
 
         public async Task<bool> DesasociarArticuloDeSolicitudAsync(Guid solicitudId, string articuloDoi)
         {
             await _articuloRepository.RemoveFromSolicitudAsync(solicitudId, articuloDoi);
-            await _unitOfWork.SaveChangesAsync();
             return true;
         }
 
@@ -275,7 +282,15 @@ namespace SIGAD.Application.Services
                     : string.Empty,
                 UnidadVerificadora = articulo.UnidadVerificadora,
                 Verificado = articulo.Verificado,
-                FechaVerificacion = articulo.FechaVerificacion
+                FechaVerificacion = articulo.FechaVerificacion,
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = articulo.ArticulosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = articulo.ArticulosPorSolicitud?.Select(es => new SolicitudBasicaDto
+                {
+                    SolicitudId = es.SolicitudId.ToString(),
+                    Estado = es.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
     }

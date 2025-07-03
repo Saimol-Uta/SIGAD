@@ -36,6 +36,8 @@ namespace SIGAD.Infrastructure.Repositories
         {
             return await _context.Articulos
                 .Include(a => a.Docente)
+                .Include(a => a.ArticulosPorSolicitud!)
+                    .ThenInclude(aps => aps.SolicitudAscenso)
                 .Where(a => a.DocenteCedula == docenteCedula)
                 .OrderByDescending(a => a.AnioPublicacion)
                 .ToListAsync();
@@ -78,6 +80,20 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task AddToSolicitudAsync(Guid solicitudId, string articuloDoi)
         {
+            Console.WriteLine($"[REPOSITORY] AddToSolicitudAsync - SolicitudId: {solicitudId}, ArticuloDOI: '{articuloDoi}'");
+            
+            // Verificar si ya existe la asociación
+            var existeAsociacion = await _context.ArticulosPorSolicitud
+                .AnyAsync(aps => aps.SolicitudId == solicitudId && aps.ArticuloDOI == articuloDoi);
+            
+            Console.WriteLine($"[REPOSITORY] Ya existe asociación: {existeAsociacion}");
+            
+            if (existeAsociacion)
+            {
+                Console.WriteLine($"[REPOSITORY] Asociación ya existe, saltando...");
+                return;
+            }
+
             var articuloPorSolicitud = new ArticulosPorSolicitud
             {
                 SolicitudId = solicitudId,
@@ -85,16 +101,34 @@ namespace SIGAD.Infrastructure.Repositories
             };
 
             await _context.ArticulosPorSolicitud.AddAsync(articuloPorSolicitud);
+            Console.WriteLine($"[REPOSITORY] Asociación agregada al contexto");
         }
 
         public async Task RemoveFromSolicitudAsync(Guid solicitudId, string articuloDoi)
         {
+            // Intentar encontrar con el GUID normal
             var articuloPorSolicitud = await _context.ArticulosPorSolicitud
                 .FirstOrDefaultAsync(aps => aps.SolicitudId == solicitudId && aps.ArticuloDOI == articuloDoi);
-
+            
+            // Si no se encuentra, intentar con el GUID sin guiones (por si acaso)
+            if (articuloPorSolicitud == null)
+            {
+                var solicitudIdSinGuiones = solicitudId.ToString("N"); // Formato sin guiones
+                
+                // Como no podemos convertir string a GUID directamente en LINQ, buscamos todos y comparamos en memoria
+                var todosLosRegistros = await _context.ArticulosPorSolicitud
+                    .Where(aps => aps.ArticuloDOI == articuloDoi)
+                    .ToListAsync();
+                
+                articuloPorSolicitud = todosLosRegistros
+                    .FirstOrDefault(aps => aps.SolicitudId.ToString("N").Equals(solicitudIdSinGuiones, StringComparison.OrdinalIgnoreCase) ||
+                                          aps.SolicitudId.ToString().Equals(solicitudId.ToString(), StringComparison.OrdinalIgnoreCase));
+            }
+            
             if (articuloPorSolicitud != null)
             {
                 _context.ArticulosPorSolicitud.Remove(articuloPorSolicitud);
+                await _context.SaveChangesAsync();
             }
         }
         public async Task<bool> ExistePorHashAsync(string hash)

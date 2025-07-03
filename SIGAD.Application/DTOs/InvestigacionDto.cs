@@ -41,6 +41,10 @@ namespace SIGAD.Application.DTOs
         public string TipoProyecto { get; set; } = string.Empty;
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
 
     }
 } 

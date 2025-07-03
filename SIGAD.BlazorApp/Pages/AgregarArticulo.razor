@@ -269,7 +269,7 @@
         <div class="form-container">
             <h1>@(Id != null ? "✏️ Editar Artículo" : "📄 Agregar Artículo")</h1>
             <p class="subtitle">
-                @(Id != null ? "Modifique los datos del artículo" : "Complete la información del artículo para incluirlo en su solicitud de ascenso")
+                @(Id != null ? "Modifique los datos del artículo" : "Complete la información del artículo para registrarlo en el sistema")
             </p>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -393,6 +393,7 @@
 
 @code {
     [Parameter] public string? Id { get; set; }
+
 
     private string nombreUsuario = "";
     private ArticuloModel articuloModel = new();
@@ -600,7 +601,6 @@
                 content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
                 content.Add(new StringContent(articuloModel.IdiomaPublicacion), "IdiomaPublicacion");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
                 // Adjuntar archivo (obligatorio al agregar)
                 var stream = archivoFile!.OpenReadStream(25 * 1024 * 1024);

@@ -18,6 +18,8 @@ namespace SIGAD.Infrastructure.Repositories
         {
             return await _context.TesisDirigidas
                 .Include(t => t.Docente)
+                .Include(t => t.TesisPorSolicitud!)
+                    .ThenInclude(tps => tps.Solicitud)
                 .Where(t => t.DocenteCedula == docenteCedula)
                 .OrderByDescending(t => t.FechaInicio)
                 .ToListAsync();

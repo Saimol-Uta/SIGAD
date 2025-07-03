@@ -266,7 +266,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Articulo)
-                    .WithMany()
+                    .WithMany(a => a.ArticulosPorSolicitud)
                     .HasForeignKey(e => e.ArticuloDOI)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -281,7 +281,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Curso)
-                    .WithMany()
+                    .WithMany(c => c.CursosPorSolicitud)
                     .HasForeignKey(e => e.CursoId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -296,7 +296,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.ExperienciaLaboral)
-                    .WithMany()
+                    .WithMany(e => e.ExperienciasPorSolicitud)
                     .HasForeignKey(e => e.ExperienciaId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -311,7 +311,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Investigacion)
-                    .WithMany()
+                    .WithMany(i => i.InvestigacionesPorSolicitud)
                     .HasForeignKey(e => e.InvestigacionId)
                     .OnDelete(DeleteBehavior.Cascade);
             }); modelBuilder.Entity<TesisPorSolicitud>(entity =>

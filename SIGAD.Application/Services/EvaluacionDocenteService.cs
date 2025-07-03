@@ -176,11 +176,14 @@ namespace SIGAD.Application.Services
             var estaYaUsada = await _evaluacionRepository.EstaEvaluacionYaUsadaAsync(asociarDto.EvaluacionId);
             if (estaYaUsada)
             {
+                Console.WriteLine($"Debug - Service - Evaluación {asociarDto.EvaluacionId} ya está usada en otra solicitud");
                 return false;
             }
 
+            Console.WriteLine($"Debug - Service - Asociando evaluación {asociarDto.EvaluacionId} a solicitud {asociarDto.SolicitudId}");
             await _evaluacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.EvaluacionId);
             await _unitOfWork.SaveChangesAsync();
+            Console.WriteLine($"Debug - Service - Asociación completada y guardada en BD");
             return true;
         }
 
@@ -274,6 +277,54 @@ namespace SIGAD.Application.Services
                 ? $"{evaluacion.Docente.Nombre1} {evaluacion.Docente.Nombre2} {evaluacion.Docente.Apellido1} {evaluacion.Docente.Apellido2}".Trim()
                 : string.Empty;
 
+            // Mapear solicitudes asociadas
+            List<SolicitudBasicaDto>? solicitudes = null;
+            string? solicitudIdPrincipal = null;
+
+            if (evaluacion.EvaluacionesPorSolicitud?.Any() == true)
+            {
+                solicitudes = evaluacion.EvaluacionesPorSolicitud
+                    .Where(eps => eps.Solicitud != null)
+                    .Select(eps => new SolicitudBasicaDto
+                    {
+                        SolicitudId = eps.Solicitud!.Id.ToString(),
+                        Estado = eps.Solicitud.Estado.ToString(),
+                        FechaCreacion = eps.Solicitud.FechaCreacion
+                    }).ToList();
+                
+                // Debug: Log información de solicitudes para esta evaluación
+                Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} tiene {solicitudes.Count} solicitudes asociadas:");
+                foreach (var sol in solicitudes)
+                {
+                    Console.WriteLine($"  - Solicitud ID: {sol.SolicitudId}, Estado: {sol.Estado}, Fecha: {sol.FechaCreacion}");
+                }
+                
+                // Priorizar solicitud en estado Borrador o Enviada para mostrar como principal
+                var solicitudPrincipal = solicitudes
+                    .Where(s => s.Estado == "Borrador" || s.Estado == "Enviada")
+                    .OrderByDescending(s => s.FechaCreacion)
+                    .FirstOrDefault();
+                
+                // Si no hay solicitud en estados activos, buscar EnRevision también
+                if (solicitudPrincipal == null)
+                {
+                    solicitudPrincipal = solicitudes
+                        .Where(s => s.Estado == "EnRevision")
+                        .OrderByDescending(s => s.FechaCreacion)
+                        .FirstOrDefault();
+                }
+                
+                // Si no hay solicitud activa, usar la más reciente
+                solicitudIdPrincipal = solicitudPrincipal?.SolicitudId ?? solicitudes.FirstOrDefault()?.SolicitudId;
+                
+                // Debug: Log resultado del mapeo
+                Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} - Solicitud principal seleccionada: {solicitudIdPrincipal}");
+                if (solicitudPrincipal != null)
+                {
+                    Console.WriteLine($"  - Estado de solicitud principal: {solicitudPrincipal.Estado}");
+                }
+            }
+
             return new EvaluacionDocenteDto
             {
                 Id = evaluacion.Id,
@@ -284,7 +335,9 @@ namespace SIGAD.Application.Services
                 UrlCloudinary = evaluacion.UrlCloudinary,
                 ContenidoHash = evaluacion.ContenidoHash,
                 DocenteCedula = evaluacion.DocenteCedula,
-                DocenteNombreCompleto = nombreCompleto
+                DocenteNombreCompleto = nombreCompleto,
+                SolicitudId = solicitudIdPrincipal,
+                Solicitudes = solicitudes
             };
         }
     }

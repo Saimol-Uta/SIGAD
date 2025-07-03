@@ -366,5 +366,64 @@ namespace SIGAD.WebAPI.Controllers
                 return StatusCode(500, "Error interno del servidor");
             }
         }
+
+        /// <summary>
+        /// Desasocia un curso de una solicitud (version para frontend con ID en ruta)
+        /// </summary>
+        /// <param name="id">ID del curso</param>
+        /// <param name="dto">Datos de la solicitud</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarCursoDeSolicitud(int id, [FromBody] AsociarCursoSolicitudDto dto)
+        {
+            try
+            {
+                // Validar que el DTO tenga los datos necesarios
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                // Usar el ID de la ruta y el SolicitudId del DTO
+                var desasociarDto = new AsociarCursoSolicitudDto
+                {
+                    CursoId = id,
+                    SolicitudId = dto.SolicitudId
+                };
+
+                var desasociado = await _cursoService.RemoveFromSolicitudAsync(desasociarDto);
+                if (!desasociado)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No se pudo desasociar el curso de la solicitud"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Curso desasociado exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar curso {CursoId} de solicitud", id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
     }
-} 
+}

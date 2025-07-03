@@ -33,8 +33,9 @@ namespace SIGAD.Domain.Entities
         // Propiedad de navegación hacia el Docente dueño del artículo
         public virtual Docente? Docente { get; set; }
         public string? IdiomaPublicacion { get; set; }
-
-
+        
+        // Propiedad de navegación hacia las solicitudes que incluyen este artículo
+        public virtual ICollection<ArticulosPorSolicitud>? ArticulosPorSolicitud { get; set; }
 
     }
 }

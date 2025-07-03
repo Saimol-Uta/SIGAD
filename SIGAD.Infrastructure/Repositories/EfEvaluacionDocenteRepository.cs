@@ -31,11 +31,35 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task<IEnumerable<EvaluacionDocente>> GetByDocenteCedulaAsync(string docenteCedula)
         {
-            return await _context.EvaluacionesDocentes
+            var evaluaciones = await _context.EvaluacionesDocentes
+                .AsNoTracking() // Forzar recarga sin cache
                 .Include(e => e.Docente)
+                .Include(e => e.EvaluacionesPorSolicitud)
+                    .ThenInclude(eps => eps.Solicitud)
                 .Where(e => e.DocenteCedula == docenteCedula)
                 .OrderByDescending(e => e.FechaEvaluacion)
                 .ToListAsync();
+                
+            // Debug: Log de evaluaciones con sus solicitudes asociadas
+            Console.WriteLine($"Debug - Repository - Evaluaciones para docente {docenteCedula}:");
+            foreach (var eval in evaluaciones)
+            {
+                Console.WriteLine($"  - Evaluación ID: {eval.Id}, Periodo: {eval.PeriodoAcademico}");
+                if (eval.EvaluacionesPorSolicitud?.Any() == true)
+                {
+                    Console.WriteLine($"    Asociada a {eval.EvaluacionesPorSolicitud.Count} solicitudes:");
+                    foreach (var eps in eval.EvaluacionesPorSolicitud)
+                    {
+                        Console.WriteLine($"      - Solicitud ID: {eps.SolicitudId}, Estado: {eps.Solicitud?.Estado}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"    Sin solicitudes asociadas");
+                }
+            }
+            
+            return evaluaciones;
         }
 
         public async Task<IEnumerable<EvaluacionDocente>> GetBySolicitudIdAsync(Guid solicitudId)
@@ -75,6 +99,19 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task AddToSolicitudAsync(Guid solicitudId, int evaluacionId)
         {
+            Console.WriteLine($"Debug - Repository - Intentando asociar evaluación {evaluacionId} a solicitud {solicitudId}");
+            
+            // Verificar si ya existe la asociación para evitar duplicados
+            var yaExiste = await _context.EvaluacionesPorSolicitud
+                .AnyAsync(eps => eps.SolicitudId == solicitudId && eps.EvaluacionId == evaluacionId);
+                
+            if (yaExiste)
+            {
+                Console.WriteLine($"Debug - Repository - La asociación ya existe, saltando...");
+                // Ya está asociada, no hacer nada
+                return;
+            }
+
             var evaluacionPorSolicitud = new EvaluacionesPorSolicitud
             {
                 SolicitudId = solicitudId,
@@ -82,6 +119,7 @@ namespace SIGAD.Infrastructure.Repositories
             };
 
             await _context.EvaluacionesPorSolicitud.AddAsync(evaluacionPorSolicitud);
+            Console.WriteLine($"Debug - Repository - Asociación creada exitosamente en contexto (pendiente SaveChanges)");
         }
 
         public async Task RemoveFromSolicitudAsync(Guid solicitudId, int evaluacionId)
@@ -151,13 +189,16 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task<bool> EstaEvaluacionYaUsadaAsync(int evaluacionId)
         {
-            // Verificar si la evaluación está asociada a una solicitud aprobada o enviada
+            // Verificar si la evaluación está asociada a una solicitud aprobada o en revisión
+            // PERO NO incluir la solicitud actual si está en estado Borrador o Enviada
             var estaUsada = await _context.EvaluacionesPorSolicitud
                 .Include(eps => eps.Solicitud)
                 .AnyAsync(eps => eps.EvaluacionId == evaluacionId && 
                     eps.Solicitud != null &&
                     (eps.Solicitud.Estado == Domain.Enums.EstadoSolicitud.Aprobada || 
-                     eps.Solicitud.Estado == Domain.Enums.EstadoSolicitud.Enviada));
+                     eps.Solicitud.Estado == Domain.Enums.EstadoSolicitud.EnRevision));
+                     // Removemos Estado.Enviada de aquí porque una solicitud "Enviada" 
+                     // podría permitir modificaciones hasta que sea revisada
 
             return estaUsada;
         }

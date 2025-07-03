@@ -1344,15 +1344,12 @@ namespace SIGAD.WebAPI.Controllers
                 }
             }
 
-            // VALIDAR EVALUACIONES DOCENTES (solo verificar promedio mínimo)
-            if (evaluaciones.Count == 0)
+            // VALIDAR EVALUACIONES DOCENTES - NUEVA LÓGICA ESPECÍFICA
+            var validacionEvaluaciones = ValidarEvaluacionesParaSolicitud(evaluaciones);
+            
+            if (!validacionEvaluaciones.esValida)
             {
-                requisitosFaltantes.Add($"Evaluaciones: No tiene evaluaciones asociadas a esta solicitud");
-            }
-            else if (!todasEvaluacionesCumplen || promedioEvaluaciones < rango.PuntajePromedioEvaluacionesRequerido)
-            {
-                var evaluacionesIncumplidas = evaluaciones.Where(e => (e?.PuntajePorcentual ?? 0) < rango.PuntajePromedioEvaluacionesRequerido).Count();
-                requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
+                requisitosFaltantes.AddRange(validacionEvaluaciones.errores);
             }
 
             // VALIDAR TESIS DIRIGIDAS
@@ -1648,5 +1645,87 @@ namespace SIGAD.WebAPI.Controllers
             return Ok(new { success = true, message = "Usuario temporal creado" });
         }
         */
+
+        /// <summary>
+        /// Valida que las evaluaciones docentes cumplan con los requisitos para una solicitud de ascenso:
+        /// - Exactamente 4 evaluaciones
+        /// - Todas en exactamente 2 años consecutivos (no puede ser un solo año)
+        /// - No permitir años futuros (solo años ≤ año actual)
+        /// - Promedio mínimo de 75%
+        /// </summary>
+        /// <param name="evaluaciones">Lista de evaluaciones asociadas a la solicitud</param>
+        /// <returns>Tupla con el resultado de validación y lista de errores</returns>
+        private (bool esValida, List<string> errores) ValidarEvaluacionesParaSolicitud(List<SIGAD.Domain.Entities.EvaluacionDocente?> evaluaciones)
+        {
+            var errores = new List<string>();
+            int anoActual = DateTime.Now.Year; // 2025
+
+            // Filtrar evaluaciones no nulas
+            var evaluacionesValidas = evaluaciones.Where(e => e != null).Cast<SIGAD.Domain.Entities.EvaluacionDocente>().ToList();
+
+            // 1. Verificar que tenga exactamente 4 evaluaciones
+            if (evaluacionesValidas.Count != 4)
+            {
+                errores.Add($"Evaluaciones: Se requieren exactamente 4 evaluaciones, pero tiene {evaluacionesValidas.Count}");
+                return (false, errores);
+            }
+
+            // 2. Obtener los años únicos de las evaluaciones
+            var anosEvaluaciones = evaluacionesValidas.Select(e => e.FechaEvaluacion.Year).Distinct().OrderBy(y => y).ToList();
+
+            // 3. Verificar que no haya años futuros
+            var anosFuturos = anosEvaluaciones.Where(ano => ano > anoActual).ToList();
+            if (anosFuturos.Any())
+            {
+                errores.Add($"Evaluaciones: No se permiten evaluaciones de años futuros. Años futuros encontrados: {string.Join(", ", anosFuturos)}. Año actual: {anoActual}");
+                return (false, errores);
+            }
+
+            // 4. Validar que sean EXACTAMENTE 2 años consecutivos (no puede ser un solo año)
+            if (anosEvaluaciones.Count == 1)
+            {
+                errores.Add($"Evaluaciones: Todas las evaluaciones son del año {anosEvaluaciones[0]}. Se requieren evaluaciones de exactamente 2 años consecutivos, no un solo año.");
+                return (false, errores);
+            }
+            else if (anosEvaluaciones.Count == 2)
+            {
+                int anoMenor = anosEvaluaciones[0];
+                int anoMayor = anosEvaluaciones[1];
+                
+                if (anoMayor - anoMenor != 1)
+                {
+                    errores.Add($"Evaluaciones: Los años {anoMenor} y {anoMayor} no son consecutivos. Se requieren evaluaciones de exactamente 2 años consecutivos.");
+                    return (false, errores);
+                }
+                
+                // Si llegamos aquí, tenemos exactamente 2 años consecutivos ✅
+            }
+            else
+            {
+                errores.Add($"Evaluaciones: Las evaluaciones abarcan {anosEvaluaciones.Count} años diferentes ({string.Join(", ", anosEvaluaciones)}). Se requieren evaluaciones de exactamente 2 años consecutivos.");
+                return (false, errores);
+            }
+
+            // 5. Verificar que el promedio sea al menos 75%
+            decimal promedioEvaluaciones = evaluacionesValidas.Average(e => e.PuntajePorcentual);
+            
+            if (promedioEvaluaciones < 75.0m)
+            {
+                errores.Add($"Evaluaciones: El promedio es {promedioEvaluaciones:F1}%, pero se requiere un mínimo de 75%");
+            }
+
+            // Información adicional para debugging (solo si todo está bien)
+            if (errores.Count == 0)
+            {
+                string rangoDetectado = $"{anosEvaluaciones[0]}-{anosEvaluaciones[1]}";
+                _logger.LogInformation($"[VALIDACIÓN EVALUACIONES] ✅ Válidas: 4 evaluaciones, periodo: {rangoDetectado}, promedio: {promedioEvaluaciones:F1}%");
+            }
+            else
+            {
+                _logger.LogWarning($"[VALIDACIÓN EVALUACIONES] ❌ Errores: {string.Join(" | ", errores)}");
+            }
+
+            return (errores.Count == 0, errores);
+        }
     }
 }

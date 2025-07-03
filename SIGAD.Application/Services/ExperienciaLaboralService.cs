@@ -268,7 +268,15 @@ namespace SIGAD.Application.Services
                 CertificadoRuta = experiencia.CertificadoRuta,
                 UrlCloudinary = experiencia.UrlCloudinary,
                 ContenidoHash = experiencia.ContenidoHash,
-                AniosExperiencia = Math.Round(aniosExperiencia, 1)
+                AniosExperiencia = Math.Round(aniosExperiencia, 1),
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = experiencia.ExperienciasPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = experiencia.ExperienciasPorSolicitud?.Select(eps => new SolicitudBasicaDto
+                {
+                    SolicitudId = eps.SolicitudId.ToString(),
+                    Estado = eps.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
 

@@ -16,6 +16,10 @@ namespace SIGAD.Application.DTOs
         public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public decimal AniosExperiencia { get; set; }
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
     }
 
     public class CreateExperienciaLaboralDto

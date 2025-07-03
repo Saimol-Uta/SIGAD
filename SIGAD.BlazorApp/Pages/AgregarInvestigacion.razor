@@ -253,7 +253,7 @@
             <p class="subtitle">
                 @(Id.HasValue
                                 ? "Modifique los datos de la investigación"
-                                : "Complete los datos de su investigación para asociarla a su solicitud de ascenso")
+                                : "Complete los datos de su investigación para registrarla en el sistema")
             </p>
 
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -266,7 +266,9 @@
             @if (investigacionCreada)
             {
                 <div class="alert alert-success">
-                    ✅ @(Id.HasValue ? "Investigación editada exitosamente. Redirigiendo..." : "Investigación agregada exitosamente. Redirigiendo...")
+                    ✅ @(Id.HasValue 
+                        ? "Investigación editada exitosamente. Redirigiendo..." 
+                        : "Investigación agregada exitosamente. La encontrará disponible para asociar en la pantalla de gestión de documentos. Redirigiendo...")
                 </div>
             }
             else
@@ -554,7 +556,6 @@
                 content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
                 content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);

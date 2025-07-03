@@ -39,6 +39,8 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cursos
                 .Include(c => c.Docente)
                 .Include(c => c.Organizacion)
+                .Include(c => c.CursosPorSolicitud!)
+                    .ThenInclude(cps => cps.SolicitudAscenso)
                 .Where(c => c.DocenteCedula == docenteCedula)
                 .ToListAsync();
         }

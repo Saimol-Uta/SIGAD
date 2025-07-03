@@ -935,11 +935,26 @@
                                             </div>
                                         </div>
 
+                                        @if (solicitudEnviada)
+                                        {
+                                            <div class="alert alert-info" style="margin-bottom: 15px;">
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Solicitud enviada:</strong> Esta solicitud ya ha sido enviada para aprobación. Recibirá una notificación por correo electrónico cuando sea procesada.
+                                            </div>
+                                        }
+
                                         <div class="submission-actions">
-                                            <button class="btn btn-success btn-large" @onclick="EnviarSolicitud" disabled="@enviandoSolicitud">
+                                            <button class="btn btn-success btn-large" 
+                                                    @onclick="EnviarSolicitud" 
+                                                    disabled="@(enviandoSolicitud || solicitudEnviada)"
+                                                    title="@(solicitudEnviada ? "Esta solicitud ya ha sido enviada" : "Enviar su solicitud de ascenso")">
                                                 @if (enviandoSolicitud)
                                                 {
                                                     <span><i class="fas fa-spinner fa-spin"></i> Enviando solicitud...</span>
+                                                }
+                                                else if (solicitudEnviada)
+                                                {
+                                                    <span><i class="fas fa-check-circle"></i> Solicitud Enviada</span>
                                                 }
                                                 else
                                                 {
@@ -1073,6 +1088,7 @@
     private string? solicitudId;
     private bool tieneDocumentosCompletos = false;
     private bool enviandoSolicitud = false;
+    private bool solicitudEnviada = false;
     private int conteoTesis = 0;
     
     // Variables para verificación de requisitos
@@ -1146,6 +1162,14 @@
                 if (solicitudInfo.TryGetProperty("rangoSolicitado", out var rangoElement))
                 {
                     rangoSolicitado = rangoElement.GetString();
+                }
+                
+                // Verificar estado de la solicitud
+                if (solicitudInfo.TryGetProperty("estado", out var estadoElement))
+                {
+                    string? estado = estadoElement.GetString();
+                    solicitudEnviada = estado == "Enviada" || estado == "En_Revision" || estado == "Aprobada" || estado == "Rechazada";
+                    Console.WriteLine($"Debug - Estado de solicitud: {estado}, Enviada: {solicitudEnviada}");
                 }
             }
         }
@@ -1275,14 +1299,23 @@
                 
                 if (result?.Success == true)
                 {
-                    mensajeOperacion = "✅ Solicitud enviada exitosamente. Su solicitud est├í ahora en revisión.";
+                    mensajeOperacion = "✅ Solicitud enviada exitosamente. Su solicitud está ahora en revisión.";
                     operacionExitosa = true;
                     
                     // Limpiar la solicitud actual del servicio
                     await SolicitudService.ClearSolicitudActualAsync();
                     
-                    // Redirigir al dashboard después de 3 segundos
-                    await Task.Delay(3000);
+                    // Mostrar SweetAlert de confirmación
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", 
+                        new {
+                            title = "¡Solicitud Enviada!",
+                            text = "Su solicitud fue enviada con éxito. Le llegará la notificación de la aprobación de su ascenso por correo electrónico.",
+                            icon = "success",
+                            confirmButtonText = "Aceptar",
+                            confirmButtonColor = "#0a1d44"
+                        });
+                    
+                    // Redirigir al dashboard
                     Navigation.NavigateTo("/dashboard");
                 }
                 else

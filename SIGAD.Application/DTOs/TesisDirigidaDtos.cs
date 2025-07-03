@@ -12,6 +12,10 @@
         public string Institucion { get; set; } = string.Empty;
         public string CertificacionRuta { get; set; } = string.Empty;
         public string? UrlCloudinary { get; set; }
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
     }
 
 }

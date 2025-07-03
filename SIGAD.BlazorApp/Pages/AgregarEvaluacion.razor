@@ -553,7 +553,8 @@
                 content.Add(new StringContent(evaluacionModel.FechaEvaluacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaEvaluacion");
                 content.Add(new StringContent(evaluacionModel.Calificacion.ToString()), "PuntajePorcentual");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // Ya no asociamos automáticamente a una solicitud
+                // content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);

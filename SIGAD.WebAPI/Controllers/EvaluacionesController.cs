@@ -628,5 +628,97 @@ namespace SIGAD.WebAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Desasocia una evaluación de una solicitud (POST version para frontend)
+        /// </summary>
+        /// <param name="dto">Datos de la evaluación y solicitud a desasociar</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarEvaluacionDeSolicitudPost([FromBody] AsociarEvaluacionSolicitudDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos inválidos",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+
+                await _evaluacionService.DesasociarEvaluacionDeSolicitudAsync(dto.SolicitudId, dto.EvaluacionId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluación desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar evaluación {EvaluacionId} de solicitud {SolicitudId}", 
+                    dto.EvaluacionId, dto.SolicitudId);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desasocia una evaluación de una solicitud (endpoint compatible con el formato estándar del frontend)
+        /// </summary>
+        /// <param name="id">ID de la evaluación</param>
+        /// <param name="dto">Datos de la solicitud a desasociar</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarEvaluacionDeSolicitudPorId(int id, [FromBody] AsociarEvaluacionSolicitudDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("[BACKEND] Intentando desasociar evaluación - ID: {EvaluacionId}, SolicitudId: {SolicitudId}", 
+                    id, dto?.SolicitudId);
+                    
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    _logger.LogWarning("[BACKEND] Intento de desasociar evaluación fallido - Datos inválidos, ID: {EvaluacionId}", id);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                await _evaluacionService.DesasociarEvaluacionDeSolicitudAsync(dto.SolicitudId, id);
+                _logger.LogInformation("[BACKEND] Evaluación desasociada exitosamente - ID: {EvaluacionId}, SolicitudId: {SolicitudId}", 
+                    id, dto.SolicitudId);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluación desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar evaluación {EvaluacionId} de solicitud", id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

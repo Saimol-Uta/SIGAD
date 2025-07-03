@@ -26,6 +26,9 @@ namespace SIGAD.Domain.Entities
 
         public virtual Docente Docente { get; set; } = default!;
         public bool EsInternacional { get; set; } = false;
+        
+        // Propiedad de navegación hacia las solicitudes que incluyen esta investigación
+        public virtual ICollection<InvestigacionesPorSolicitud>? InvestigacionesPorSolicitud { get; set; }
 
     }
 }

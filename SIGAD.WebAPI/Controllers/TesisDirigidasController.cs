@@ -72,6 +72,48 @@ namespace SIGAD.API.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Desasocia una tesis dirigida de una solicitud (POST version para frontend con ID en ruta)
+        /// </summary>
+        /// <param name="id">ID de la tesis</param>
+        /// <param name="dto">Datos de la solicitud</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarTesisDeSolicitud(int id, [FromBody] AsociarTesisSolicitudDto dto)
+        {
+            try
+            {
+                // Validar que el DTO tenga los datos necesarios
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                await _service.DesasociarDeSolicitudAsync(dto.SolicitudId, id);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Tesis dirigida desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
         [HttpGet("existe-por-hash/{hash}")]
         public async Task<IActionResult> ExistePorHash(string hash)
         {

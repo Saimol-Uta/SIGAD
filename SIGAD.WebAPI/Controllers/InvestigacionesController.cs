@@ -296,5 +296,48 @@ namespace SIGAD.WebAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Desasocia una investigación de una solicitud (POST version para frontend con ID en ruta)
+        /// </summary>
+        /// <param name="id">ID de la investigación</param>
+        /// <param name="dto">Datos de la solicitud</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarInvestigacionDeSolicitud(int id, [FromBody] AsociarInvestigacionSolicitudDto dto)
+        {
+            try
+            {
+                // Validar que el DTO tenga los datos necesarios
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                await _investigacionService.DesasociarInvestigacionDeSolicitudAsync(dto.SolicitudId, id);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigación desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar investigación {InvestigacionId} de solicitud", id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

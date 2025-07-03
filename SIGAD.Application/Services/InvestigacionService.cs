@@ -62,9 +62,12 @@ namespace SIGAD.Application.Services
                 10 * 1024 * 1024 // 10MB
             );
 
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId))
-                throw new ArgumentException("La solicitud especificada no existe");
+            // Verificar que la solicitud existe (solo si se proporciona una solicitudId)
+            if (crearInvestigacionDto.SolicitudId.HasValue)
+            {
+                if (!await _solicitudRepository.ExistsAsync(crearInvestigacionDto.SolicitudId.Value))
+                    throw new ArgumentException("La solicitud especificada no existe");
+            }
 
             // Validar fechas
             if (crearInvestigacionDto.FechaFinalizacion <= crearInvestigacionDto.FechaInicio)
@@ -86,8 +89,11 @@ namespace SIGAD.Application.Services
 
             await _investigacionRepository.AddAsync(investigacion);
 
-            // Asociar automáticamente a la solicitud
-            await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId, investigacion.Id);
+            // Asociar a la solicitud solo si se proporcionó un SolicitudId
+            if (crearInvestigacionDto.SolicitudId.HasValue)
+            {
+                await _investigacionRepository.AddToSolicitudAsync(crearInvestigacionDto.SolicitudId.Value, investigacion.Id);
+            }
 
             // Obtener investigación completa con relaciones
             var investigacionCreada = await _investigacionRepository.GetByIdAsync(investigacion.Id);
@@ -223,7 +229,15 @@ namespace SIGAD.Application.Services
                 DocenteCedula = investigacion.DocenteCedula,
                 InformeRuta = investigacion.InformeRuta,
                 UrlCloudinary = investigacion.UrlCloudinary,
-                ContenidoHash = investigacion.ContenidoHash
+                ContenidoHash = investigacion.ContenidoHash,
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = investigacion.InvestigacionesPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = investigacion.InvestigacionesPorSolicitud?.Select(ips => new SolicitudBasicaDto
+                {
+                    SolicitudId = ips.SolicitudId.ToString(),
+                    Estado = ips.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
 

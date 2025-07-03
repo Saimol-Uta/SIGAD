@@ -15,6 +15,10 @@ namespace SIGAD.Application.DTOs
         public string UnidadVerificadora { get; set; } = string.Empty;
         public bool Verificado { get; set; }
         public DateTime? FechaVerificacion { get; set; }
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
 
     }
 } 

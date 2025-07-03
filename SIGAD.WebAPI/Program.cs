@@ -26,11 +26,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SigadDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.CustomSchemaIds(type => type.FullName); // 👈 Solución alternativa
-});
-
 var configuration = builder.Configuration;
 
 builder.Services.AddScoped<ISgthSyncService>(_ =>
@@ -47,11 +42,8 @@ builder.Services.AddScoped<IArchivoImportacionService, ArchivoImportacionService
 
 
 builder.Services.AddScoped<DocenteSyncCoordinator>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDocenteSyncCoordinator, DocenteSyncCoordinator>();
 builder.Services.AddScoped<HistorialDocenteImporter>();
-
-
 
 // 2. Configurar JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -99,10 +91,6 @@ builder.Services.AddScoped<ICursoService, CursoService>();
 builder.Services.AddScoped<IInvestigacionService, InvestigacionService>();
 builder.Services.AddScoped<IExperienciaLaboralService, ExperienciaLaboralService>();
 builder.Services.AddScoped<ITesisDirigidaService, TesisDirigidaService>();
-
-// Servicios de almacenamiento
-builder.Services.AddScoped<ICloudinaryService, SIGAD.Infrastructure.Services.CloudinaryService>();
-builder.Services.AddScoped<IFileStorageService, SIGAD.Infrastructure.Services.FileStorageService>();
 
 // Servicios de aplicación específicos para SIGAD
 builder.Services.AddScoped<ConsultaRangoAppService>();
@@ -168,13 +156,33 @@ builder.Services.AddCors(options =>
 });
 
 
+// Agregar servicios faltantes para archivos
+builder.Services.AddScoped<SIGAD.Infrastructure.Services.CloudinaryService>();
+builder.Services.AddScoped<SIGAD.Application.Interfaces.ICloudinaryService>(provider => 
+    provider.GetRequiredService<SIGAD.Infrastructure.Services.CloudinaryService>());
+builder.Services.AddScoped<SIGAD.Application.Interfaces.IFileStorageService, SIGAD.Infrastructure.Services.FileStorageService>();
+
 var app = builder.Build();
+
+// Crear directorio uploads si no existe
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+    // Crear subdirectorios para cada tipo de documento
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "investigaciones"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "articulos"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "cursos"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "experiencias"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "evaluaciones"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "tesis"));
+}
+
 app.UseStaticFiles(); // Esto sirve wwwroot por defecto
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
+    FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
 
