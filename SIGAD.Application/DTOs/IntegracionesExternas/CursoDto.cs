@@ -1,6 +1,6 @@
 ﻿namespace SIGAD.Application.DTOs.IntegracionesExternas
 {
-    public class CursoExternoDto
+    public class CursoDto
     {
         public string Nombre { get; set; } = default!;
         public string Organizacion { get; set; } = default!;
@@ -12,7 +12,7 @@
         public string TipoCurso { get; set; } = string.Empty;
         public bool ImpartidoPorDocente { get; set; }
         public int? HorasImpartidas { get; set; } // Nuevo campo
-        
+
         // Nuevo campo para el PDF en binario desde BD externa
         public byte[]? PdfDocumento { get; set; }
     }

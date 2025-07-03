@@ -14,9 +14,9 @@ namespace SIGAD.Infrastructure.ExternalServices
             _connectionString = connectionString;
         }
 
-        public async Task<IEnumerable<ArticuloExternoDto>> ObtenerArticulosAsync(string cedula)
+        public async Task<IEnumerable<ArticuloDto>> ObtenerArticulosAsync(string cedula)
         {
-            var articulos = new List<ArticuloExternoDto>();
+            var articulos = new List<ArticuloDto>();
 
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -27,7 +27,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                articulos.Add(new ArticuloExternoDto
+                articulos.Add(new ArticuloDto
                 {
                     DOI = reader["DOI"].ToString()!,
                     Titulo = reader["Titulo"].ToString()!,

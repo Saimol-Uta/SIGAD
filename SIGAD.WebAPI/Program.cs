@@ -1,5 +1,3 @@
-// SIGAD.WebAPI/Program.cs
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -118,6 +116,25 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API para el Sistema de Gestión Académica Docente (SIGAD)"
     });
 
+    // Resolver conflictos de nombres de esquemas
+    c.CustomSchemaIds(type =>
+    {
+        if (type.FullName != null)
+        {
+            // Si el tipo está en el namespace de IntegracionesExternas, agregar prefijo
+            if (type.FullName.Contains("IntegracionesExternas"))
+            {
+                return $"External{type.Name}";
+            }
+            // Para otros tipos duplicados, usar el namespace completo
+            if (type.FullName.Contains("SIGAD.Application.DTOs."))
+            {
+                return type.FullName.Replace("SIGAD.Application.DTOs.", "").Replace(".", "");
+            }
+        }
+        return type.Name;
+    });
+
     // Configurar Swagger para usar JWT
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -158,7 +175,7 @@ builder.Services.AddCors(options =>
 
 // Agregar servicios faltantes para archivos
 builder.Services.AddScoped<SIGAD.Infrastructure.Services.CloudinaryService>();
-builder.Services.AddScoped<SIGAD.Application.Interfaces.ICloudinaryService>(provider => 
+builder.Services.AddScoped<SIGAD.Application.Interfaces.ICloudinaryService>(provider =>
     provider.GetRequiredService<SIGAD.Infrastructure.Services.CloudinaryService>());
 builder.Services.AddScoped<SIGAD.Application.Interfaces.IFileStorageService, SIGAD.Infrastructure.Services.FileStorageService>();
 

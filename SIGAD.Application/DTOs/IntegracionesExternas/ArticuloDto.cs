@@ -1,6 +1,6 @@
 ﻿namespace SIGAD.Application.DTOs.IntegracionesExternas
 {
-    public class ArticuloExternoDto
+    public class ArticuloDto
     {
         public string DOI { get; set; } = default!;
         public string Titulo { get; set; } = default!;
