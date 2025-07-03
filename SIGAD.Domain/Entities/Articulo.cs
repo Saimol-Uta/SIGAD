@@ -13,6 +13,7 @@ namespace SIGAD.Domain.Entities
         public required string Revista { get; set; }
         public int AnioPublicacion { get; set; }
         public required string ArchivoRuta { get; set; }
+        public string? UrlCloudinary { get; set; }
         public required string ContenidoHash { get; set; }
         public required string DocenteCedula { get; set; } // Clave foránea
         public string UnidadVerificadora { get; set; } = string.Empty;
@@ -22,7 +23,7 @@ namespace SIGAD.Domain.Entities
         public bool EsIndexado { get; set; } = false;
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
-    
+
         public string? IdiomaPublicacion { get; set; }
 
         // Propiedades para compatibilidad
@@ -35,11 +36,14 @@ namespace SIGAD.Domain.Entities
         // Propiedad de navegación hacia el Docente dueño del artículo
         public virtual Docente? Docente { get; set; }
 
-       
+        // Propiedad de navegación hacia las solicitudes que incluyen este artículo
+        public virtual ICollection<ArticulosPorSolicitud>? ArticulosPorSolicitud { get; set; }
+
+
         public bool EsIdiomaExtranjero()
         {
-            return !string.IsNullOrEmpty(IdiomaPublicacion) && 
-                   IdiomaPublicacion.ToLower() != "español" && 
+            return !string.IsNullOrEmpty(IdiomaPublicacion) &&
+                   IdiomaPublicacion.ToLower() != "español" &&
                    IdiomaPublicacion.ToLower() != "spanish";
         }
     }

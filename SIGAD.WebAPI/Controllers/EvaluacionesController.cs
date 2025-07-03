@@ -133,6 +133,42 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// Obtiene las evaluaciones disponibles para asociar a una solicitud (últimas 4 y no repetidas)
+        /// </summary>
+        /// <param name="docenteCedula">Cédula del docente</param>
+        /// <param name="solicitudId">ID de la solicitud actual (opcional)</param>
+        /// <returns>Lista de evaluaciones disponibles</returns>
+        [HttpGet("docente/{docenteCedula}/disponibles")]
+        [ProducesResponseType(typeof(IEnumerable<EvaluacionDocenteDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetEvaluacionesDisponibles(string docenteCedula, [FromQuery] Guid? solicitudId = null)
+        {
+            try
+            {
+                var evaluaciones = await _evaluacionService.GetEvaluacionesDisponiblesAsync(docenteCedula, solicitudId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluaciones disponibles obtenidas exitosamente",
+                    data = evaluaciones,
+                    count = evaluaciones.Count(),
+                    docenteCedula = docenteCedula,
+                    descripcion = "Solo se muestran las últimas 4 evaluaciones que no han sido usadas en solicitudes aprobadas"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener evaluaciones disponibles del docente {DocenteCedula}", docenteCedula);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// Obtiene las evaluaciones asociadas a una solicitud específica
         /// </summary>
         /// <param name="solicitudId">ID de la solicitud</param>
@@ -360,14 +396,20 @@ namespace SIGAD.WebAPI.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "No se pudo asociar la evaluación a la solicitud. Verifique que ambos existan."
+                        message = "No se pudo asociar la evaluación a la solicitud. La evaluación puede estar ya siendo utilizada en otra solicitud aprobada o la solicitud no existe.",
+                        reglamento = "Según el reglamento UTA, cada evaluación solo puede usarse una vez y deben ser las últimas 4 evaluaciones del docente."
                     });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Evaluación asociada a la solicitud exitosamente"
+                    message = "Evaluación asociada a la solicitud exitosamente",
+                    data = new
+                    {
+                        evaluacionId = asociarDto.EvaluacionId,
+                        solicitudId = asociarDto.SolicitudId
+                    }
                 });
             }
             catch (Exception ex)
@@ -446,7 +488,7 @@ namespace SIGAD.WebAPI.Controllers
                 var contentType = GetContentType(fileName);
                 
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
-                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
                 
                 return File(archivo, contentType, fileName);
             }
@@ -558,6 +600,125 @@ namespace SIGAD.WebAPI.Controllers
                 ".rar" => "application/vnd.rar",
                 _ => "application/octet-stream"
             };
+        }
+
+        /// <summary>
+        /// Obtiene las evaluaciones ya utilizadas en solicitudes por un docente
+        /// </summary>
+        /// <param name="docenteCedula">Cédula del docente</param>
+        /// <returns>Lista de evaluaciones usadas</returns>
+        [HttpGet("docente/{docenteCedula}/usados")]
+        [ProducesResponseType(typeof(IEnumerable<EvaluacionDocenteDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetEvaluacionesUsadas(string docenteCedula)
+        {
+            try
+            {
+                var evaluaciones = await _evaluacionService.GetEvaluacionesUsadasAsync(docenteCedula);
+                return Ok(evaluaciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener evaluaciones usadas del docente {DocenteCedula}", docenteCedula);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desasocia una evaluación de una solicitud (POST version para frontend)
+        /// </summary>
+        /// <param name="dto">Datos de la evaluación y solicitud a desasociar</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarEvaluacionDeSolicitudPost([FromBody] AsociarEvaluacionSolicitudDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos inválidos",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+
+                await _evaluacionService.DesasociarEvaluacionDeSolicitudAsync(dto.SolicitudId, dto.EvaluacionId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluación desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar evaluación {EvaluacionId} de solicitud {SolicitudId}", 
+                    dto.EvaluacionId, dto.SolicitudId);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desasocia una evaluación de una solicitud (endpoint compatible con el formato estándar del frontend)
+        /// </summary>
+        /// <param name="id">ID de la evaluación</param>
+        /// <param name="dto">Datos de la solicitud a desasociar</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarEvaluacionDeSolicitudPorId(int id, [FromBody] AsociarEvaluacionSolicitudDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("[BACKEND] Intentando desasociar evaluación - ID: {EvaluacionId}, SolicitudId: {SolicitudId}", 
+                    id, dto?.SolicitudId);
+                    
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    _logger.LogWarning("[BACKEND] Intento de desasociar evaluación fallido - Datos inválidos, ID: {EvaluacionId}", id);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                await _evaluacionService.DesasociarEvaluacionDeSolicitudAsync(dto.SolicitudId, id);
+                _logger.LogInformation("[BACKEND] Evaluación desasociada exitosamente - ID: {EvaluacionId}, SolicitudId: {SolicitudId}", 
+                    id, dto.SolicitudId);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluación desasociada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar evaluación {EvaluacionId} de solicitud", id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
         }
     }
 }

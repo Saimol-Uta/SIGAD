@@ -35,7 +35,7 @@ else
                     <td>@solicitud.FechaCreacion.ToShortDateString()</td>
                     <td>@solicitud.Estado</td>
                     <td>
-                        <select class="form-select" @onchange="(e) => CambiarEstado(solicitud.Id, e.Value!.ToString())">
+                        <select class="form-select" @onchange="(e) => CambiarEstado(solicitud.Id, e.Value?.ToString() ?? solicitud.Estado)">
                             @foreach (var estado in estadosDisponibles)
                             {
                                 <option value="@estado" selected="@(estado == solicitud.Estado)">
@@ -85,12 +85,33 @@ else
         };
     }
 
-    private void CambiarEstado(Guid id, string nuevoEstado)
+    private async Task CambiarEstado(Guid id, string nuevoEstado)
     {
-        var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
-        if (solicitud != null)
+        if (string.IsNullOrEmpty(nuevoEstado))
         {
-            solicitud.Estado = nuevoEstado;
+            return; // No hacer nada si el nuevo estado es nulo o vacío
+        }
+
+        var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
+        if (solicitud != null && nuevoEstado != solicitud.Estado)
+        {
+            try
+            {
+                // Aquí deberías hacer una llamada a la API para actualizar el estado de la solicitud
+                // Por ahora, solo actualizamos localmente
+                solicitud.Estado = nuevoEstado;
+                
+                // Ejemplo de cómo podría ser la llamada a la API:
+                // var response = await Http.PutAsJsonAsync($"api/solicitudes/{id}/estado", new { estado = nuevoEstado });
+                // if (response.IsSuccessStatusCode)
+                // {
+                //    // Actualización exitosa
+                // }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al cambiar el estado: {ex.Message}");
+            }
         }
     }
 }

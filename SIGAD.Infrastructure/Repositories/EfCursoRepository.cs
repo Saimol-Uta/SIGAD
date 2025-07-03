@@ -39,6 +39,8 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cursos
                 .Include(c => c.Docente)
                 .Include(c => c.Organizacion)
+                .Include(c => c.CursosPorSolicitud!)
+                    .ThenInclude(cps => cps.SolicitudAscenso)
                 .Where(c => c.DocenteCedula == docenteCedula)
                 .ToListAsync();
         }
@@ -127,6 +129,17 @@ namespace SIGAD.Infrastructure.Repositories
                 .SumAsync(c => c.NumeroHoras);
         }
 
+        public async Task<int> GetTotalHorasImpartidasAsync(string docenteCedula, int ultimosAnios = 3)
+        {
+            var fechaLimite = DateTime.Now.AddYears(-ultimosAnios);
+
+            return await _context.Cursos
+                .Where(c => c.DocenteCedula == docenteCedula &&
+                           c.FechaFinalizacion >= fechaLimite &&
+                           c.HorasImpartidas.HasValue)
+                .SumAsync(c => c.HorasImpartidas ?? 0);
+        }
+
         public async Task<int> GetHorasActualizacionPedagogicaAsync(string docenteCedula, int ultimosAnios = 3)
         {
             var fechaLimite = DateTime.Now.AddYears(-ultimosAnios);
@@ -134,8 +147,9 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cursos
                 .Where(c => c.DocenteCedula == docenteCedula &&
                            c.FechaFinalizacion >= fechaLimite &&
-                           c.TipoCurso == TipoCurso.ActualizacionPedagogica)
-                .SumAsync(c => c.NumeroHoras);
+                           c.TipoCurso == TipoCurso.ActualizacionPedagogica &&
+                           c.HorasImpartidas.HasValue)
+                .SumAsync(c => c.HorasImpartidas ?? 0);
         }
 
         public async Task<int> GetHorasActualizacionCientificaAsync(string docenteCedula, int ultimosAnios = 3)
@@ -145,8 +159,9 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cursos
                 .Where(c => c.DocenteCedula == docenteCedula &&
                            c.FechaFinalizacion >= fechaLimite &&
-                           c.TipoCurso == TipoCurso.ActualizacionCientifica)
-                .SumAsync(c => c.NumeroHoras);
+                           c.TipoCurso == TipoCurso.ActualizacionCientifica &&
+                           c.HorasImpartidas.HasValue)
+                .SumAsync(c => c.HorasImpartidas ?? 0);
         }
 
         public async Task<bool> CumpleRequisitoHorasParaRangoAsync(string docenteCedula, int rangoSolicitadoId)
@@ -238,8 +253,9 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.Cursos
                 .Where(c => c.DocenteCedula == docenteCedula &&
                            c.ImpartidoPorDocente &&
-                           c.TipoCurso == TipoCurso.CapacitacionImpartida)
-                .SumAsync(c => c.NumeroHoras);
+                           c.TipoCurso == TipoCurso.CapacitacionImpartida &&
+                           c.HorasImpartidas.HasValue)
+                .SumAsync(c => c.HorasImpartidas ?? 0);
         }
 
         public async Task RegistrarEquivalenciaFacilitacionAsync(string docenteCedula, string tipoFacilitacion, int horasEquivalentes)
@@ -250,6 +266,7 @@ namespace SIGAD.Infrastructure.Repositories
                 DocenteCedula = docenteCedula,
                 Nombre = $"Equivalencia - {tipoFacilitacion}",
                 NumeroHoras = horasEquivalentes,
+                HorasImpartidas = horasEquivalentes, // Establecer también las horas impartidas
                 TipoCurso = TipoCurso.CapacitacionImpartida,
                 ImpartidoPorDocente = true,
                 FechaFinalizacion = DateTime.Now,

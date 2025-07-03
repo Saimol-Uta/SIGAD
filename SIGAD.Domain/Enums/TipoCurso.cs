@@ -43,6 +43,13 @@ namespace SIGAD.Domain.Enums
         /// <summary>
         /// Cursos de capacitación impartidos por el docente
         /// </summary>
-        CapacitacionImpartida = 8
+        CapacitacionImpartida = 8,
+
+        // Puedes agregar más tipos de cursos según sea necesario
+        // Ejemplo:
+
+        CapacitacionTecnica = 9
+
+
     }
 }

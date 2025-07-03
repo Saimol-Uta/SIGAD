@@ -61,7 +61,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Datos del artículo</returns>
-        [HttpGet("{doi}")]
+        [HttpGet("{*doi}")]
         [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -231,7 +231,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="updateDto">Datos actualizados</param>
         /// <param name="archivo">Nuevo archivo (opcional)</param>
         /// <returns>Artículo actualizado</returns>
-        [HttpPut("{doi}")]
+        [HttpPut("{*doi}")]
         [ProducesResponseType(typeof(ArticuloDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
@@ -289,7 +289,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Resultado de la eliminación</returns>
-        [HttpDelete("{doi}")]
+        [HttpDelete("{*doi}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -338,6 +338,10 @@ namespace SIGAD.WebAPI.Controllers
         {
             try
             {
+                // Log temporal para debug
+                _logger.LogInformation("Asociando artículo - DOI: {ArticuloDOI}, SolicitudId: {SolicitudId}", 
+                    asociarDto.ArticuloDOI, asociarDto.SolicitudId);
+
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState
@@ -345,6 +349,8 @@ namespace SIGAD.WebAPI.Controllers
                         .SelectMany(x => x.Value!.Errors)
                         .Select(x => x.ErrorMessage)
                         .ToList();
+
+                    _logger.LogWarning("ModelState inválido: {Errors}", string.Join(", ", errors));
 
                     return BadRequest(new
                     {
@@ -355,6 +361,9 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 var result = await _articuloService.AsociarArticuloASolicitudAsync(asociarDto);
+                
+                _logger.LogInformation("Resultado de asociación: {Result}", result);
+                
                 if (!result)
                 {
                     return BadRequest(new
@@ -389,7 +398,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="solicitudId">ID de la solicitud</param>
         /// <param name="articuloDoi">DOI del artículo</param>
         /// <returns>Resultado de la desasociación</returns>
-        [HttpDelete("desasociar-solicitud/{solicitudId}/{articuloDoi}")]
+        [HttpDelete("desasociar-solicitud/{solicitudId}/{*articuloDoi}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DesasociarArticuloDeSolicitud(Guid solicitudId, string articuloDoi)
@@ -421,7 +430,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <param name="doi">DOI del artículo</param>
         /// <returns>Archivo del artículo</returns>
-        [HttpGet("{doi}/archivo")]
+        [HttpGet("archivo/{*doi}")]
         [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -446,7 +455,7 @@ namespace SIGAD.WebAPI.Controllers
                 var contentType = GetContentType(fileName);
                 
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
-                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
                 
                 return File(archivo, contentType, fileName);
             }
@@ -516,7 +525,7 @@ namespace SIGAD.WebAPI.Controllers
         private static string GenerarCSV(IEnumerable<ArticuloDto> articulos)
         {
             var csv = new StringBuilder();
-            csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,DocenteCedula,DocenteNombreCompleto");
+            csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,IdiomaPublicacion,DocenteCedula,DocenteNombreCompleto");
             
             foreach (var articulo in articulos)
             {
@@ -524,6 +533,7 @@ namespace SIGAD.WebAPI.Controllers
                               $"\"{articulo.Titulo}\"," +
                               $"\"{articulo.Revista}\"," +
                               $"{articulo.AnioPublicacion}," +
+                              $"\"{articulo.IdiomaPublicacion}\"," +
                               $"\"{articulo.DocenteCedula}\"," +
                               $"\"{articulo.DocenteNombreCompleto}\"");
             }
@@ -547,6 +557,96 @@ namespace SIGAD.WebAPI.Controllers
                 ".gif" => "image/gif",
                 _ => "application/octet-stream"
             };
+        }
+
+        /// <summary>
+        /// Desasocia un artículo de una solicitud (POST version para frontend)
+        /// </summary>
+        /// <param name="dto">Datos del artículo y solicitud a desasociar</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarArticuloDeSolicitudPost([FromBody] AsociarArticuloSolicitudDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos inválidos",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
+                }
+
+                await _articuloService.DesasociarArticuloDeSolicitudAsync(dto.SolicitudId, dto.ArticuloDOI);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Artículo desasociado exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}", 
+                    dto.ArticuloDOI, dto.SolicitudId);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desasocia un artículo de una solicitud (POST version con DOI en ruta, igual que cursos)
+        /// </summary>
+        /// <param name="doi">DOI del artículo</param>
+        /// <param name="dto">Datos de la solicitud</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("desasociar-solicitud/{*doi}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarArticuloDeSolicitudPorDoi(string doi, [FromBody] DesasociarArticuloSolicitudDto dto)
+        {
+            try
+            {
+                // Decodificar el DOI en caso de que venga codificado desde la URL
+                var decodedDoi = Uri.UnescapeDataString(doi);
+
+                // Validar que el DTO tenga los datos necesarios
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                // Usar el DOI decodificado y el SolicitudId del DTO
+                await _articuloService.DesasociarArticuloDeSolicitudAsync(dto.SolicitudId, decodedDoi);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Artículo desasociado exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud", doi);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
         }
     }
 }

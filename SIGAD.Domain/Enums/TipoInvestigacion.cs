@@ -54,6 +54,7 @@ namespace SIGAD.Domain.Enums
         /// <summary>
         /// Investigación internacional colaborativa
         /// </summary>
-        Internacional = 10
+        
+
     }
 }

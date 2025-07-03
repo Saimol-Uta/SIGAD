@@ -35,6 +35,8 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.ExperienciasLaborales
                 .Include(e => e.Organizacion)
                 .Include(e => e.Docente)
+                .Include(e => e.ExperienciasPorSolicitud)
+                    .ThenInclude(eps => eps.SolicitudAscenso)
                 .Where(e => e.DocenteCedula == docenteCedula)
                 .ToListAsync();
         }
