@@ -813,7 +813,7 @@
 
     .accordion-button:not(.collapsed) {
         background-color: #e7f1ff;
-        color: #0c63e4;
+        color: #0a1d44;
     }
 
     .table th {
@@ -1408,94 +1408,110 @@
 }
 
 <style>
-    .alert-sm {
-        padding: 0.5rem 0.75rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
+/* === CSS UNIFICADO PARA DETALLE DE SOLICITUD === */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
 
-    .btn:disabled small {
-        font-size: 0.7rem;
-        font-weight: normal;
-        opacity: 0.8;
-    }
+.detalle-container {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
 
-    .form-text {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
+.cabecera-solicitud {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-    .text-danger {
-        color: #dc3545 !important;
-    }
+.estado-badge {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+}
 
-    .justify-content-required {
-        border: 2px dashed #ffc107;
-        background-color: #fff3cd;
-    }
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0a1d44; /* Azul Principal */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
 
-    .justify-content-valid {
-        border: 2px solid #198754;
-        background-color: #d1e7dd;
-    }
+@@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
-    /* Estilos para el modal de documentos */
-    .modal-xl {
-        max-width: 90%;
-    }
+/* === Colores de Badges de Estado === */
+.badge.bg-success { background-color: #165125 !important; } /* Verde Oscuro */
+.badge.bg-danger { background-color: #dc3545 !important; } /* Rojo */
+.badge.bg-warning { background-color: #ffb74d !important; color: #212529 !important; } /* Amarillo Ámbar */
+.badge.bg-primary { background-color: #0a1d44 !important; } /* Azul Principal */
+.badge.bg-secondary { background-color: #6c757d !important; } /* Gris */
+/* Estilo para los badges de información (ej. Tipo de Organización) */
+.badge.bg-info {
+    background-color: #0a1d44 !important; /* Tu azul principal */
+    color: white !important; /* Texto blanco para contraste */
+}
 
-    #documentModal .modal-body {
-        min-height: 60vh;
-        max-height: 80vh;
-    }
+/* === Flujo Visual del Proceso === */
+.proceso-flujo { border-top: 1px solid #dee2e6; padding-top: 1.5rem; }
+.flujo-steps { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.step { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; min-width: 80px; }
+.step-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; font-size: 1.2rem; transition: all 0.3s ease; }
+.step.completed .step-circle, .step-connector.completed { background-color: #165125; color: white; } /* Verde Oscuro */
+.step.current .step-circle { background-color: #ffb74d; color: #212529; animation: pulse 2s infinite; } /* Amarillo Ámbar */
+.step.pending .step-circle { background-color: #6c757d; color: white; } /* Gris */
+.step-connector { height: 3px; flex: 1; margin: 0 0.5rem; border-radius: 2px; transition: all 0.3s ease; }
+.step-connector.pending { background-color: #dee2e6; }
+@@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.7); } 50% { box-shadow: 0 0 0 8px rgba(255, 183, 77, 0); } }
 
-    #documentModal .modal-content {
-        box-shadow: 0 1rem 3rem rgba(0,0,0,.175);
-    }
+/* === Acordeón y Tablas === */
+.accordion-button:not(.collapsed) { background-color: #eef2f9; color: #0a1d44; }
+.table th { background-color: #f8f9fa; border-top: none; }
+.observaciones-box { background-color: #eef2f9; border: 1px solid #c8d4e3; border-radius: 0.25rem; padding: 0.75rem; font-size: 0.9rem; }
 
-    #documentModal .modal-header {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-    }
+/* === Botones de Acción del Admin === */
+.btn-lg { padding: 0.75rem 2rem; font-size: 1.1rem; }
+.btn-success { background-color: #165125; border-color: #165125; }
+.btn-success:hover { background-color: #0f3b1a; border-color: #0f3b1a; }
+.btn-danger { background-color: #dc3545; border-color: #dc3545; }
+.btn-danger:hover { background-color: #bb2d3b; border-color: #b02a37; }
+.btn-primary { background-color: #0a1d44; border-color: #0a1d44; }
+.btn-primary:hover { background-color: #09203f; border-color: #09203f; }
+.btn-outline-primary { color: #0a1d44; border-color: #0a1d44; }
+.btn-outline-primary:hover { background-color: #0a1d44; color: white; }
 
-    #documentModal .modal-footer {
-        background-color: #f8f9fa;
-        border-top: 1px solid #dee2e6;
-    }
+/* === Textos y Alertas === */
+.form-text { font-size: 0.8rem; color: #6c757d; margin-top: 0.25rem; }
+.text-danger { color: #dc3545 !important; }
+.text-warning { color: #ffb74d !important; }
+.text-success { color: #165125 !important; }
+.justify-content-required { border: 2px dashed #ffb74d; background-color: #fff8e1; }
+.justify-content-valid { border: 2px solid #165125; background-color: #e8f5e9; }
 
-    /* Estilos para la vista previa de documentos */
-    .document-preview {
-        overflow: auto;
-        height: 100%;
-    }
+/* === Modal === */
+.modal-xl { max-width: 90%; }
+#documentModal .modal-body { min-height: 60vh; max-height: 80vh; }
+#documentModal .modal-content { box-shadow: 0 1rem 3rem rgba(0,0,0,.175); }
+#documentModal .modal-header, #documentModal .modal-footer { background-color: #f8f9fa; border-color: #dee2e6; }
+.document-preview { overflow: auto; height: 100%; }
+.document-preview embed, .document-preview img { border-radius: 0.375rem; }
+.document-preview pre { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; max-height: 60vh; overflow-y: auto; }
 
-    .document-preview embed {
-        border-radius: 0.375rem;
-    }
-
-    .document-preview img {
-        border-radius: 0.375rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
-    }
-
-    .document-preview pre {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        max-height: 60vh;
-        overflow-y: auto;
-    }
-
-    @@media (max-width: 768px) {
-        .modal-xl {
-            max-width: 95%;
-        }
-        
-        #documentModal .modal-body {
-            min-height: 50vh;
-            max-height: 70vh;
-        }
-    }
+@@media (max-width: 768px) {
+    .modal-xl { max-width: 95%; }
+    #documentModal .modal-body { min-height: 50vh; max-height: 70vh; }
+}
 </style>

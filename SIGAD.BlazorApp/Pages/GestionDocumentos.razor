@@ -62,7 +62,7 @@
     }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -84,8 +84,22 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
+
     }
+
+    /* --- Estilos para el botón de información --- */
+.btn-info {
+    background-color: #09203f; /* Un azul más vibrante (puedes cambiarlo) */
+    color: white;
+    border-color: #0d6efd;
+}
+
+.btn-info:hover {
+    background-color: #508D9A; /* Un azul un poco más oscuro para el hover */
+    border-color: #09203f;
+    color:white;
+}
 
     .main-content {
         padding: 2rem;
@@ -95,6 +109,7 @@
     .page-header {
         text-align: center;
         margin-bottom: 3rem;
+        z-index:2;
     }
 
     .page-header h1 {
@@ -124,6 +139,7 @@
         padding: 2rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index:2;
     }
 
     .document-card:hover {
@@ -172,21 +188,21 @@
     }
 
     .btn-import {
-        background-color: #28a745;
+        background-color: #165125;
         color: white;
     }
 
     .btn-import:hover {
-        background-color: #218838;
+        background-color: rgba(23, 68, 35, 0.4);
     }
 
     .btn-export {
-        background-color: #007bff;
+        background-color: #0a1d44;
         color: white;
     }
 
     .btn-export:hover {
-        background-color: #0056b3;
+        background-color: #0e2c6c;
     }
 
     .btn:disabled {
@@ -201,6 +217,7 @@
         padding: 1rem;
         margin-bottom: 2rem;
         text-align: center;
+        z-index:2;
     }
 
     .status-info h3 {
@@ -307,15 +324,21 @@
     }
 
     .btn-success {
-        background-color: #28a745;
+        background-color: #165125;
         color: white;
         border: none;
+        border-radius: 0.2rem;
+                font-size: 0.9rem;
+                        font-weight: 500;
+
+
     }
 
     .btn-success:hover:not(:disabled) {
-        background-color: #218838;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        background-color: rgba(23, 68, 35, 0.4);
+        color: #165125;
+                font-size: 0.9rem;
+                        font-weight: 500;
     }
 
     .help-text {
@@ -340,6 +363,7 @@
         padding: 1rem;
         border-radius: 6px;
         margin: 1rem 0;
+        z-index:2;
     }
 
     .alert-success {
@@ -400,6 +424,7 @@
         border-radius: 6px;
         background-color: white;
         border: 1px solid #dee2e6;
+        z-index:2;
     }
 
     .requirement-item .label {
@@ -447,6 +472,60 @@
     .missing-requirements li {
         margin-bottom: 0.3rem;
     }
+        /* --- Media Query para el tamaño intermedio (Tablets) --- */
+   @@media (max-width: 1199px) and (min-width: 769px) {
+    
+    /* 1. Aseguramos que el layout principal sea horizontal */
+    .main-content {
+        flex-direction: row;
+        align-items: center; /* Centra los elementos verticalmente */
+        justify-content: space-between; /* Mantiene el espacio entre ellos */
+        padding: 2rem; /* Un padding adecuado para este tamaño */
+    }
+
+    /* 2. Reducimos el tamaño del título para que ocupe menos espacio */
+    .left h1 {
+        font-size: 4.5rem; 
+    }
+
+    /* 3. Nos aseguramos que la tarjeta no tenga márgenes extraños */
+    .promotion-card {
+        margin-right: 0; /* Quitamos cualquier margen grande */
+        flex-shrink: 0;  /* Evita que la tarjeta se encoja y se deforme */
+        width: 45%;      /* Le damos un ancho fijo o porcentual */
+        max-width: 450px;
+    }
+
+    /* 4. La clave: Ocultamos los triángulos en este tamaño */
+    .triangle-bg {
+        display: none;
+    }
+}
+
+    @@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+
+    .left {
+        padding-left: 1rem;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    .promotion-card {
+        margin-right: 0 !important;
+        margin-top: 20px;
+        width: 100%;
+        max-width: none;
+    }
+
+    .triangle-bg {
+        display: none;
+    }
+}
 </style>
 
 <body>
@@ -688,7 +767,7 @@
                                                 else
                                                 {
                                                     <span>📨 Enviar Solicitud de Ascenso</span>
-                                                }
+                                                } 
                                             </button>
                                         </div>
                                     }

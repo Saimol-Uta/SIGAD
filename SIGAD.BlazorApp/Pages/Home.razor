@@ -9,6 +9,7 @@
 <PageTitle>Inicio - SIGAD</PageTitle>
 
 <style>
+    @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     * {
         margin: 0;
         padding: 0;
@@ -17,17 +18,17 @@
 
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #162751;
         min-height: 100vh;
         color: #333;
     }
-
+    
     .home-container {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         position: relative;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #FFFFFF;
         overflow: hidden;
     }
 
@@ -65,11 +66,11 @@
     }
 
     .branding h1 {
-        color: #0a1d44;
         font-size: 2rem;
         font-weight: 600;
         margin: 0;
-    }
+            color: #0a1d44;
+        }
 
     .main-content {
         flex: 1;
@@ -84,21 +85,22 @@
     .welcome-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(15px);
-        border-radius: 20px;
-        padding: 3rem;
-        max-width: 800px;
+        padding: 2.5rem;
+        border-radius: 0.2rem;
+        max-width: 1000px;
         width: 100%;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 0.05rem solid #0a1d44;
     }
 
     .welcome-title {
-        font-size: 3rem;
-        font-weight: 700;
+        font-size: 4rem;
+        font: 'Inter';
+        font-weight: 450;
         color: #0a1d44;
         margin-bottom: 1rem;
-        background: linear-gradient(135deg, #0a1d44 0%, #667eea 100%);
+        background: linear-gradient(135deg, #2A4A87 0%, #162751 100%);
         background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -113,23 +115,24 @@
 
     .alert {
         padding: 1.5rem;
-        border-radius: 15px;
+        border-radius: 0.2rem;
         margin: 1.5rem 0;
         font-size: 1.1rem;
         line-height: 1.6;
     }
 
     .alert-success {
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        border: 1px solid rgba(40, 167, 69, 0.3);
-        color: #155724;
+        background: #EFEFEF;
+        border: 1px solid #DEDEDE;
+        color: #162751;
     }
 
-    .alert-info {
-        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-        border: 1px solid rgba(23, 162, 184, 0.3);
-        color: #0c5460;
-    }
+.alert-info {
+        background: #EFEFEF;
+        border: 1px solid #DEDEDE;
+        color: #162751;
+        
+}
 
     .user-info {
         display: flex;
@@ -138,8 +141,9 @@
         gap: 1rem;
         margin-top: 1rem;
         padding: 1rem;
+        border: 0.05rem solid #0a1d44;
         background: rgba(255, 255, 255, 0.7);
-        border-radius: 10px;
+        border-radius: 0.2rem;
     }
 
     .user-avatar {
@@ -157,10 +161,10 @@
 
     .login-button {
         display: inline-block;
-        background: linear-gradient(135deg, #0a1d44 0%, #667eea 100%);
+        background: #0a1d44;
         color: white;
         padding: 1rem 2rem;
-        border-radius: 50px;
+        border-radius: 0.2rem;
         text-decoration: none;
         font-weight: 600;
         font-size: 1.1rem;
@@ -178,13 +182,13 @@
     }
 
     .dashboard-button {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        background: #165125;
         margin-right: 1rem;
     }
 
     .dashboard-button:hover {
-        box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
-    }
+            box-shadow: 0 15px 40px rgba(23, 68, 35, 0.4);
+        }
 
     .feature-grid {
         display: grid;
@@ -196,9 +200,9 @@
     .feature-card {
         background: rgba(255, 255, 255, 0.8);
         padding: 1.5rem;
-        border-radius: 15px;
+        border-radius: 0.2rem;
         text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 0.005rem solid #162751;
         transition: transform 0.3s ease;
     }
 
@@ -282,18 +286,6 @@
 
 <div class="home-container">
     <div class="background-pattern"></div>
-    <div class="floating-shapes">
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
-    </div>
-
-    <div class="header">
-        <div class="branding">
-            <img src="/images/logoSIGAD.png" alt="Logo SIGAD" />
-            <h1>SIGAD</h1>
-        </div>
-    </div>
 
     <div class="main-content">
         <div class="welcome-card">
