@@ -107,6 +107,7 @@ namespace SIGAD.Infrastructure.Migrations
                     Revista = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     AnioPublicacion = table.Column<int>(type: "int", nullable: false),
                     ArchivoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
@@ -162,6 +163,7 @@ namespace SIGAD.Infrastructure.Migrations
                     NumeroHoras = table.Column<int>(type: "int", nullable: false),
                     FechaFinalizacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CertificadoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoCurso = table.Column<int>(type: "int", nullable: false),
@@ -195,6 +197,7 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaEvaluacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PuntajePorcentual = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
                     InformeRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false)
                 },
@@ -221,6 +224,7 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CertificadoRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false)
                 },
                 constraints: table =>
@@ -252,6 +256,7 @@ namespace SIGAD.Infrastructure.Migrations
                     RolEnInvestigacion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     MesesDeInvestigacion = table.Column<int>(type: "int", nullable: false),
                     InformeRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoProyecto = table.Column<int>(type: "int", nullable: false),
@@ -334,6 +339,7 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaFin = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Institucion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CertificacionRuta = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UrlCloudinary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false)
                 },
                 constraints: table =>
@@ -479,8 +485,7 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ExperienciaId = table.Column<int>(type: "int", nullable: false),
-                    ExperienciaLaboralId = table.Column<int>(type: "int", nullable: true)
+                    ExperienciaId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -491,11 +496,6 @@ namespace SIGAD.Infrastructure.Migrations
                         principalTable: "ExperienciasLaborales",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ExperienciasPorSolicitud_ExperienciasLaborales_ExperienciaLaboralId",
-                        column: x => x.ExperienciaLaboralId,
-                        principalTable: "ExperienciasLaborales",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_ExperienciasPorSolicitud_SolicitudesAscenso_SolicitudId",
                         column: x => x.SolicitudId,
@@ -627,11 +627,6 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "IX_ExperienciasPorSolicitud_ExperienciaId",
                 table: "ExperienciasPorSolicitud",
                 column: "ExperienciaId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ExperienciasPorSolicitud_ExperienciaLaboralId",
-                table: "ExperienciasPorSolicitud",
-                column: "ExperienciaLaboralId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Investigaciones_DocenteCedula",

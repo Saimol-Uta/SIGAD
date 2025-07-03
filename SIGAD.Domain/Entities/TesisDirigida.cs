@@ -1,6 +1,6 @@
-﻿using SIGAD.Domain.Enums;
-
+﻿using SIGAD.Domain.Enums; ﻿
 namespace SIGAD.Domain.Entities
+
 {
     /// <summary>
     /// Entidad actualizada para tesis dirigidas según requerimientos del Reglamento UTA
@@ -10,13 +10,14 @@ namespace SIGAD.Domain.Entities
     {
         public int Id { get; set; }
         public string DocenteCedula { get; set; } = string.Empty;
-        public NivelAcademico NivelAcademico { get; set; } = NivelAcademico.Pregrado;
+        public NivelAcademico NivelAcademico { get; set; }
         public string TituloTesis { get; set; } = string.Empty;
-        public EstadoTesis Estado { get; set; } = EstadoTesis.EnProceso;
+        public EstadoTesis Estado { get; set; }
         public DateTime FechaInicio { get; set; }
         public DateTime? FechaFin { get; set; }
         public string Institucion { get; set; } = string.Empty;
         public string CertificacionRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
 
         public Docente? Docente { get; set; }

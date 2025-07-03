@@ -12,7 +12,7 @@ namespace SIGAD.Application.DTOs
         public DateTime FechaEvaluacion { get; set; }
 
         [Required(ErrorMessage = "El puntaje porcentual es requerido")]
-        [Range(0, 100, ErrorMessage = "El puntaje debe estar entre 0 y 100")]
+        [Range(0.00, 100.00, ErrorMessage = "El puntaje debe estar entre 0 y 100")]
         public decimal PuntajePorcentual { get; set; }
 
         [Required(ErrorMessage = "La cédula del docente es requerida")]

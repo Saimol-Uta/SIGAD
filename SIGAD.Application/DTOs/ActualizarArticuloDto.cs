@@ -16,9 +16,8 @@ namespace SIGAD.Application.DTOs
         [Range(1900, 2100, ErrorMessage = "El año debe estar entre 1900 y 2100")]
         public int AnioPublicacion { get; set; }
 
-        /// <summary>
-        /// Idioma de publicación del artículo (opcional, para validación de rangos principales)
-        /// </summary>
-        public string? IdiomaPublicacion { get; set; }
+        [Required(ErrorMessage = "El idioma de publicación es requerido")]
+        [StringLength(50, ErrorMessage = "El idioma no puede exceder 50 caracteres")]
+        public string IdiomaPublicacion { get; set; } = string.Empty;
     }
 }

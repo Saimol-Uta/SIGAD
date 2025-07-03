@@ -16,6 +16,7 @@ namespace SIGAD.Domain.Entities
         public string RolEnInvestigacion { get; set; } = string.Empty;
         public int MesesDeInvestigacion { get; set; }
         public string InformeRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 
@@ -23,12 +24,15 @@ namespace SIGAD.Domain.Entities
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
 
-   
+
         public bool EsInternacional { get; set; } = false;
 
         public virtual Docente Docente { get; set; } = default!;
 
-     
+        // Propiedad de navegación hacia las solicitudes que incluyen esta investigación
+        public virtual ICollection<InvestigacionesPorSolicitud>? InvestigacionesPorSolicitud { get; set; }
+
+
         public decimal CalcularMesesEquivalentes()
         {
             return RolEnInvestigacion.ToLower() switch

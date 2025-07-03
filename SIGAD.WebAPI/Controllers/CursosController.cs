@@ -217,30 +217,51 @@ namespace SIGAD.WebAPI.Controllers
         /// <summary>
         /// Asocia un curso a una solicitud de ascenso
         /// </summary>
-        /// <param name="asociarDto">Datos de la asociación</param>
+        /// <param name="id">ID del curso</param>
+        /// <param name="request">Datos de la solicitud</param>
         /// <returns>Resultado de la operación</returns>
-        [HttpPost("asociar")]
-        public async Task<ActionResult> AsociarASolicitud([FromBody] AsociarCursoSolicitudDto asociarDto)
+        [HttpPost("{id}/asociar-solicitud")]
+        public async Task<ActionResult> AsociarASolicitud(int id, [FromBody] AsociarCursoSolicitudDto request)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Datos de entrada inválidos",
+                        errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                    });
                 }
+
+                // Crear el DTO con los datos del request
+                var asociarDto = new AsociarCursoSolicitudDto
+                {
+                    CursoId = id,
+                    SolicitudId = request.SolicitudId
+                };
 
                 var asociado = await _cursoService.AddToSolicitudAsync(asociarDto);
                 if (!asociado)
                 {
-                    return BadRequest("No se pudo asociar el curso a la solicitud. Verifique que ambos existan y no estén ya asociados.");
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No se pudo asociar el curso a la solicitud. Verifique que ambos existan y no estén ya asociados."
+                    });
                 }
 
-                return Ok("Curso asociado exitosamente a la solicitud");
+                return Ok(new
+                {
+                    success = true,
+                    message = "Curso asociado exitosamente a la solicitud"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al asociar curso {CursoId} a solicitud {SolicitudId}", 
-                    asociarDto.CursoId, asociarDto.SolicitudId);
+                    id, request.SolicitudId);
                 return StatusCode(500, "Error interno del servidor");
             }
         }
@@ -289,7 +310,7 @@ namespace SIGAD.WebAPI.Controllers
                 var (fileContent, contentType, fileName) = await _cursoService.DownloadCertificadoAsync(id);
                 
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
-                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");
                 
                 return File(fileContent, contentType, fileName);
             }
@@ -345,5 +366,64 @@ namespace SIGAD.WebAPI.Controllers
                 return StatusCode(500, "Error interno del servidor");
             }
         }
+
+        /// <summary>
+        /// Desasocia un curso de una solicitud (version para frontend con ID en ruta)
+        /// </summary>
+        /// <param name="id">ID del curso</param>
+        /// <param name="dto">Datos de la solicitud</param>
+        /// <returns>Resultado de la desasociación</returns>
+        [HttpPost("{id}/desasociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DesasociarCursoDeSolicitud(int id, [FromBody] AsociarCursoSolicitudDto dto)
+        {
+            try
+            {
+                // Validar que el DTO tenga los datos necesarios
+                if (dto == null || dto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                // Usar el ID de la ruta y el SolicitudId del DTO
+                var desasociarDto = new AsociarCursoSolicitudDto
+                {
+                    CursoId = id,
+                    SolicitudId = dto.SolicitudId
+                };
+
+                var desasociado = await _cursoService.RemoveFromSolicitudAsync(desasociarDto);
+                if (!desasociado)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No se pudo desasociar el curso de la solicitud"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Curso desasociado exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al desasociar curso {CursoId} de solicitud", id);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
     }
-} 
+}

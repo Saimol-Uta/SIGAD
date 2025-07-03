@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SIGAD.Application.Services
 {
@@ -15,7 +13,7 @@ namespace SIGAD.Application.Services
         private readonly IOrganizacionRepository _organizacionRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly string _uploadsPath;
+        private readonly IFileStorageService _fileStorageService;
 
         public ExperienciaLaboralService(
             IExperienciaLaboralRepository experienciaRepository,
@@ -23,20 +21,14 @@ namespace SIGAD.Application.Services
             IOrganizacionRepository organizacionRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _experienciaRepository = experienciaRepository;
             _docenteRepository = docenteRepository;
             _organizacionRepository = organizacionRepository;
             _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
-            _uploadsPath = configuration["FileStorage:ExperienciasPath"] ?? "uploads/experiencias";
-            
-            // Crear directorio si no existe
-            if (!Directory.Exists(_uploadsPath))
-            {
-                Directory.CreateDirectory(_uploadsPath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<ExperienciaLaboralDto>> GetAllExperienciasAsync()
@@ -87,13 +79,15 @@ namespace SIGAD.Application.Services
             }
 
             // Procesar archivo si se proporciona
-            string archivoRuta = string.Empty;
+            string? rutaLocal = null;
+            string? urlCloudinary = null;
             string contenidoHash = string.Empty;
 
             if (archivo != null && archivo.Length > 0)
             {
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                archivoRuta = ruta;
+                var (ruta, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(archivo, "experiencias");
+                rutaLocal = ruta;
+                urlCloudinary = cloudinaryUrl;
                 contenidoHash = hash;
             }
 
@@ -104,7 +98,8 @@ namespace SIGAD.Application.Services
                 Cargo = createDto.Cargo,
                 FechaInicio = createDto.FechaInicio,
                 FechaFin = createDto.FechaFin,
-                CertificadoRuta = archivoRuta,
+                CertificadoRuta = rutaLocal,
+                UrlCloudinary = urlCloudinary,
                 ContenidoHash = contenidoHash
             };
 
@@ -149,14 +144,13 @@ namespace SIGAD.Application.Services
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
-                // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && File.Exists(experiencia.CertificadoRuta))
-                {
-                    File.Delete(experiencia.CertificadoRuta);
-                }
+                // Eliminar archivos anteriores si existen
+                await _fileStorageService.EliminarArchivoDualAsync(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
 
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                experiencia.CertificadoRuta = ruta;
+                // Subir nuevo archivo
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(archivo, "experiencias");
+                experiencia.CertificadoRuta = rutaLocal;
+                experiencia.UrlCloudinary = urlCloudinary;
                 experiencia.ContenidoHash = hash;
             }
 
@@ -174,11 +168,8 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
-            // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && File.Exists(experiencia.CertificadoRuta))
-            {
-                File.Delete(experiencia.CertificadoRuta);
-            }
+            // Eliminar archivos de ambos almacenamientos
+            await _fileStorageService.EliminarArchivoDualAsync(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
 
             await _experienciaRepository.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
@@ -213,12 +204,36 @@ namespace SIGAD.Application.Services
         public async Task<byte[]?> GetArchivoExperienciaAsync(int id)
         {
             var experiencia = await _experienciaRepository.GetByIdAsync(id);
-            if (experiencia == null || string.IsNullOrEmpty(experiencia.CertificadoRuta))
+            if (experiencia == null || (string.IsNullOrEmpty(experiencia.CertificadoRuta) && string.IsNullOrEmpty(experiencia.UrlCloudinary)))
             {
                 return null;
             }
 
-            return await File.ReadAllBytesAsync(experiencia.CertificadoRuta);
+            // Obtener la mejor URL y usarla para descargar el archivo
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
+            
+            // Si la mejor URL es local, leer el archivo directamente
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && mejorUrl.Contains("localhost"))
+            {
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
+            }
+
+            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
+            // Por ahora, intentamos usar el archivo local como fallback
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
+            {
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
+            }
+
+            return null;
         }
 
         public async Task<string?> GetNombreArchivoAsync(int id)
@@ -229,11 +244,17 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
+            // Extraer solo el nombre del archivo de la ruta
             return Path.GetFileName(experiencia.CertificadoRuta);
         }
 
         private ExperienciaLaboralDto MapToDto(ExperienciaLaboral experiencia)
         {
+            // Calcular años de experiencia
+            var fechaFin = experiencia.FechaFin ?? DateTime.Now;
+            var diferencia = fechaFin - experiencia.FechaInicio;
+            var aniosExperiencia = (decimal)diferencia.TotalDays / 365.25m; // Considerar años bisiestos
+
             return new ExperienciaLaboralDto
             {
                 Id = experiencia.Id,
@@ -245,31 +266,19 @@ namespace SIGAD.Application.Services
                 FechaInicio = experiencia.FechaInicio,
                 FechaFin = experiencia.FechaFin,
                 CertificadoRuta = experiencia.CertificadoRuta,
-                ContenidoHash = experiencia.ContenidoHash
+                UrlCloudinary = experiencia.UrlCloudinary,
+                ContenidoHash = experiencia.ContenidoHash,
+                AniosExperiencia = Math.Round(aniosExperiencia, 1),
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = experiencia.ExperienciasPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = experiencia.ExperienciasPorSolicitud?.Select(eps => new SolicitudBasicaDto
+                {
+                    SolicitudId = eps.SolicitudId.ToString(),
+                    Estado = eps.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
 
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
-        {
-            // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-
-            // Guardar archivo
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-            {
-                await archivo.CopyToAsync(stream);
-            }
-
-            // Calcular hash del archivo
-            using (var sha256 = SHA256.Create())
-            using (var stream = File.OpenRead(rutaCompleta))
-            {
-                var hash = sha256.ComputeHash(stream);
-                var hashString = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                return (rutaCompleta, hashString);
-            }
-        }
     }
 } 

@@ -384,6 +384,80 @@ namespace SIGAD.WebAPI.Controllers
         }
 
         /// <summary>
+        /// Asocia una experiencia laboral a una solicitud (endpoint compatible con el formato estándar del frontend)
+        /// </summary>
+        /// <param name="id">ID de la experiencia laboral</param>
+        /// <param name="asociarDto">Datos de la asociación</param>
+        /// <returns>Resultado de la asociación</returns>
+        [HttpPost("{id}/asociar-solicitud")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AsociarExperienciaASolicitudPorId(int id, [FromBody] AsociarExperienciaSolicitudDto asociarDto)
+        {
+            try
+            {
+                _logger.LogInformation("[BACKEND] Intentando asociar experiencia laboral - ID: {ExperienciaId}, SolicitudId: {SolicitudId}", 
+                    id, asociarDto?.SolicitudId);
+                
+                if (asociarDto == null || asociarDto.SolicitudId == Guid.Empty)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "SolicitudId inválido o no proporcionado"
+                    });
+                }
+
+                // Asegurarse que el ID en la ruta y en el DTO sean consistentes
+                if (asociarDto.ExperienciaId != id && asociarDto.ExperienciaId != 0)
+                {
+                    _logger.LogWarning("[BACKEND] El ID de experiencia en la ruta ({RouteId}) no coincide con el del DTO ({DtoId})", 
+                        id, asociarDto.ExperienciaId);
+                    
+                    // Actualizar el ID en el DTO para que coincida con el de la ruta
+                    asociarDto.ExperienciaId = id;
+                }
+                else if (asociarDto.ExperienciaId == 0)
+                {
+                    // Si no se proporcionó un ID en el DTO, usar el de la ruta
+                    asociarDto.ExperienciaId = id;
+                }
+
+                var result = await _experienciaService.AsociarExperienciaASolicitudAsync(asociarDto);
+                if (!result)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No se pudo asociar la experiencia laboral a la solicitud. Verifique que ambos existan."
+                    });
+                }
+
+                _logger.LogInformation("[BACKEND] Experiencia laboral asociada exitosamente - ID: {ExperienciaId}, SolicitudId: {SolicitudId}", 
+                    id, asociarDto.SolicitudId);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "Experiencia laboral asociada a la solicitud exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[BACKEND] Error al asociar experiencia laboral {ExperienciaId} a solicitud - {ErrorMessage}", 
+                    id, ex.Message);
+                
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// Desasocia una experiencia laboral de una solicitud
         /// </summary>
         /// <param name="solicitudId">ID de la solicitud</param>
@@ -446,7 +520,7 @@ namespace SIGAD.WebAPI.Controllers
                 var contentType = GetContentType(fileName);
                 
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
-                Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+                Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
                 
                 return File(archivo, contentType, fileName);
             }
@@ -547,4 +621,4 @@ namespace SIGAD.WebAPI.Controllers
             };
         }
     }
-} 
+}

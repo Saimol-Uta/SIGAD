@@ -1,7 +1,6 @@
-// SIGAD.WebAPI/Program.cs
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SIGAD.Application.Interfaces;
@@ -12,7 +11,7 @@ using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
-using SIGAD.Infrastructure.Services;
+using SIGAD.WebAPI.Services;
 using SIGAD.WebAPI.Middleware;
 using System.Text;
 
@@ -25,11 +24,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SigadDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.CustomSchemaIds(type => type.FullName); // 👈 Solución alternativa
-});
-
 var configuration = builder.Configuration;
 
 builder.Services.AddScoped<ISgthSyncService>(_ =>
@@ -41,13 +35,13 @@ builder.Services.AddScoped<ISutSyncService>(_ =>
 builder.Services.AddScoped<IDiticSyncService>(_ =>
     new DiticSyncService(configuration.GetConnectionString("DITIC")!));
 
+// Registrar servicio de procesamiento de archivos para importación
+builder.Services.AddScoped<IArchivoImportacionService, ArchivoImportacionService>();
+
 
 builder.Services.AddScoped<DocenteSyncCoordinator>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDocenteSyncCoordinator, DocenteSyncCoordinator>();
 builder.Services.AddScoped<HistorialDocenteImporter>();
-
-
 
 // 2. Configurar JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -105,6 +99,7 @@ builder.Services.AddScoped<ValidacionRequisitosService>();
 builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
 builder.Services.AddScoped<ReporteBackendService>();
 // 4. Agregar servicios para controladores de API
@@ -119,6 +114,25 @@ builder.Services.AddSwaggerGen(c =>
         Title = "SIGAD API",
         Version = "v1",
         Description = "API para el Sistema de Gestión Académica Docente (SIGAD)"
+    });
+
+    // Resolver conflictos de nombres de esquemas
+    c.CustomSchemaIds(type =>
+    {
+        if (type.FullName != null)
+        {
+            // Si el tipo está en el namespace de IntegracionesExternas, agregar prefijo
+            if (type.FullName.Contains("IntegracionesExternas"))
+            {
+                return $"External{type.Name}";
+            }
+            // Para otros tipos duplicados, usar el namespace completo
+            if (type.FullName.Contains("SIGAD.Application.DTOs."))
+            {
+                return type.FullName.Replace("SIGAD.Application.DTOs.", "").Replace(".", "");
+            }
+        }
+        return type.Name;
     });
 
     // Configurar Swagger para usar JWT
@@ -158,7 +172,36 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+// Agregar servicios faltantes para archivos
+builder.Services.AddScoped<SIGAD.Infrastructure.Services.CloudinaryService>();
+builder.Services.AddScoped<SIGAD.Application.Interfaces.ICloudinaryService>(provider =>
+    provider.GetRequiredService<SIGAD.Infrastructure.Services.CloudinaryService>());
+builder.Services.AddScoped<SIGAD.Application.Interfaces.IFileStorageService, SIGAD.Infrastructure.Services.FileStorageService>();
+
 var app = builder.Build();
+
+// Crear directorio uploads si no existe
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+    // Crear subdirectorios para cada tipo de documento
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "investigaciones"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "articulos"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "cursos"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "experiencias"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "evaluaciones"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "tesis"));
+}
+
+app.UseStaticFiles(); // Esto sirve wwwroot por defecto
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 // --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
 
@@ -168,6 +211,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 
 // 2. Middleware personalizado de validación y manejo de errores
 app.UseValidationMiddleware();
