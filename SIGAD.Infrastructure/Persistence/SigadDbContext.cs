@@ -29,6 +29,7 @@ namespace SIGAD.Infrastructure.Persistence
         public DbSet<TesisPorSolicitud> TesisPorSolicitud { get; set; } = default!;
         public DbSet<AccionesDePersonal> AccionesDePersonal { get; set; } = default!;
         public DbSet<AccionesDePersonalPorSolicitud> AccionesDePersonalPorSolicitud { get; set; } = default!;
+        public DbSet<Apelacion> Apelaciones { get; set; } = default!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -317,16 +318,16 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
             }); modelBuilder.Entity<TesisPorSolicitud>(entity =>
             {
-                entity.HasKey(e => new { e.SolicitudId, e.TesisDirigidaId });
+                entity.HasKey(e => new { e.SolicitudId, e.TesisId });
 
-                entity.HasOne(e => e.Solicitud)
+                entity.HasOne(e => e.SolicitudAscenso)
                     .WithMany(s => s.TesisPorSolicitud)
                     .HasForeignKey(e => e.SolicitudId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.TesisDirigida)
                     .WithMany(t => t.TesisPorSolicitud)
-                    .HasForeignKey(e => e.TesisDirigidaId)
+                    .HasForeignKey(e => e.TesisId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -384,6 +385,32 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany(d => d.TesisDirigidas)
                     .HasForeignKey(e => e.DocenteCedula)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configuración de la entidad Apelacion
+            modelBuilder.Entity<Apelacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.SolicitudAscensoId).IsRequired();
+                entity.Property(e => e.Motivo).HasMaxLength(1000).IsRequired();
+                entity.Property(e => e.DocumentosRespaldo).HasMaxLength(500);
+                entity.Property(e => e.Estado).HasConversion<int>().IsRequired();
+                entity.Property(e => e.FechaPresentacion).IsRequired();
+                entity.Property(e => e.FechaLimiteRespuesta).IsRequired();
+                entity.Property(e => e.FechaResolucion);
+                entity.Property(e => e.ObservacionesComision).HasMaxLength(1000);
+                entity.Property(e => e.CreadoPor).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.ModificadoPor).HasMaxLength(100);
+                entity.Property(e => e.FechaCreacion).IsRequired();
+                entity.Property(e => e.FechaModificacion);
+                entity.Property(e => e.Aceptada).IsRequired();
+
+                // Relación con SolicitudAscenso
+                entity.HasOne(e => e.SolicitudAscenso)
+                    .WithMany(s => s.Apelaciones)
+                    .HasForeignKey(e => e.SolicitudAscensoId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -16,7 +16,7 @@ namespace SIGAD.Domain.Entities
         public int TesisId { get; set; } // Parte 2 de la Clave Primaria Compuesta
 
         // Propiedades de navegación
-        public virtual SolicitudAscenso SolicitudAscenso { get; set; } = null!;
-        public virtual TesisDirigida TesisDirigida { get; set; } = null!;
+        public virtual SolicitudAscenso? SolicitudAscenso { get; set; } = null!;
+        public virtual TesisDirigida? TesisDirigida { get; set; } = null!;
     }
 }

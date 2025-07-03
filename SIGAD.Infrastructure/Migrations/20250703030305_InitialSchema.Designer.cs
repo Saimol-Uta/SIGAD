@@ -12,7 +12,7 @@ using SIGAD.Infrastructure.Persistence;
 namespace SIGAD.Infrastructure.Migrations
 {
     [DbContext(typeof(SigadDbContext))]
-    [Migration("20250630181152_InitialSchema")]
+    [Migration("20250703030305_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -85,6 +85,67 @@ namespace SIGAD.Infrastructure.Migrations
                     b.HasIndex("AccionDePersonalId");
 
                     b.ToTable("AccionesDePersonalPorSolicitud");
+                });
+
+            modelBuilder.Entity("SIGAD.Domain.Entities.Apelacion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Aceptada")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CreadoPor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DocumentosRespaldo")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaLimiteRespuesta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaPresentacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaResolucion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModificadoPor")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ObservacionesComision")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("SolicitudAscensoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SolicitudAscensoId");
+
+                    b.ToTable("Apelaciones");
                 });
 
             modelBuilder.Entity("SIGAD.Domain.Entities.Articulo", b =>
@@ -545,6 +606,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<int>("ArticulosRequeridos")
                         .HasColumnType("int");
 
+                    b.Property<int>("HorasCapacitacionImpartidaRequeridas")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HorasCapacitacionPedagogicaRequeridas")
+                        .HasColumnType("int");
+
                     b.Property<int>("HorasCursoRequeridas")
                         .HasColumnType("int");
 
@@ -556,8 +623,20 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("PermiteCoordinacionProyectos")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProyectosInternacionalesRequeridos")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PublicacionesIdiomaExtranjeroRequeridas")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("PuntajePromedioEvaluacionesRequerido")
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("RequiereArticuloEnGradoActual")
+                        .HasColumnType("bit");
 
                     b.Property<int>("TesisDirigidasRequeridas")
                         .HasColumnType("int");
@@ -581,6 +660,12 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool>("AprobadoPorComision")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("AprobadoPorConsejo")
+                        .HasColumnType("bit");
+
                     b.Property<string>("DocenteCedula")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -591,10 +676,19 @@ namespace SIGAD.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("FechaAprobacionComision")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaAprobacionConsejo")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaEnvio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaLimiteApelacion")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaNotificacion")
@@ -606,7 +700,16 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<DateTime?>("FechaResolucionApelacion")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("NotificacionEnviada")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ObservacionesAdmin")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ObservacionesComision")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ObservacionesConsejo")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("RangoActualId")
@@ -614,6 +717,9 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.Property<int>("RangoSolicitadoId")
                         .HasColumnType("int");
+
+                    b.Property<string>("TipoResolucion")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -685,12 +791,12 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Property<Guid>("SolicitudId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("TesisDirigidaId")
+                    b.Property<int>("TesisId")
                         .HasColumnType("int");
 
-                    b.HasKey("SolicitudId", "TesisDirigidaId");
+                    b.HasKey("SolicitudId", "TesisId");
 
-                    b.HasIndex("TesisDirigidaId");
+                    b.HasIndex("TesisId");
 
                     b.ToTable("TesisPorSolicitud");
                 });
@@ -721,6 +827,17 @@ namespace SIGAD.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("AccionDePersonal");
+
+                    b.Navigation("SolicitudAscenso");
+                });
+
+            modelBuilder.Entity("SIGAD.Domain.Entities.Apelacion", b =>
+                {
+                    b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
+                        .WithMany("Apelaciones")
+                        .HasForeignKey("SolicitudAscensoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("SolicitudAscenso");
                 });
@@ -955,7 +1072,7 @@ namespace SIGAD.Infrastructure.Migrations
 
             modelBuilder.Entity("SIGAD.Domain.Entities.TesisPorSolicitud", b =>
                 {
-                    b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "Solicitud")
+                    b.HasOne("SIGAD.Domain.Entities.SolicitudAscenso", "SolicitudAscenso")
                         .WithMany("TesisPorSolicitud")
                         .HasForeignKey("SolicitudId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -963,11 +1080,11 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasOne("SIGAD.Domain.Entities.TesisDirigida", "TesisDirigida")
                         .WithMany("TesisPorSolicitud")
-                        .HasForeignKey("TesisDirigidaId")
+                        .HasForeignKey("TesisId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Solicitud");
+                    b.Navigation("SolicitudAscenso");
 
                     b.Navigation("TesisDirigida");
                 });
@@ -1025,6 +1142,8 @@ namespace SIGAD.Infrastructure.Migrations
             modelBuilder.Entity("SIGAD.Domain.Entities.SolicitudAscenso", b =>
                 {
                     b.Navigation("AccionesDePersonalPorSolicitud");
+
+                    b.Navigation("Apelaciones");
 
                     b.Navigation("ArticulosPorSolicitud");
 

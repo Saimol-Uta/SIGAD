@@ -97,7 +97,7 @@ namespace SIGAD.Application.Services
                 nuevaSolicitud.TesisPorSolicitud.Add(new TesisPorSolicitud
                 {
                     SolicitudId = nuevaSolicitud.Id,
-                    TesisDirigidaId = id
+                    TesisId = id
                 });
             }
 
