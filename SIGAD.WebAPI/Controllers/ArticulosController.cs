@@ -548,5 +548,6 @@ namespace SIGAD.WebAPI.Controllers
                 _ => "application/octet-stream"
             };
         }
+
     }
 }

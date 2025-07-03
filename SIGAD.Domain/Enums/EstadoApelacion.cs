@@ -6,13 +6,7 @@ using System.Threading.Tasks;
 
 namespace SIGAD.Domain.Enums
 {
-    public enum EstadoSolicitud
+    internal class EstadoApelacion
     {
-        Borrador = 1,
-        Enviada = 2,
-        EnRevision = 3,
-        Aprobada = 4,
-        Rechazada = 5,
-        Apelada = 6
     }
 }
