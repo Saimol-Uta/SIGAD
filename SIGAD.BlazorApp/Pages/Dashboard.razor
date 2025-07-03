@@ -361,7 +361,7 @@
     }
 
     .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -373,7 +373,7 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -382,7 +382,7 @@
         justify-content: space-between;
         padding: 2rem;
         gap: 2rem;
-        z-index: 1;
+        z-index: 2;
     }
 
     .left {
@@ -393,6 +393,7 @@
         padding-left: 60px;
         /* espacio hacia la izquierda */
         margin-top: 100px;
+        z-index:2;
 
     }
 
@@ -473,7 +474,6 @@
         align-self: flex-start;
         flex: 20;
         margin-top: 140px;
-        margin-right: 550px;
         background: white;
         padding: 1.5rem;
         max-width: 500px;
@@ -481,7 +481,14 @@
         border-radius: 0.1vw;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         transition: transform 0.3s ease;
+        z-index:2;
     }
+
+   @@media (min-width: 1024px) {
+    .promotion-card {
+        margin-right: 25vw; /* El valor que mejor se ajuste a tu diseño de escritorio */
+    }
+}
 
     .promotion-card:hover {
         transform: translateY(-4px);
@@ -610,6 +617,62 @@
         object-fit: contain;
         pointer-events: none;
     }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+   @@media (max-width: 1199px) and (min-width: 769px) {
+    
+    /* 1. Aseguramos que el layout principal sea horizontal */
+    .main-content {
+        flex-direction: row;
+        align-items: center; /* Centra los elementos verticalmente */
+        justify-content: space-between; /* Mantiene el espacio entre ellos */
+        padding: 2rem; /* Un padding adecuado para este tamaño */
+    }
+
+    /* 2. Reducimos el tamaño del título para que ocupe menos espacio */
+    .left h1 {
+        font-size: 4.5rem; 
+    }
+
+    /* 3. Nos aseguramos que la tarjeta no tenga márgenes extraños */
+    .promotion-card {
+        margin-right: 0; /* Quitamos cualquier margen grande */
+        flex-shrink: 0;  /* Evita que la tarjeta se encoja y se deforme */
+        width: 45%;      /* Le damos un ancho fijo o porcentual */
+        max-width: 450px;
+    }
+
+    /* 4. La clave: Ocultamos los triángulos en este tamaño */
+    .triangle-bg {
+        display: none;
+    }
+}
+
+    @@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+
+    .left {
+        padding-left: 1rem;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    .promotion-card {
+        margin-right: 0 !important;
+        margin-top: 20px;
+        width: 100%;
+        max-width: none;
+    }
+
+    .triangle-bg {
+        display: none;
+    }
+}
+
 </style>
 
 <body>
@@ -650,7 +713,7 @@
         else
         {
             <div class="left">
-                <h1>Welcome<br />System</h1>
+                <h1>Bienvenido al<br />Sistema</h1>
                 <p>@NombreCompletoUsuario</p>
                 @if (!string.IsNullOrEmpty(RangoActual))
                 {
@@ -665,22 +728,20 @@
                     {
                         <span class="badge">@CantidadNotificaciones</span>
                     }
-                    <span>Notifications</span>
+                    <span>Notificaciones</span>
                 </div>
 
             <div class="buttons">
                 @if (tieneSolicitudActiva)
                 {
-                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continue Promotion Process</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
-                        Documents</button>
+                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continuar Proceso de Promocion</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar Documentos</button>
                 }
                 else
                 {
                     <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">🚀
-                        Start New Promotion Process</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Manage
-                        Documents</button>
+                        Iniciar Nuevo Proceso de Promoción</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar Documentos</button>
                 }
             </div>
         </div>

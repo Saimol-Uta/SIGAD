@@ -37,5 +37,10 @@ namespace SIGAD.Application.DTOs
         [Required(ErrorMessage = "El ID de la solicitud es requerido")]
         [Display(Name = "ID de la Solicitud")]
         public Guid SolicitudId { get; set; }
+
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
 }

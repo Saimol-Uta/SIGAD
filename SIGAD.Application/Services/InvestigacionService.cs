@@ -110,7 +110,8 @@ namespace SIGAD.Application.Services
                 MesesDeInvestigacion = crearInvestigacionDto.MesesDeInvestigacion,
                 DocenteCedula = crearInvestigacionDto.DocenteCedula,
                 InformeRuta = filePath,
-                ContenidoHash = contentHash
+                ContenidoHash = contentHash,
+                EsInternacional = crearInvestigacionDto.EsInternacional // Nuevo campo mapeado
             };
 
             await _investigacionRepository.AddAsync(investigacion);
@@ -210,12 +211,9 @@ namespace SIGAD.Application.Services
                 FechaFinalizacion = investigacion.FechaFinalizacion,
                 RolEnInvestigacion = investigacion.RolEnInvestigacion,
                 MesesDeInvestigacion = investigacion.MesesDeInvestigacion,
-                NombreDocente = investigacion.Docente != null
-                    ? $"{investigacion.Docente.Nombre1} {investigacion.Docente.Apellido1}"
-                    : "Docente no encontrado",
                 DocenteCedula = investigacion.DocenteCedula,
                 InformeRuta = investigacion.InformeRuta,
-                ContenidoHash = investigacion.ContenidoHash
+                EsInternacional = investigacion.EsInternacional // Exponer en el DTO
             };
         }
     }

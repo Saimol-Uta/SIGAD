@@ -62,7 +62,7 @@
     }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -84,7 +84,7 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -103,6 +103,7 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-top: 2rem;
+        z-index:2;
     }
 
     .form-container h1 {
@@ -233,36 +234,62 @@
 
     .triangle-bg {
         position: fixed;
-        bottom: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: -1;
-        opacity: 0.1;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
     }
 
     .required {
         color: #dc3545;
     }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+    @@media (max-width: 1199px) and (min-width: 769px) {
+        /* 1. Aseguramos que el layout principal sea horizontal */
+        .main-content {
+            flex-direction: row;
+            align-items: center; /* Centra los elementos verticalmente */
+            justify-content: center; /* Mantiene el espacio entre ellos */
+            padding: 2rem; /* Un padding adecuado para este tamaño */
+        }
+        /* 4. La clave: Ocultamos los triángulos en este tamaño */
+        .triangle-bg {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+        }
+
+        .triangle-bg {
+            display: none;
+        }
+    }
 </style>
 
 <body>
-    <header class="header">
+    <div class="header">
         <div class="branding">
-            <img src="/images/Sena_Colombia_logo.png" alt="SENA Logo" class="logo" />
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
         </div>
         <div class="user-profile">
-            <img src="/images/IconoUser.png" alt="User Avatar" />
+            <a href="/gestion-documentos" class="back-btn">← Volver a Gestión</a>
             <span>@nombreUsuario</span>
-            <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
-                Volver
-            </button>
-            <button class="logout-btn" @onclick="Logout">
-                Cerrar Sesión
-            </button>
+            <img src="/images/IconoUser.png" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
         </div>
-    </header>
+    </div>
 
     <div class="main-content">
         <div class="form-container">
@@ -286,6 +313,14 @@
             {
                 <EditForm Model="@cursoModel" OnValidSubmit="@HandleSubmit">
                     <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label class="form-label">¿Tipo de curso? <span class="required">*</span></label>
+                        <InputRadioGroup @bind-Value="cursoModel.ImpartidoPorDocente">
+                            <InputRadio Value="false" /> Recibido
+                            <InputRadio Value="true" /> Impartido (dictado por usted)
+                        </InputRadioGroup>
+                    </div>
 
                     <div class="form-group">
                         <label class="form-label">
@@ -315,15 +350,27 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">
-                                Horas Académicas <span class="required">*</span>
-                            </label>
-                            <InputNumber @bind-Value="cursoModel.HorasAcademicas" class="form-control" 
-                                       placeholder="Ej: 40" min="1" max="1000" />
-                            <ValidationMessage For="@(() => cursoModel.HorasAcademicas)" />
-                        </div>
-
+                        @if (!cursoModel.ImpartidoPorDocente)
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Académicas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasAcademicas" class="form-control" 
+                                           placeholder="Ej: 40" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasAcademicas)" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Impartidas por usted <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasImpartidas" class="form-control" placeholder="Ej: 20" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasImpartidas)" />
+                            </div>
+                        }
                         <div class="form-group">
                             <label class="form-label">
                                 Organización <span class="required">*</span>
@@ -334,14 +381,28 @@
                         </div>
                     </div>
 
-                                        <div class="form-group">
-                        <label class="form-label">Certificado <span class="required">*</span></label>
-                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                        @if (!string.IsNullOrEmpty(archivoSeleccionado))
-                        {
-                            <p>Archivo: @archivoSeleccionado</p>
-                        }
-                    </div>
+                    @if (cursoModel.ImpartidoPorDocente)
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Certificado de facilitador <span class="required">*</span></label>
+                            <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                            {
+                                <p>Archivo: @archivoSeleccionado</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Certificado de aprobación <span class="required">*</span></label>
+                            <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                            {
+                                <p>Archivo: @archivoSeleccionado</p>
+                            }
+                        </div>
+                    }
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary" 
@@ -489,6 +550,8 @@
             content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas"); // Nuevo campo
+            content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente"); // Nuevo campo
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
@@ -567,6 +630,8 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddDays(30);
         public int HorasAcademicas { get; set; } = 1;
         public string OrganizacionNombre { get; set; } = "";
+        public int? HorasImpartidas { get; set; } // Solo si es impartido
+        public bool ImpartidoPorDocente { get; set; } = false;
     }
 
     public class VerifyTokenResponse

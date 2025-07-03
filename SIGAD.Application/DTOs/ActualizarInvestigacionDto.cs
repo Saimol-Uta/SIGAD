@@ -28,5 +28,10 @@ namespace SIGAD.Application.DTOs
         [Range(1, 120, ErrorMessage = "Los meses deben estar entre 1 y 120")]
         [Display(Name = "Meses de Investigación")]
         public int MesesDeInvestigacion { get; set; }
+
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
-} 
+}

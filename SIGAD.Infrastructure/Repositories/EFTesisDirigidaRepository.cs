@@ -71,7 +71,7 @@ namespace SIGAD.Infrastructure.Repositories
             var relacion = new TesisPorSolicitud
             {
                 SolicitudId = solicitudId,
-                TesisDirigidaId = tesisId
+                TesisId = tesisId
             };
 
             await _context.TesisPorSolicitud.AddAsync(relacion);
@@ -80,7 +80,7 @@ namespace SIGAD.Infrastructure.Repositories
         public async Task RemoveFromSolicitudAsync(Guid solicitudId, int tesisId)
         {
             var relacion = await _context.TesisPorSolicitud
-                .FirstOrDefaultAsync(tps => tps.SolicitudId == solicitudId && tps.TesisDirigidaId == tesisId);
+                .FirstOrDefaultAsync(tps => tps.SolicitudId == solicitudId && tps.TesisId == tesisId);
 
             if (relacion != null)
             {

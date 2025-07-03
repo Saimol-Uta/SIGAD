@@ -32,10 +32,49 @@
                 </div>
             </div>
 
-            <!-- FILTRO CON ÍCONO -->
-            <div style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 20px;">
-                <img src="/images/search.png" alt="Buscar" style="width: 20px; height: 20px; margin-right: 10px;" />
-                <input type="text" @bind="filtroNombre" placeholder="Filtrar por nombre..." style="padding: 8px; width: 280px; border: 1px solid #ccc; border-radius: 6px;" />
+            <!-- FILTROS MEJORADOS -->
+            <div class="filtros-container">
+                <div class="filtro-principal">
+                    <img src="/images/search.png" alt="Buscar" style="width: 20px; height: 20px; margin-right: 10px;" />
+                    <input type="text" @bind="filtroNombre" @bind:event="oninput" placeholder="Filtrar por nombre del docente..." class="input-filtro" />
+                    @if (!string.IsNullOrEmpty(filtroNombre))
+                    {
+                        <button @onclick="LimpiarFiltroNombre" class="btn-limpiar">✕</button>
+                    }
+                </div>
+                
+                <div class="filtros-adicionales">
+                    <select @bind="filtroCategoriaAspira" class="select-filtro">
+                        <option value="">Todas las categorías</option>
+                        @foreach (var categoria in CategoriasDisponibles)
+                        {
+                            <option value="@categoria">@categoria</option>
+                        }
+                    </select>
+
+                    <select @bind="filtroRangoFechas" class="select-filtro">
+                        <option value="">Todas las fechas</option>
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Esta semana</option>
+                        <option value="mes">Este mes</option>
+                        <option value="trimestre">Último trimestre</option>
+                        <option value="año">Este año</option>
+                    </select>
+
+                    <input type="date" @bind="filtroFechaDesde" class="input-fecha" placeholder="Desde" />
+                    <input type="date" @bind="filtroFechaHasta" class="input-fecha" placeholder="Hasta" />
+
+                    @if (TieneFiltrosActivos)
+                    {
+                        <button @onclick="LimpiarTodosFiltros" class="btn-limpiar-todos">
+                            <span>🗑️</span> Limpiar filtros
+                        </button>
+                    }
+                </div>
+
+                <div class="filtros-resumen">
+                    <small>Mostrando @TotalFiltradas de @TodasSolicitudes.Count solicitudes</small>
+                </div>
             </div>
 
             <!-- TABLA DE SOLICITUDES -->
@@ -62,11 +101,41 @@
                 <table style="width: 100%; border-collapse: collapse; border-radius: 0.2rem; overflow: hidden; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
                     <thead style="background-color: #0a1d44; color: white;">
                         <tr style="text-align: left;">
-                            <th style="padding: 12px 20px;">ID Solicitud</th>
-                            <th style="padding: 12px 20px;">Nombre del docente</th>
-                            <th style="padding: 12px 20px;">Categoría Aspirada</th>
-                            <th style="padding: 12px 20px;">Fecha de Solicitud</th>
-                            <th style="padding: 12px 20px;">Estado del Proceso</th>
+                            <th style="padding: 12px 20px; cursor: pointer;" @onclick='() => OrdenarPor("Id")'>
+                                ID Solicitud 
+                                @if (campoOrden == "Id")
+                                {
+                                    <span style="margin-left: 5px;">@(ordenAscendente ? "▲" : "▼")</span>
+                                }
+                            </th>
+                            <th style="padding: 12px 20px; cursor: pointer;" @onclick='() => OrdenarPor("DocenteNombreCompleto")'>
+                                Nombre del docente
+                                @if (campoOrden == "DocenteNombreCompleto")
+                                {
+                                    <span style="margin-left: 5px;">@(ordenAscendente ? "▲" : "▼")</span>
+                                }
+                            </th>
+                            <th style="padding: 12px 20px; cursor: pointer;" @onclick='() => OrdenarPor("RangoSolicitadoNombre")'>
+                                Categoría Aspirada
+                                @if (campoOrden == "RangoSolicitadoNombre")
+                                {
+                                    <span style="margin-left: 5px;">@(ordenAscendente ? "▲" : "▼")</span>
+                                }
+                            </th>
+                            <th style="padding: 12px 20px; cursor: pointer;" @onclick='() => OrdenarPor("FechaEnvio")'>
+                                Fecha de Solicitud
+                                @if (campoOrden == "FechaEnvio")
+                                {
+                                    <span style="margin-left: 5px;">@(ordenAscendente ? "▲" : "▼")</span>
+                                }
+                            </th>
+                            <th style="padding: 12px 20px; cursor: pointer;" @onclick='() => OrdenarPor("Estado")'>
+                                Estado del Proceso
+                                @if (campoOrden == "Estado")
+                                {
+                                    <span style="margin-left: 5px;">@(ordenAscendente ? "▲" : "▼")</span>
+                                }
+                            </th>
                             <th style="padding: 12px 20px;">Acciones</th>
                         </tr>
                     </thead>
@@ -196,6 +265,157 @@
             color: #444;
         }
 
+    /* Estilos para filtros mejorados */
+    .filtros-container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .filtro-principal {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        position: relative;
+    }
+
+    .input-filtro {
+        padding: 8px 12px;
+        width: 350px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+        .input-filtro:focus {
+            outline: none;
+            border-color: #0a1d44;
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
+
+    .btn-limpiar {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        margin-left: 8px;
+        padding: 4px 8px;
+        border-radius: 50%;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-limpiar:hover {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+    .filtros-adicionales {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .select-filtro {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: white;
+        font-size: 14px;
+        min-width: 150px;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+    }
+
+        .select-filtro:focus {
+            outline: none;
+            border-color: #0a1d44;
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
+
+    .input-fecha {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+        .input-fecha:focus {
+            outline: none;
+            border-color: #0a1d44;
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
+
+    .btn-limpiar-todos {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 15px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        color: #495057;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+        .btn-limpiar-todos:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+    .filtros-resumen {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        color: #666;
+        font-size: 13px;
+    }
+
+    /* Estilos para headers ordenables */
+    th[style*="cursor: pointer"]:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        transition: background-color 0.3s ease;
+    }
+
+    /* Estilos para indicadores de ordenamiento */
+    th span {
+        opacity: 0.8;
+        font-size: 12px;
+    }
+
+    /* Mejoras responsivas */
+    @@media (max-width: 768px) {
+        .filtros-adicionales {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .select-filtro, .input-fecha {
+            min-width: unset;
+            width: 100%;
+        }
+        
+        .input-filtro {
+            width: 100%;
+        }
+        
+        .cards {
+            flex-direction: column;
+        }
+        
+        .card {
+            width: 100%;
+        }
+    }
 
 </style>
 
@@ -205,10 +425,18 @@
     int SolicitudesFinalizadas = 0;
 
     private string filtroNombre = "";
+    private string filtroCategoriaAspira = "";
+    private string filtroRangoFechas = "";
+    private DateTime? filtroFechaDesde;
+    private DateTime? filtroFechaHasta;
     private int paginaActual = 1;
     private int porPagina = 10;
     private bool cargando = true;
     private string? mensajeError = null;
+    
+    // Variables para ordenamiento
+    private string campoOrden = "FechaEnvio";
+    private bool ordenAscendente = false;
 
     private List<SolicitudDto> TodasSolicitudes = new();
 
@@ -255,34 +483,44 @@
         SolicitudesFinalizadas = TodasSolicitudes.Count(s => ESTADOS_FINALIZADOS.Contains(s.Estado));
     }
 
-    private IEnumerable<SolicitudDto> Filtradas =>
-        TodasSolicitudes
-            .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
-            .Where(s => estadoSeleccionado switch
+    private IEnumerable<SolicitudDto> Filtradas
+    {
+        get
+        {
+            var solicitudesFiltradas = TodasSolicitudes.Where(s => CumpleFiltros(s));
+            
+            // Aplicar ordenamiento
+            solicitudesFiltradas = campoOrden switch
             {
-                "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
-                "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
-                "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
-                _ => true
-            })
-            .Skip((paginaActual - 1) * porPagina)
-            .Take(porPagina);
+                "Id" => ordenAscendente 
+                    ? solicitudesFiltradas.OrderBy(s => s.Id)
+                    : solicitudesFiltradas.OrderByDescending(s => s.Id),
+                "DocenteNombreCompleto" => ordenAscendente 
+                    ? solicitudesFiltradas.OrderBy(s => s.DocenteNombreCompleto)
+                    : solicitudesFiltradas.OrderByDescending(s => s.DocenteNombreCompleto),
+                "RangoSolicitadoNombre" => ordenAscendente 
+                    ? solicitudesFiltradas.OrderBy(s => s.RangoSolicitadoNombre)
+                    : solicitudesFiltradas.OrderByDescending(s => s.RangoSolicitadoNombre),
+                "FechaEnvio" => ordenAscendente 
+                    ? solicitudesFiltradas.OrderBy(s => s.FechaEnvio ?? DateTime.MinValue)
+                    : solicitudesFiltradas.OrderByDescending(s => s.FechaEnvio ?? DateTime.MinValue),
+                "Estado" => ordenAscendente 
+                    ? solicitudesFiltradas.OrderBy(s => s.Estado)
+                    : solicitudesFiltradas.OrderByDescending(s => s.Estado),
+                _ => solicitudesFiltradas.OrderByDescending(s => s.FechaEnvio ?? DateTime.MinValue)
+            };
+
+            return solicitudesFiltradas
+                .Skip((paginaActual - 1) * porPagina)
+                .Take(porPagina);
+        }
+    }
 
     private int PaginasTotales
     {
         get
         {
-            var totalFiltradas = TodasSolicitudes
-                .Where(s => string.IsNullOrWhiteSpace(filtroNombre) || s.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
-                .Where(s => estadoSeleccionado switch
-                {
-                    "NUEVOS" => ESTADOS_NUEVOS.Contains(s.Estado),
-                    "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(s.Estado),
-                    "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(s.Estado),
-                    _ => true
-                })
-                .Count();
-            
+            var totalFiltradas = TodasSolicitudes.Where(s => CumpleFiltros(s)).Count();
             return (int)Math.Ceiling(totalFiltradas / (double)porPagina);
         }
     }
@@ -303,4 +541,114 @@
         estado.Contains("Revision") || estado.Contains("Revisión") ? "orange" :
         estado.Contains("Rechazad") ? "red" :
         "blue";
+
+    // Propiedades calculadas para los filtros
+    private IEnumerable<string> CategoriasDisponibles =>
+        TodasSolicitudes.Select(s => s.RangoSolicitadoNombre).Distinct().OrderBy(x => x);
+
+    private bool TieneFiltrosActivos =>
+        !string.IsNullOrEmpty(filtroNombre) ||
+        !string.IsNullOrEmpty(filtroCategoriaAspira) ||
+        !string.IsNullOrEmpty(filtroRangoFechas) ||
+        filtroFechaDesde.HasValue ||
+        filtroFechaHasta.HasValue ||
+        !string.IsNullOrEmpty(estadoSeleccionado);
+
+    private int TotalFiltradas =>
+        TodasSolicitudes
+            .Where(s => CumpleFiltros(s))
+            .Count();
+
+    // Métodos para manejar los filtros
+    private void LimpiarFiltroNombre()
+    {
+        filtroNombre = "";
+        paginaActual = 1;
+    }
+
+    private void LimpiarTodosFiltros()
+    {
+        filtroNombre = "";
+        filtroCategoriaAspira = "";
+        filtroRangoFechas = "";
+        filtroFechaDesde = null;
+        filtroFechaHasta = null;
+        estadoSeleccionado = "";
+        paginaActual = 1;
+    }
+
+    private bool CumpleFiltros(SolicitudDto solicitud)
+    {
+        // Filtro por nombre
+        if (!string.IsNullOrWhiteSpace(filtroNombre) && 
+            !solicitud.DocenteNombreCompleto.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Filtro por categoría aspirada
+        if (!string.IsNullOrEmpty(filtroCategoriaAspira) && 
+            solicitud.RangoSolicitadoNombre != filtroCategoriaAspira)
+            return false;
+
+        // Filtro por estado
+        if (!string.IsNullOrEmpty(estadoSeleccionado))
+        {
+            var cumpleEstado = estadoSeleccionado switch
+            {
+                "NUEVOS" => ESTADOS_NUEVOS.Contains(solicitud.Estado),
+                "EN_PROCESO" => ESTADOS_EN_PROCESO.Contains(solicitud.Estado),
+                "FINALIZADOS" => ESTADOS_FINALIZADOS.Contains(solicitud.Estado),
+                _ => true
+            };
+            if (!cumpleEstado) return false;
+        }
+
+        // Filtro por rango de fechas predefinido
+        if (!string.IsNullOrEmpty(filtroRangoFechas) && solicitud.FechaEnvio.HasValue)
+        {
+            var fecha = solicitud.FechaEnvio.Value;
+            var ahora = DateTime.Now;
+            
+            var cumpleFecha = filtroRangoFechas switch
+            {
+                "hoy" => fecha.Date == ahora.Date,
+                "semana" => fecha >= ahora.AddDays(-7),
+                "mes" => fecha >= ahora.AddDays(-30),
+                "trimestre" => fecha >= ahora.AddDays(-90),
+                "año" => fecha >= ahora.AddDays(-365),
+                _ => true
+            };
+            if (!cumpleFecha) return false;
+        }
+
+        // Filtro por fecha personalizada desde
+        if (filtroFechaDesde.HasValue && solicitud.FechaEnvio.HasValue)
+        {
+            if (solicitud.FechaEnvio.Value.Date < filtroFechaDesde.Value.Date)
+                return false;
+        }
+
+        // Filtro por fecha personalizada hasta
+        if (filtroFechaHasta.HasValue && solicitud.FechaEnvio.HasValue)
+        {
+            if (solicitud.FechaEnvio.Value.Date > filtroFechaHasta.Value.Date)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Método para ordenamiento
+    private void OrdenarPor(string campo)
+    {
+        if (campoOrden == campo)
+        {
+            ordenAscendente = !ordenAscendente;
+        }
+        else
+        {
+            campoOrden = campo;
+            ordenAscendente = true;
+        }
+        paginaActual = 1; // Resetear a la primera página
+    }
 }

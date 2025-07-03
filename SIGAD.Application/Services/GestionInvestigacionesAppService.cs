@@ -41,7 +41,8 @@ namespace SIGAD.Application.Services
                 FechaInicio = investigacionDto.FechaInicio,
                 ContenidoHash = investigacionDto.ContenidoHash,
                 FechaFinalizacion = investigacionDto.FechaFinalizacion,
-                DocenteCedula = docenteCedula
+                DocenteCedula = docenteCedula,
+                EsInternacional = investigacionDto.EsInternacional // Nuevo campo mapeado
             };
 
             await _investigacionRepository.AddAsync(nuevaInvestigacion);

@@ -37,7 +37,13 @@ namespace SIGAD.Infrastructure.Migrations
                     HorasCursoRequeridas = table.Column<int>(type: "int", nullable: false),
                     MesesInvestigacionRequeridos = table.Column<int>(type: "int", nullable: false),
                     TesisDirigidasRequeridas = table.Column<int>(type: "int", nullable: false),
-                    PuntajePromedioEvaluacionesRequerido = table.Column<decimal>(type: "decimal(5,2)", nullable: false)
+                    PuntajePromedioEvaluacionesRequerido = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
+                    HorasCapacitacionPedagogicaRequeridas = table.Column<int>(type: "int", nullable: false),
+                    HorasCapacitacionImpartidaRequeridas = table.Column<int>(type: "int", nullable: false),
+                    PublicacionesIdiomaExtranjeroRequeridas = table.Column<int>(type: "int", nullable: false),
+                    ProyectosInternacionalesRequeridos = table.Column<int>(type: "int", nullable: false),
+                    RequiereArticuloEnGradoActual = table.Column<bool>(type: "bit", nullable: false),
+                    PermiteCoordinacionProyectos = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -108,7 +114,8 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaVerificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ObservacionesVerificacion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     EsIndexado = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IdiomaPublicacion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -158,7 +165,8 @@ namespace SIGAD.Infrastructure.Migrations
                     ContenidoHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoCurso = table.Column<int>(type: "int", nullable: false),
-                    ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false)
+                    ImpartidoPorDocente = table.Column<bool>(type: "bit", nullable: false),
+                    HorasImpartidas = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -248,7 +256,8 @@ namespace SIGAD.Infrastructure.Migrations
                     DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     TipoProyecto = table.Column<int>(type: "int", nullable: false),
                     MesesDeParticipacion = table.Column<int>(type: "int", nullable: false),
-                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    UnidadVerificadora = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    EsInternacional = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -276,7 +285,16 @@ namespace SIGAD.Infrastructure.Migrations
                     ObservacionesAdmin = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FechaNotificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
                     AceptacionODemanda = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    FechaResolucionApelacion = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    FechaResolucionApelacion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    FechaLimiteApelacion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    NotificacionEnviada = table.Column<bool>(type: "bit", nullable: false),
+                    TipoResolucion = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AprobadoPorComision = table.Column<bool>(type: "bit", nullable: false),
+                    AprobadoPorConsejo = table.Column<bool>(type: "bit", nullable: false),
+                    FechaAprobacionComision = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    FechaAprobacionConsejo = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ObservacionesComision = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ObservacionesConsejo = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -348,6 +366,37 @@ namespace SIGAD.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_AccionesDePersonalPorSolicitud_SolicitudesAscenso_SolicitudId",
                         column: x => x.SolicitudId,
+                        principalTable: "SolicitudesAscenso",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Apelaciones",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SolicitudAscensoId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Motivo = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    DocumentosRespaldo = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    FechaPresentacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FechaLimiteRespuesta = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Estado = table.Column<int>(type: "int", nullable: false),
+                    ObservacionesComision = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Aceptada = table.Column<bool>(type: "bit", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreadoPor = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    FechaModificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ModificadoPor = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Apelaciones", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Apelaciones_SolicitudesAscenso_SolicitudAscensoId",
+                        column: x => x.SolicitudAscensoId,
                         principalTable: "SolicitudesAscenso",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -484,11 +533,11 @@ namespace SIGAD.Infrastructure.Migrations
                 columns: table => new
                 {
                     SolicitudId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TesisDirigidaId = table.Column<int>(type: "int", nullable: false)
+                    TesisId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TesisPorSolicitud", x => new { x.SolicitudId, x.TesisDirigidaId });
+                    table.PrimaryKey("PK_TesisPorSolicitud", x => new { x.SolicitudId, x.TesisId });
                     table.ForeignKey(
                         name: "FK_TesisPorSolicitud_SolicitudesAscenso_SolicitudId",
                         column: x => x.SolicitudId,
@@ -496,8 +545,8 @@ namespace SIGAD.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TesisPorSolicitud_TesisDirigidas_TesisDirigidaId",
-                        column: x => x.TesisDirigidaId,
+                        name: "FK_TesisPorSolicitud_TesisDirigidas_TesisId",
+                        column: x => x.TesisId,
                         principalTable: "TesisDirigidas",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -512,6 +561,11 @@ namespace SIGAD.Infrastructure.Migrations
                 name: "IX_AccionesDePersonalPorSolicitud_AccionDePersonalId",
                 table: "AccionesDePersonalPorSolicitud",
                 column: "AccionDePersonalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Apelaciones_SolicitudAscensoId",
+                table: "Apelaciones",
+                column: "SolicitudAscensoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Articulos_DocenteCedula",
@@ -616,9 +670,9 @@ namespace SIGAD.Infrastructure.Migrations
                 column: "DocenteCedula");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TesisPorSolicitud_TesisDirigidaId",
+                name: "IX_TesisPorSolicitud_TesisId",
                 table: "TesisPorSolicitud",
-                column: "TesisDirigidaId");
+                column: "TesisId");
         }
 
         /// <inheritdoc />
@@ -626,6 +680,9 @@ namespace SIGAD.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "AccionesDePersonalPorSolicitud");
+
+            migrationBuilder.DropTable(
+                name: "Apelaciones");
 
             migrationBuilder.DropTable(
                 name: "ArticulosPorSolicitud");

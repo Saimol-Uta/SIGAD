@@ -62,7 +62,7 @@
     }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -84,7 +84,7 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -103,6 +103,7 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-top: 1rem;
+        z-index:2;
     }
 
     .form-container h1 {
@@ -266,6 +267,33 @@
     .required {
         color: #dc3545;
     }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+    @@media (max-width: 1199px) and (min-width: 769px) {
+        /* 1. Aseguramos que el layout principal sea horizontal */
+        .main-content {
+            flex-direction: row;
+            align-items: center; /* Centra los elementos verticalmente */
+            justify-content: center; /* Mantiene el espacio entre ellos */
+            padding: 2rem; /* Un padding adecuado para este tamaño */
+        }
+        /* 4. La clave: Ocultamos los triángulos en este tamaño */
+        .triangle-bg {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+        }
+
+        .triangle-bg {
+            display: none;
+        }
+    }
 </style>
 
 <body>
@@ -348,6 +376,14 @@
                         {
                             <p>Archivo: @archivoSeleccionado</p>
                         }
+                    </div>
+
+                    <!-- Investigación Internacional -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" @bind="investigacionModel.EsInternacional" />
+                            Investigación Internacional
+                        </label>
                     </div>
 
                     @if (enviandoFormulario)
@@ -513,6 +549,7 @@
             content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
             content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional"); // Nuevo campo
 
             // Agregar el archivo
             var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
@@ -591,6 +628,7 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
         public string RolEnInvestigacion { get; set; } = "";
         public int MesesDeInvestigacion { get; set; } = 1;
+        public bool EsInternacional { get; set; } = false; // Nuevo campo
     }
 
     public class VerifyTokenResponse
@@ -605,4 +643,4 @@
         public string? Apellido1 { get; set; }
         public string? Cedula { get; set; }
     }
-} 
+}

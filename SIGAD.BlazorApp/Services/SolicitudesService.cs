@@ -12,6 +12,14 @@ namespace SIGAD.BlazorApp.Services
         Task<SolicitudDetalleDto?> GetSolicitudDetalleAsync(Guid id);
         Task<(bool success, string message)> AprobarSolicitudAsync(Guid id, string observaciones);
         Task<(bool success, string message)> RechazarSolicitudAsync(Guid id, string observaciones);
+        
+        // Métodos específicos para el proceso de dos etapas según Reglamento UTA
+        Task<(bool success, string message)> AprobarPorComisionAsync(Guid id, string observaciones);
+        Task<(bool success, string message)> AprobarPorConsejoAsync(Guid id, string observaciones);
+        Task<(bool success, string message)> FinalizarProcesoAsync(Guid id, string observaciones);
+        
+        // Método para depuración
+        Task<string> GetAuthStatusAsync();
     }
 
     public class SolicitudesService : ISolicitudesService
@@ -33,6 +41,38 @@ namespace SIGAD.BlazorApp.Services
                 // Limpiar comillas extras si las hay
                 token = token.Trim('"');
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        // Método para depuración de autenticación
+        public async Task<string> GetAuthStatusAsync()
+        {
+            try
+            {
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                if (string.IsNullOrEmpty(token))
+                {
+                    return "No hay token de autenticación almacenado";
+                }
+                
+                token = token.Trim('"');
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                
+                // Probar endpoint de prueba con autenticación
+                var response = await _httpClient.GetAsync("api/solicitudes/test-auth");
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return $"Autenticación exitosa: {content}";
+                }
+                else
+                {
+                    return $"Error de autenticación: HTTP {response.StatusCode}";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"Error al verificar autenticación: {ex.Message}";
             }
         }
 
@@ -151,7 +191,152 @@ namespace SIGAD.BlazorApp.Services
                 Console.WriteLine($"Error inesperado: {ex.Message}");
                 return (false, "Error inesperado al rechazar la solicitud");
             }
-                 }
+        }
+
+        // Métodos específicos para el proceso de dos etapas según Reglamento UTA
+        public async Task<(bool success, string message)> AprobarPorComisionAsync(Guid id, string observaciones)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                
+                // Crear un objeto para el body de la petición
+                var requestBody = new { observaciones = observaciones };
+                
+                var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/aprobar-comision", requestBody);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Solicitud aprobada por Comisión exitosamente");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return (false, "No tienes autorización para realizar esta acción. Verifica que estés logueado como ADMINISTRADOR.");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error HTTP {response.StatusCode}: {errorContent}");
+                    
+                    try
+                    {
+                        var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                        return (false, errorResult?.Message ?? $"Error HTTP {response.StatusCode}");
+                    }
+                    catch
+                    {
+                        return (false, $"Error HTTP {response.StatusCode}: {errorContent}");
+                    }
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al aprobar por Comisión {id}: {ex.Message}");
+                return (false, "Error de conexión al aprobar por Comisión");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return (false, "Error inesperado al aprobar por Comisión");
+            }
+        }
+
+        public async Task<(bool success, string message)> AprobarPorConsejoAsync(Guid id, string observaciones)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                
+                // Crear un objeto para el body de la petición
+                var requestBody = new { observaciones = observaciones };
+                
+                var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/aprobar-consejo", requestBody);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Solicitud aprobada por Consejo Universitario exitosamente");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return (false, "No tienes autorización para realizar esta acción. Verifica que estés logueado como ADMINISTRADOR.");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error HTTP {response.StatusCode}: {errorContent}");
+                    
+                    try
+                    {
+                        var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                        return (false, errorResult?.Message ?? $"Error HTTP {response.StatusCode}");
+                    }
+                    catch
+                    {
+                        return (false, $"Error HTTP {response.StatusCode}: {errorContent}");
+                    }
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al aprobar por Consejo {id}: {ex.Message}");
+                return (false, "Error de conexión al aprobar por Consejo");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return (false, "Error inesperado al aprobar por Consejo");
+            }
+        }
+
+        public async Task<(bool success, string message)> FinalizarProcesoAsync(Guid id, string observaciones)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                
+                // Crear un objeto para el body de la petición
+                var requestBody = new { observaciones = observaciones };
+                
+                var response = await _httpClient.PutAsJsonAsync($"api/solicitudes/{id}/finalizar", requestBody);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Proceso de ascenso finalizado exitosamente");
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return (false, "No tienes autorización para realizar esta acción. Verifica que estés logueado como ADMINISTRADOR.");
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error HTTP {response.StatusCode}: {errorContent}");
+                    
+                    try
+                    {
+                        var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                        return (false, errorResult?.Message ?? $"Error HTTP {response.StatusCode}");
+                    }
+                    catch
+                    {
+                        return (false, $"Error HTTP {response.StatusCode}: {errorContent}");
+                    }
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al finalizar proceso {id}: {ex.Message}");
+                return (false, "Error de conexión al finalizar el proceso");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return (false, "Error inesperado al finalizar el proceso");
+            }
+        }
      }
 
      // Clase para deserializar respuestas del API

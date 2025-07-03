@@ -61,6 +61,123 @@
                 </div>
             </div>
 
+            <!-- Sección 2.5: Estados de Aprobación según Reglamento UTA -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i> Estados de Aprobación
+                        <small class="text-muted">- Reglamento UTA</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="aprobacion-step">
+                                <div class="step-header">
+                                    @if (solicitud.AprobadoPorComision)
+                                    {
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span class="badge bg-success">Aprobado por Comisión</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="far fa-circle text-muted me-2"></i>
+                                        <span class="badge bg-secondary">Pendiente Comisión</span>
+                                    }
+                                </div>
+                                @if (solicitud.FechaAprobacionComision.HasValue)
+                                {
+                                    <small class="text-muted d-block mt-1">
+                                        Fecha: @solicitud.FechaAprobacionComision.Value.ToString("dd/MM/yyyy")
+                                    </small>
+                                }
+                                @if (!string.IsNullOrEmpty(solicitud.ObservacionesComision))
+                                {
+                                    <div class="observaciones-box mt-2">
+                                        <strong>Observaciones Comisión:</strong>
+                                        <p class="mb-0">@solicitud.ObservacionesComision</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="aprobacion-step">
+                                <div class="step-header">
+                                    @if (solicitud.AprobadoPorConsejo)
+                                    {
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span class="badge bg-success">Aprobado por Consejo Universitario</span>
+                                    }
+                                    else if (solicitud.AprobadoPorComision)
+                                    {
+                                        <i class="far fa-clock text-warning me-2"></i>
+                                        <span class="badge bg-warning">En revisión Consejo</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="far fa-circle text-muted me-2"></i>
+                                        <span class="badge bg-secondary">Pendiente Consejo</span>
+                                    }
+                                </div>
+                                @if (solicitud.FechaAprobacionConsejo.HasValue)
+                                {
+                                    <small class="text-muted d-block mt-1">
+                                        Fecha: @solicitud.FechaAprobacionConsejo.Value.ToString("dd/MM/yyyy")
+                                    </small>
+                                }
+                                @if (!string.IsNullOrEmpty(solicitud.ObservacionesConsejo))
+                                {
+                                    <div class="observaciones-box mt-2">
+                                        <strong>Observaciones Consejo:</strong>
+                                        <p class="mb-0">@solicitud.ObservacionesConsejo</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Flujo visual del proceso -->
+                    <div class="proceso-flujo mt-4">
+                        <div class="flujo-steps">
+                            <div class="step @(solicitud.FechaEnvio.HasValue ? "completed" : "pending")">
+                                <div class="step-circle">
+                                    <i class="fas fa-paper-plane"></i>
+                                </div>
+                                <span>Enviada</span>
+                            </div>
+                            
+                            <div class="step-connector @(solicitud.AprobadoPorComision ? "completed" : "pending")"></div>
+                            
+                            <div class="step @(solicitud.AprobadoPorComision ? "completed" : solicitud.FechaEnvio.HasValue ? "current" : "pending")">
+                                <div class="step-circle">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <span>Comisión</span>
+                            </div>
+                            
+                            <div class="step-connector @(solicitud.AprobadoPorConsejo ? "completed" : "pending")"></div>
+                            
+                            <div class="step @(solicitud.AprobadoPorConsejo ? "completed" : solicitud.AprobadoPorComision ? "current" : "pending")">
+                                <div class="step-circle">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <span>Consejo</span>
+                            </div>
+                            
+                            <div class="step-connector @(solicitud.Estado == "Aprobada" ? "completed" : "pending")"></div>
+                            
+                            <div class="step @(solicitud.Estado == "Aprobada" ? "completed" : solicitud.AprobadoPorConsejo ? "current" : "pending")">
+                                <div class="step-circle">
+                                    <i class="fas fa-certificate"></i>
+                                </div>
+                                <span>Finalizada</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sección 3: Evidencia Presentada por el Docente -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -99,7 +216,16 @@
                                                             <td>@articulo.Revista</td>
                                                             <td>@articulo.AnioPublicacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("articulo", articulo.DOI))">Ver Documento</button>
+                                                                @if (!string.IsNullOrEmpty(articulo.DOI))
+                                                                {
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("articulo", articulo.DOI, articulo.Titulo))">
+                                                                        <i class="fas fa-eye"></i> Ver Documento
+                                                                    </button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">Sin archivo</span>
+                                                                }
                                                             </td>
                                                         </tr>
                                                     }
@@ -143,7 +269,9 @@
                                                             <td>@investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>@investigacion.MesesDeInvestigacion</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("investigacion", investigacion.Id.ToString()))">Ver Informe</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("investigacion", investigacion.Id.ToString(), investigacion.Titulo))">
+                                                                    <i class="fas fa-eye"></i> Ver Informe
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -187,7 +315,9 @@
                                                             <td>@curso.NumeroHoras</td>
                                                             <td>@curso.FechaFinalizacion.ToString("dd/MM/yyyy")</td>
                                                             <td>
-                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("curso", curso.Id.ToString()))">Ver Certificado</button>
+                                                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("curso", curso.Id.ToString(), curso.Nombre))">
+                                                                    <i class="fas fa-eye"></i> Ver Certificado
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     }
@@ -269,8 +399,8 @@
                                                             <td>
                                                                 @if (experiencia.TieneCertificado)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("experiencia", experiencia.Id.ToString()))">
-                                                                        <i class="fas fa-download"></i> Ver Certificado
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("experiencia", experiencia.Id.ToString(), $"Certificado - {experiencia.OrganizacionNombre}"))">
+                                                                        <i class="fas fa-eye"></i> Ver Certificado
                                                                     </button>
                                                                 }
                                                                 else
@@ -290,7 +420,8 @@
                                     }
                                 </div>
                             </div>
-                        </div>                        <!-- Sub-sección de Evaluaciones Docentes -->
+                        </div>                  
+                              <!-- Sub-sección de Evaluaciones Docentes -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="evaluacionesHeader">                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#evaluacionesCollapse" aria-expanded="true" aria-controls="evaluacionesCollapse">
                                     Evaluaciones Docentes (@solicitud.EvaluacionesDocente.Count)
@@ -324,7 +455,9 @@
                                                             <td>
                                                                 @if (evaluacion.TieneInforme)
                                                                 {
-                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => DescargarDocumento("evaluacion", evaluacion.Id.ToString()))">Ver Informe</button>
+                                                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("evaluacion", evaluacion.Id.ToString(), $"Evaluación - {evaluacion.PeriodoAcademico}"))">
+                                                                        <i class="fas fa-eye"></i> Ver Informe
+                                                                    </button>
                                                                 }
                                                                 else
                                                                 {
@@ -344,6 +477,62 @@
                                 </div>
                             </div>
                         </div>
+
+<div class="accordion-item">
+    <h2 class="accordion-header" id="tesisHeader">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tesisCollapse" aria-expanded="true" aria-controls="tesisCollapse">
+            Tesis Dirigidas (@solicitud.TesisDirigidas.Count)
+        </button>
+    </h2>
+    <div id="tesisCollapse" class="accordion-collapse collapse show" data-bs-parent="#evidenciaAccordion">
+        <div class="accordion-body">
+            @if (solicitud.TesisDirigidas.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Título de la Tesis</th>
+                                <th>Nivel Académico</th>
+                                <th>Institución</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tesis in solicitud.TesisDirigidas)
+                            {
+                                <tr>
+                                    <td>@tesis.TituloTesis</td>
+                                    <td>
+                                        <span class="badge @(tesis.NivelAcademico == "Doctorado" ? "bg-primary" : "bg-secondary")">
+                                            @tesis.NivelAcademico
+                                        </span>
+                                    </td>
+                                    <td>@tesis.Institucion</td>
+                                    <td>
+                                        <span class="badge @(tesis.Estado == "Culminada" ? "bg-success" : "bg-warning")">
+                                            @tesis.Estado
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="@(() => VisualizarDocumento("tesis", tesis.Id.ToString(), tesis.TituloTesis))">
+                                            <i class="fas fa-eye"></i> Ver Certificación
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">No se presentaron tesis dirigidas en esta solicitud.</p>
+            }
+        </div>
+    </div>
+</div>
                     </div>
                 </div>
             </div>
@@ -353,7 +542,33 @@
             {
                 <div class="card mb-4">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0">Decisión del Administrador</h5>
+                        <h5 class="mb-0">
+                            <i class="fas fa-gavel"></i> 
+                            @if (!solicitud.AprobadoPorComision)
+                            {
+                                <span>Decisión de la Comisión</span>
+                            }
+                            else if (!solicitud.AprobadoPorConsejo)
+                            {
+                                <span>Decisión del Consejo Universitario</span>
+                            }
+                            else
+                            {
+                                <span>Finalizar Proceso</span>
+                            }
+                        </h5>
+                        @if (!solicitud.AprobadoPorComision)
+                        {
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> La solicitud debe ser aprobada primero por la Comisión según el Reglamento UTA
+                            </small>
+                        }
+                        else if (!solicitud.AprobadoPorConsejo)
+                        {
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> La solicitud ya fue aprobada por la Comisión, ahora requiere aprobación del Consejo Universitario
+                            </small>
+                        }
                     </div>
                     <div class="card-body">
                         <EditForm Model="@formularioDecision" OnValidSubmit="@ProcesarDecision">
@@ -388,27 +603,64 @@
                             }
 
                             <div class="d-flex gap-3 justify-content-center">
-                                <button type="button" @onclick="@(() => AprobarSolicitud())" class="btn btn-success btn-lg" disabled="@procesando">
-                                    @if (procesando && accionSeleccionada == "aprobar")
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2"></span>
-                                    }
-                                    <i class="fas fa-check"></i> Aprobar Solicitud
-                                </button>
-                                
-                                <button type="button" @onclick="@(() => RechazarSolicitud())" 
-                                        class="btn btn-danger btn-lg" 
-                                        disabled="@(procesando || string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || formularioDecision.Observaciones.Trim().Length < 10)">
-                                    @if (procesando && accionSeleccionada == "rechazar")
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2"></span>
-                                    }
-                                    <i class="fas fa-times"></i> Rechazar Solicitud
-                                    @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
-                                    {
-                                        <small class="d-block">*Justificación requerida</small>
-                                    }
-                                </button>
+                                @if (!solicitud.AprobadoPorComision)
+                                {
+                                    <button type="button" @onclick="@(() => AprobarPorComision())" class="btn btn-success btn-lg" disabled="@procesando">
+                                        @if (procesando && accionSeleccionada == "aprobar_comision")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="fas fa-check"></i> Aprobar por Comisión
+                                    </button>
+                                    
+                                    <button type="button" @onclick="@(() => RechazarSolicitud())" 
+                                            class="btn btn-danger btn-lg" 
+                                            disabled="@(procesando || string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || formularioDecision.Observaciones.Trim().Length < 10)">
+                                        @if (procesando && accionSeleccionada == "rechazar")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="fas fa-times"></i> Rechazar en Comisión
+                                        @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
+                                        {
+                                            <small class="d-block">*Justificación requerida</small>
+                                        }
+                                    </button>
+                                }
+                                else if (!solicitud.AprobadoPorConsejo)
+                                {
+                                    <button type="button" @onclick="@(() => AprobarPorConsejo())" class="btn btn-success btn-lg" disabled="@procesando">
+                                        @if (procesando && accionSeleccionada == "aprobar_consejo")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="fas fa-university"></i> Aprobar por Consejo Universitario
+                                    </button>
+                                    
+                                    <button type="button" @onclick="@(() => RechazarSolicitud())" 
+                                            class="btn btn-danger btn-lg" 
+                                            disabled="@(procesando || string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || formularioDecision.Observaciones.Trim().Length < 10)">
+                                        @if (procesando && accionSeleccionada == "rechazar")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="fas fa-times"></i> Rechazar en Consejo
+                                        @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
+                                        {
+                                            <small class="d-block">*Justificación requerida</small>
+                                        }
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" @onclick="@(() => FinalizarProceso())" class="btn btn-primary btn-lg" disabled="@procesando">
+                                        @if (procesando && accionSeleccionada == "finalizar")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="fas fa-certificate"></i> Finalizar Proceso de Ascenso
+                                    </button>
+                                }
                             </div>
                         </EditForm>
                     </div>
@@ -418,18 +670,51 @@
             {
                 <div class="card mb-4">
                     <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">Decisión Final</h5>
+                        <h5 class="mb-0">
+                            <i class="fas fa-flag-checkered"></i> Proceso Completado
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <p><strong>Estado Final:</strong> <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span></p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Estado Final:</strong> <span class="badge @ObtenerClaseBadge(solicitud.Estado)">@solicitud.Estado</span></p>
+                                @if (solicitud.FechaResolucion.HasValue)
+                                {
+                                    <p><strong>Fecha de Resolución:</strong> @solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy")</p>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                @if (solicitud.AprobadoPorComision && solicitud.AprobadoPorConsejo)
+                                {
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-trophy"></i> <strong>¡Ascenso Aprobado!</strong>
+                                        <br><small>Aprobado por Comisión y Consejo Universitario</small>
+                                    </div>
+                                }
+                                else if (solicitud.Estado == "Rechazada")
+                                {
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-times-circle"></i> <strong>Solicitud Rechazada</strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
                         @if (!string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
                         {
-                            <p><strong>Observaciones del Administrador:</strong></p>
-                            <div class="alert alert-info">@solicitud.ObservacionesAdmin</div>
+                            <div class="mt-3">
+                                <p><strong>Observaciones Generales:</strong></p>
+                                <div class="alert alert-info">@solicitud.ObservacionesAdmin</div>
+                            </div>
                         }
-                        @if (solicitud.FechaResolucion.HasValue)
+                        
+                        @if (solicitud.Estado == "Aprobada")
                         {
-                            <p><strong>Fecha de Resolución:</strong> @solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy")</p>
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-outline-primary" @onclick="GenerarConstancia">
+                                    <i class="fas fa-certificate"></i> Generar Constancia de Ascenso
+                                </button>
+                            </div>
                         }
                     </div>
                 </div>
@@ -442,6 +727,102 @@
                 </button>
             </div>
         }
+    </div>
+</div>
+
+<!-- Modal para visualización de documentos -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentModalLabel">
+                    <i class="fas fa-file-alt"></i> @documentoActual.Titulo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                @if (cargandoDocumento)
+                {
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando documento...</span>
+                        </div>
+                        <div class="mt-3">Cargando documento...</div>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(errorDocumento))
+                {
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Error al cargar el documento:</strong> @errorDocumento
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(documentoActual.ContenidoBase64))
+                {
+                    <div class="document-preview">
+                        @if (documentoActual.TipoMime.Contains("pdf"))
+                        {
+                            <!-- Visualización de PDF -->
+                            <div style="height: 70vh;">
+                                <embed src="data:application/pdf;base64,@documentoActual.ContenidoBase64" 
+                                       type="application/pdf" 
+                                       width="100%" 
+                                       height="100%"
+                                       style="border: none;" />
+                            </div>
+                            <div class="alert alert-info m-3">
+                                <i class="fas fa-info-circle"></i> 
+                                Si no se muestra el PDF correctamente, puede 
+                                <button class="btn btn-link p-0" @onclick="() => DescargarDocumentoActual()">descargarlo aquí</button>.
+                            </div>
+                        }
+                        else if (documentoActual.TipoMime.Contains("image"))
+                        {
+                            <!-- Visualización de imágenes -->
+                            <div class="text-center p-3">
+                                <img src="data:@documentoActual.TipoMime;base64,@documentoActual.ContenidoBase64" 
+                                     class="img-fluid" 
+                                     style="max-height: 70vh;" 
+                                     alt="Documento" />
+                            </div>
+                        }
+                        else if (documentoActual.TipoMime.Contains("text"))
+                        {
+                            <!-- Visualización de texto plano -->
+                            <div class="p-3">
+                                <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">@System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(documentoActual.ContenidoBase64))</pre>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Tipo de archivo no compatible para vista previa -->
+                            <div class="alert alert-warning m-3">
+                                <i class="fas fa-eye-slash"></i> 
+                                <strong>Vista previa no disponible</strong> para este tipo de archivo (@documentoActual.TipoMime).
+                                <br>
+                                <button class="btn btn-primary mt-2" @onclick="() => DescargarDocumentoActual()">
+                                    <i class="fas fa-download"></i> Descargar documento
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Tipo: @documentoActual.TipoMime | Tamaño: @(FormatearTamanoArchivo(documentoActual.TamanoBytes))
+                    </small>
+                </div>
+                <button type="button" class="btn btn-outline-primary" @onclick="() => DescargarDocumentoActual()">
+                    <i class="fas fa-download"></i> Descargar
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -489,7 +870,7 @@
 
     .accordion-button:not(.collapsed) {
         background-color: #e7f1ff;
-        color: #0c63e4;
+        color: #0a1d44;
     }
 
     .table th {
@@ -500,6 +881,196 @@
     .btn-lg {
         padding: 0.75rem 2rem;
         font-size: 1.1rem;
+    }
+
+    /* Estilos para Estados de Aprobación */
+    .aprobacion-step {
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 0.5rem;
+        background-color: #f8f9fa;
+        height: 100%;
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .observaciones-box {
+        background-color: #e7f3ff;
+        border: 1px solid #b8daff;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    /* Flujo visual del proceso */
+    .proceso-flujo {
+        border-top: 1px solid #dee2e6;
+        padding-top: 1.5rem;
+    }
+
+    .flujo-steps {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .step-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    .step.completed .step-circle {
+        background-color: #198754;
+        color: white;
+        box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.2);
+    }
+
+    .step.current .step-circle {
+        background-color: #ffc107;
+        color: #212529;
+        box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+        animation: pulse 2s infinite;
+    }
+
+    .step.pending .step-circle {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .step span {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .step-connector {
+        height: 3px;
+        flex: 1;
+        margin: 0 0.5rem;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+
+    .step-connector.completed {
+        background-color: #198754;
+    }
+
+    .step-connector.pending {
+        background-color: #dee2e6;
+    }
+
+
+    .alert-sm {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .btn:disabled small {
+        font-size: 0.7rem;
+        font-weight: normal;
+        opacity: 0.8;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .justify-content-required {
+        border: 2px dashed #ffc107;
+        background-color: #fff3cd;
+    }
+
+    .justify-content-valid {
+        border: 2px solid #198754;
+        background-color: #d1e7dd;
+    }
+
+    /* Estilos para el modal de documentos */
+    .modal-xl {
+        max-width: 90%;
+    }
+
+    #documentModal .modal-body {
+        min-height: 60vh;
+        max-height: 80vh;
+    }
+
+    #documentModal .modal-content {
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.175);
+    }
+
+    #documentModal .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    #documentModal .modal-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Estilos para la vista previa de documentos */
+    .document-preview {
+        overflow: auto;
+        height: 100%;
+    }
+
+    .document-preview embed {
+        border-radius: 0.375rem;
+    }
+
+    .document-preview img {
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+    }
+
+    .document-preview pre {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    @@media (max-width: 768px) {
+        .modal-xl {
+            max-width: 95%;
+        }
+        
+        #documentModal .modal-body {
+            min-height: 50vh;
+            max-height: 70vh;
+        }
     }
 </style>
 
@@ -512,7 +1083,12 @@
     private bool procesando = false;
     private string accionSeleccionada = "";
     
-    private FormularioDecision formularioDecision = new();    protected override async Task OnInitializedAsync()
+    private FormularioDecision formularioDecision = new();
+    
+    // Propiedades para el modal de documentos
+    private bool cargandoDocumento = false;
+    private string? errorDocumento = null;
+    private DocumentoVisualizacion documentoActual = new();    protected override async Task OnInitializedAsync()
     {
         await CargarDetalle();
     }    protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -566,6 +1142,36 @@
         await ProcesarDecisionInterna("aprobar");
     }
 
+    private async Task AprobarPorComision()
+    {
+        await ProcesarDecisionInterna("aprobar_comision");
+    }
+
+    private async Task AprobarPorConsejo()
+    {
+        await ProcesarDecisionInterna("aprobar_consejo");
+    }
+
+    private async Task FinalizarProceso()
+    {
+        await ProcesarDecisionInterna("finalizar");
+    }
+
+    private async Task GenerarConstancia()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "🎉 Funcionalidad en desarrollo: Generación automática de constancia de ascenso en PDF");
+            // TODO: Implementar generación de constancia PDF
+            // var pdfBytes = await SolicitudesService.GenerarConstanciaAsync(Guid.Parse(SolicitudId));
+            // Descargar PDF...
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al generar constancia: {ex.Message}");
+        }
+    }
+
     private async Task RechazarSolicitud()
     {
         // Validación del lado del cliente para rechazos
@@ -596,19 +1202,39 @@
             {
                 (bool success, string message) resultado = (false, "");
                 
-                if (accion == "aprobar")
+                switch (accion)
                 {
-                    resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
-                }
-                else if (accion == "rechazar")
-                {
-                    resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                    case "aprobar_comision":
+                        resultado = await SolicitudesService.AprobarPorComisionAsync(guid, formularioDecision.Observaciones ?? "");
+                        break;
+                    case "aprobar_consejo":
+                        resultado = await SolicitudesService.AprobarPorConsejoAsync(guid, formularioDecision.Observaciones ?? "");
+                        break;
+                    case "finalizar":
+                        resultado = await SolicitudesService.FinalizarProcesoAsync(guid, formularioDecision.Observaciones ?? "");
+                        break;
+                    case "aprobar":
+                        resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                        break;
+                    case "rechazar":
+                        resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                        break;
                 }
 
                 if (resultado.success)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", $"✅ {resultado.message}");
+                    
+                    // Debug: Verificar el estado antes de recargar
+                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado antes de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
+                    
+                    // Dar tiempo a la base de datos para procesar la actualización
+                    await Task.Delay(1000);
+                    
                     await CargarDetalle(); // Recargar para mostrar el nuevo estado
+                    
+                    // Debug: Verificar el estado después de recargar
+                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado después de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
                     
                     // Limpiar el formulario
                     formularioDecision.Observaciones = "";
@@ -668,8 +1294,30 @@
 
     private async Task DescargarDocumento(string tipoDocumento, string id)
     {
+        await VisualizarDocumento(tipoDocumento, id);
+    }
+
+    private async Task VisualizarDocumento(string tipoDocumento, string id, string? titulo = null)
+    {
         try
         {
+            cargandoDocumento = true;
+            errorDocumento = null;
+            
+            // Resetear el documento actual
+            documentoActual = new DocumentoVisualizacion
+            {
+                Titulo = titulo ?? $"{ObtenerNombreTipoDocumento(tipoDocumento)} - {id}"
+            };
+
+            // Mostrar el modal
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                var modal = new bootstrap.Modal(document.getElementById('documentModal'));
+                modal.show();
+            ");
+            
+            StateHasChanged();
+
             string endpoint = tipoDocumento.ToLower() switch
             {
                 "articulo" => $"api/articulos/{id}/archivo",
@@ -682,14 +1330,14 @@
 
             if (string.IsNullOrEmpty(endpoint))
             {
-                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido.");
+                errorDocumento = "Tipo de documento no válido.";
                 return;
             }
 
             // Obtener el token de autenticación
             var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
             
-            // Realizar la descarga usando HttpClient con autenticación
+            // Realizar la petición
             var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
             if (!string.IsNullOrEmpty(token))
             {
@@ -703,7 +1351,7 @@
                 var fileBytes = await response.Content.ReadAsByteArrayAsync();
                 var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
                 
-                // Obtener el nombre del archivo desde el header Content-Disposition si existe
+                // Obtener el nombre del archivo
                 var fileName = $"{tipoDocumento}_{id}";
                 if (response.Content.Headers.ContentDisposition?.FileName != null)
                 {
@@ -718,83 +1366,209 @@
                     fileName += ".docx";
                 }
 
-                // Convertir a Base64 para JavaScript
-                var base64 = Convert.ToBase64String(fileBytes);
-                
-                // Usar JavaScript para descargar el archivo
-                await JSRuntime.InvokeVoidAsync("eval", $@"
-                    const byteCharacters = atob('{base64}');
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {{
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }}
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], {{ type: '{contentType}' }});
-                    
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = '{fileName}';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                ");
+                // Actualizar el documento actual
+                documentoActual = new DocumentoVisualizacion
+                {
+                    Titulo = titulo ?? $"{ObtenerNombreTipoDocumento(tipoDocumento)} - {fileName}",
+                    ContenidoBase64 = Convert.ToBase64String(fileBytes),
+                    TipoMime = contentType,
+                    NombreArchivo = fileName,
+                    TamanoBytes = fileBytes.Length
+                };
             }
             else
             {
-                var errorMessage = response.StatusCode switch
+                errorDocumento = response.StatusCode switch
                 {
                     System.Net.HttpStatusCode.NotFound => "Archivo no encontrado",
                     System.Net.HttpStatusCode.Unauthorized => "No autorizado para acceder a este archivo",
                     _ => $"Error del servidor: {response.StatusCode}"
                 };
-                await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el archivo: {errorMessage}");
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"Error al descargar el documento: {ex.Message}");
+            errorDocumento = ex.Message;
         }
+        finally
+        {
+            cargandoDocumento = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DescargarDocumentoActual()
+    {
+        if (!string.IsNullOrEmpty(documentoActual.ContenidoBase64))
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                const byteCharacters = atob('{documentoActual.ContenidoBase64}');
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {{
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }}
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {{ type: '{documentoActual.TipoMime}' }});
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = '{documentoActual.NombreArchivo}';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            ");
+        }
+    }
+
+    private string ObtenerNombreTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento.ToLower() switch
+        {
+            "articulo" => "Artículo Científico",
+            "investigacion" => "Informe de Investigación",
+            "curso" => "Certificado de Curso",
+            "experiencia" => "Certificado de Experiencia",
+            "evaluacion" => "Evaluación Docente",
+            _ => "Documento"
+        };
+    }
+
+    private string FormatearTamanoArchivo(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
     }
 
     public class FormularioDecision
     {
         public string? Observaciones { get; set; }
     }
+
+    public class DocumentoVisualizacion
+    {
+        public string Titulo { get; set; } = "";
+        public string ContenidoBase64 { get; set; } = "";
+        public string TipoMime { get; set; } = "";
+        public string NombreArchivo { get; set; } = "";
+        public long TamanoBytes { get; set; } = 0;
+    }
 }
 
 <style>
-    .alert-sm {
-        padding: 0.5rem 0.75rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
+/* === CSS UNIFICADO PARA DETALLE DE SOLICITUD === */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
 
-    .btn:disabled small {
-        font-size: 0.7rem;
-        font-weight: normal;
-        opacity: 0.8;
-    }
+.detalle-container {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
 
-    .form-text {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
+.cabecera-solicitud {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-    .text-danger {
-        color: #dc3545 !important;
-    }
+.estado-badge {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+}
 
-    .justify-content-required {
-        border: 2px dashed #ffc107;
-        background-color: #fff3cd;
-    }
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0a1d44; /* Azul Principal */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
 
-    .justify-content-valid {
-        border: 2px solid #198754;
-        background-color: #d1e7dd;
-    }
+@@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === Colores de Badges de Estado === */
+.badge.bg-success { background-color: #165125 !important; } /* Verde Oscuro */
+.badge.bg-danger { background-color: #dc3545 !important; } /* Rojo */
+.badge.bg-warning { background-color: #ffb74d !important; color: #212529 !important; } /* Amarillo Ámbar */
+.badge.bg-primary { background-color: #0a1d44 !important; } /* Azul Principal */
+.badge.bg-secondary { background-color: #6c757d !important; } /* Gris */
+/* Estilo para los badges de información (ej. Tipo de Organización) */
+.badge.bg-info {
+    background-color: #0a1d44 !important; /* Tu azul principal */
+    color: white !important; /* Texto blanco para contraste */
+}
+
+/* === Flujo Visual del Proceso === */
+.proceso-flujo { border-top: 1px solid #dee2e6; padding-top: 1.5rem; }
+.flujo-steps { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.step { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; min-width: 80px; }
+.step-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; font-size: 1.2rem; transition: all 0.3s ease; }
+.step.completed .step-circle, .step-connector.completed { background-color: #165125; color: white; } /* Verde Oscuro */
+.step.current .step-circle { background-color: #ffb74d; color: #212529; animation: pulse 2s infinite; } /* Amarillo Ámbar */
+.step.pending .step-circle { background-color: #6c757d; color: white; } /* Gris */
+.step-connector { height: 3px; flex: 1; margin: 0 0.5rem; border-radius: 2px; transition: all 0.3s ease; }
+.step-connector.pending { background-color: #dee2e6; }
+@@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.7); } 50% { box-shadow: 0 0 0 8px rgba(255, 183, 77, 0); } }
+
+/* === Acordeón y Tablas === */
+.accordion-button:not(.collapsed) { background-color: #eef2f9; color: #0a1d44; }
+.table th { background-color: #f8f9fa; border-top: none; }
+.observaciones-box { background-color: #eef2f9; border: 1px solid #c8d4e3; border-radius: 0.25rem; padding: 0.75rem; font-size: 0.9rem; }
+
+/* === Botones de Acción del Admin === */
+.btn-lg { padding: 0.75rem 2rem; font-size: 1.1rem; }
+.btn-success { background-color: #165125; border-color: #165125; }
+.btn-success:hover { background-color: #0f3b1a; border-color: #0f3b1a; }
+.btn-danger { background-color: #dc3545; border-color: #dc3545; }
+.btn-danger:hover { background-color: #bb2d3b; border-color: #b02a37; }
+.btn-primary { background-color: #0a1d44; border-color: #0a1d44; }
+.btn-primary:hover { background-color: #09203f; border-color: #09203f; }
+.btn-outline-primary { color: #0a1d44; border-color: #0a1d44; }
+.btn-outline-primary:hover { background-color: #0a1d44; color: white; }
+
+/* === Textos y Alertas === */
+.form-text { font-size: 0.8rem; color: #6c757d; margin-top: 0.25rem; }
+.text-danger { color: #dc3545 !important; }
+.text-warning { color: #ffb74d !important; }
+.text-success { color: #165125 !important; }
+.justify-content-required { border: 2px dashed #ffb74d; background-color: #fff8e1; }
+.justify-content-valid { border: 2px solid #165125; background-color: #e8f5e9; }
+
+/* === Modal === */
+.modal-xl { max-width: 90%; }
+#documentModal .modal-body { min-height: 60vh; max-height: 80vh; }
+#documentModal .modal-content { box-shadow: 0 1rem 3rem rgba(0,0,0,.175); }
+#documentModal .modal-header, #documentModal .modal-footer { background-color: #f8f9fa; border-color: #dee2e6; }
+.document-preview { overflow: auto; height: 100%; }
+.document-preview embed, .document-preview img { border-radius: 0.375rem; }
+.document-preview pre { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; max-height: 60vh; overflow-y: auto; }
+
+@@media (max-width: 768px) {
+    .modal-xl { max-width: 95%; }
+    #documentModal .modal-body { min-height: 50vh; max-height: 70vh; }
+}
 </style>

@@ -38,7 +38,7 @@ namespace SIGAD.Application.DTOs
         public int OrganizacionId { get; set; }
 
         public string TipoCurso { get; set; } = string.Empty;
-        public bool ImpartidoPorDocente { get; set; }
-
+        public int? HorasImpartidas { get; set; } // Nuevo campo
+        public bool ImpartidoPorDocente { get; set; } // Nuevo campo
     }
-} 
+}

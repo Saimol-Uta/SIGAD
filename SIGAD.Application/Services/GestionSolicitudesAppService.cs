@@ -97,7 +97,7 @@ namespace SIGAD.Application.Services
                 nuevaSolicitud.TesisPorSolicitud.Add(new TesisPorSolicitud
                 {
                     SolicitudId = nuevaSolicitud.Id,
-                    TesisDirigidaId = id
+                    TesisId = id
                 });
             }
 
@@ -139,6 +139,14 @@ namespace SIGAD.Application.Services
                     : "N/A",
                 RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
                 RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
+
+                // Campos de aprobación UTA
+                AprobadoPorComision = solicitud.AprobadoPorComision,
+                AprobadoPorConsejo = solicitud.AprobadoPorConsejo,
+                FechaAprobacionComision = solicitud.FechaAprobacionComision,
+                FechaAprobacionConsejo = solicitud.FechaAprobacionConsejo,
+                ObservacionesComision = solicitud.ObservacionesComision,
+                ObservacionesConsejo = solicitud.ObservacionesConsejo,
 
                 ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
                 {
@@ -294,6 +302,39 @@ namespace SIGAD.Application.Services
         public async Task<Docente?> ObtenerDocentePorCedulaAsync(string cedula)
         {
             return await _docenteRepository.GetByIdWithDetailsAsync(cedula);
+        }
+
+        public async Task AprobarPorComisionAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorComision(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task AprobarPorConsejoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.AprobarPorConsejo(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task FinalizarProcesoAsync(Guid id, string observaciones)
+        {
+            var solicitud = await _solicitudRepository.GetByIdAsync(id);
+            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+
+            solicitud.FinalizarProceso(observaciones);
+
+            await _solicitudRepository.UpdateAsync(solicitud);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

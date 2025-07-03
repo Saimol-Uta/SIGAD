@@ -22,6 +22,9 @@ namespace SIGAD.Domain.Entities
         public bool EsIndexado { get; set; } = false;
         public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 
+    
+        public string? IdiomaPublicacion { get; set; }
+
         // Propiedades para compatibilidad
         public bool Verificado
         {
@@ -31,5 +34,13 @@ namespace SIGAD.Domain.Entities
 
         // Propiedad de navegación hacia el Docente dueño del artículo
         public virtual Docente? Docente { get; set; }
+
+       
+        public bool EsIdiomaExtranjero()
+        {
+            return !string.IsNullOrEmpty(IdiomaPublicacion) && 
+                   IdiomaPublicacion.ToLower() != "español" && 
+                   IdiomaPublicacion.ToLower() != "spanish";
+        }
     }
 }
