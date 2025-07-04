@@ -339,7 +339,7 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 // Log temporal para debug
-                _logger.LogInformation("Asociando artículo - DOI: {ArticuloDOI}, SolicitudId: {SolicitudId}", 
+                _logger.LogInformation("Asociando artículo - DOI: {ArticuloDOI}, SolicitudId: {SolicitudId}",
                     asociarDto.ArticuloDOI, asociarDto.SolicitudId);
 
                 if (!ModelState.IsValid)
@@ -361,9 +361,9 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 var result = await _articuloService.AsociarArticuloASolicitudAsync(asociarDto);
-                
+
                 _logger.LogInformation("Resultado de asociación: {Result}", result);
-                
+
                 if (!result)
                 {
                     return BadRequest(new
@@ -381,7 +381,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al asociar artículo {ArticuloDOI} a solicitud {SolicitudId}", 
+                _logger.LogError(ex, "Error al asociar artículo {ArticuloDOI} a solicitud {SolicitudId}",
                     asociarDto.ArticuloDOI, asociarDto.SolicitudId);
                 return StatusCode(500, new
                 {
@@ -414,7 +414,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}", 
+                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}",
                     articuloDoi, solicitudId);
                 return StatusCode(500, new
                 {
@@ -450,13 +450,13 @@ namespace SIGAD.WebAPI.Controllers
 
                 var nombreArchivo = await _articuloService.GetNombreArchivoAsync(doi);
                 var fileName = nombreArchivo ?? $"articulo_{doi}.pdf";
-                
+
                 // Determinar el Content-Type basado en la extensión del archivo
                 var contentType = GetContentType(fileName);
-                
+
                 // Establecer el header Content-Disposition para forzar la descarga con el nombre correcto
                 Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
-                
+
                 return File(archivo, contentType, fileName);
             }
             catch (Exception ex)
@@ -485,12 +485,12 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var articulos = await _articuloService.GetAllArticulosAsync();
-                
+
                 switch (formato.ToLower())
                 {
                     case "json":
-                        var jsonData = System.Text.Json.JsonSerializer.Serialize(articulos, new JsonSerializerOptions 
-                        { 
+                        var jsonData = System.Text.Json.JsonSerializer.Serialize(articulos, new JsonSerializerOptions
+                        {
                             WriteIndented = true,
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                         });
@@ -526,7 +526,7 @@ namespace SIGAD.WebAPI.Controllers
         {
             var csv = new StringBuilder();
             csv.AppendLine("DOI,Titulo,Revista,AnioPublicacion,IdiomaPublicacion,DocenteCedula,DocenteNombreCompleto");
-            
+
             foreach (var articulo in articulos)
             {
                 csv.AppendLine($"\"{articulo.DOI}\"," +
@@ -537,7 +537,7 @@ namespace SIGAD.WebAPI.Controllers
                               $"\"{articulo.DocenteCedula}\"," +
                               $"\"{articulo.DocenteNombreCompleto}\"");
             }
-            
+
             return csv.ToString();
         }
 
@@ -591,7 +591,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}", 
+                _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud {SolicitudId}",
                     dto.ArticuloDOI, dto.SolicitudId);
                 return StatusCode(500, new
                 {
@@ -640,6 +640,41 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al desasociar artículo {ArticuloDOI} de solicitud", doi);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Verifica si un artículo ya fue usado en solicitudes anteriores
+        /// </summary>
+        /// <param name="doi">DOI del artículo</param>
+        /// <param name="solicitudActualId">ID de la solicitud actual para excluir</param>
+        /// <returns>Indica si el artículo ya fue usado</returns>
+        [HttpGet("verificar-uso-previo/{*doi}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> VerificarUsoPrevio(string doi, [FromQuery] string? solicitudActualId = null)
+        {
+            try
+            {
+                var decodedDoi = Uri.UnescapeDataString(doi);
+                var yaUsado = await _articuloService.VerificarUsoPrevioAsync(decodedDoi, solicitudActualId);
+
+                return Ok(new
+                {
+                    success = true,
+                    yaUsado = yaUsado,
+                    doi = decodedDoi
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al verificar uso previo del artículo {DOI}", doi);
                 return StatusCode(500, new
                 {
                     success = false,

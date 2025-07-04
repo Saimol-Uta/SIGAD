@@ -124,46 +124,64 @@
                                 <th>Opciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @foreach (var doc in documentosPaginados)
-                            {
-                                var docId = ObtenerIdDocumento(doc, TipoDocumento);
-                                <tr>
-                                    @if (filtroActual == "disponibles")
-                                    {
-                                        <td>
-                                            <input type="checkbox" 
-                                                   checked="@(documentosSeleccionados.Contains(docId ?? ""))"
-                                                   @onchange="@((ChangeEventArgs args) => ToggleSeleccionDocumento(docId ?? "", (bool)args.Value!))" />
-                                        </td>
-                                    }
-                                    @foreach (var valor in ObtenerValoresDocumento(doc, TipoDocumento))
-                                    {
-                                        <td>@valor</td>
-                                    }
+                        <tbody>                        @foreach (var doc in documentosPaginados)
+                        {
+                            var docId = ObtenerIdDocumento(doc, TipoDocumento);
+                            var yaUsado = documentosUsadosEnSolicitudesPasadas.Contains(docId ?? "");
+                            <tr class="@(yaUsado ? "documento-usado" : "")">
+                                @if (filtroActual == "disponibles")
+                                {
                                     <td>
-                                        <div class="opciones-documento">
-                                            <img src="/images/pdf.png" alt="Ver PDF" title="Ver PDF" class="btn-opcion" @onclick="() => VerPdf(doc)" />
-                                            @if (filtroActual == "disponibles")
+                                        <input type="checkbox" 
+                                               checked="@(documentosSeleccionados.Contains(docId ?? ""))"
+                                               disabled="@yaUsado"
+                                               title="@(yaUsado ? "Este documento ya fue usado en una solicitud anterior" : "")"
+                                               @onchange="@((ChangeEventArgs args) => ToggleSeleccionDocumento(docId ?? "", (bool)args.Value!))" />
+                                    </td>
+                                }
+                                @foreach (var valor in ObtenerValoresDocumento(doc, TipoDocumento))
+                                {
+                                    <td>
+                                        @if (yaUsado && filtroActual == "disponibles")
+                                        {
+                                            <span class="valor-usado">@valor</span>
+                                        }
+                                        else
+                                        {
+                                            @valor
+                                        }
+                                    </td>
+                                }
+                                <td>
+                                    <div class="opciones-documento">
+                                        <img src="/images/pdf.png" alt="Ver PDF" title="Ver PDF" class="btn-opcion" @onclick="() => VerPdf(doc)" />
+                                        @if (filtroActual == "disponibles")
+                                        {
+                                            @if (yaUsado)
+                                            {
+                                                <span class="badge-usado">⚠️ Ya usado</span>
+                                            }
+                                            else
                                             {
                                                 <img src="/images/editar.png" alt="Editar" title="Editar" class="btn-opcion" @onclick="() => EditarDocumento(doc)" />
                                                 <img src="/images/borrar.png" alt="Eliminar" title="Eliminar" class="btn-opcion" @onclick="() => EliminarDocumento(doc)" />
                                             }
-                                            else
-                                            {
-                                                <span class="badge-asociado">✓ Asociado</span>
-                                                <button class="btn-desasociar-documento" 
-                                                        title="@(solicitudEnviada ? "No se puede desasociar cuando la solicitud está enviada" : "Desasociar de la solicitud")" 
-                                                        @onclick="() => DesasociarDocumento(doc)" 
-                                                        disabled="@solicitudEnviada"
-                                                        style="@(solicitudEnviada ? "opacity: 0.5; cursor: not-allowed;" : "")">
-                                                    <i class="fas fa-unlink"></i>
-                                                </button>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-asociado">✓ Asociado</span>
+                                            <button class="btn-desasociar-documento" 
+                                                    title="@(solicitudEnviada ? "No se puede desasociar cuando la solicitud está enviada" : "Desasociar de la solicitud")" 
+                                                    @onclick="() => DesasociarDocumento(doc)" 
+                                                    disabled="@solicitudEnviada"
+                                                    style="@(solicitudEnviada ? "opacity: 0.5; cursor: not-allowed;" : "")">
+                                                <i class="fas fa-unlink"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                         </tbody>
                     </table>
                 </div>
@@ -475,6 +493,40 @@
         gap: 4px;
     }
 
+    /* Badge para documentos ya usados */
+    .badge-usado {
+        background: #ffc107;
+        color: #212529;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Estilo para documentos ya usados */
+    .documento-usado {
+        background-color: #fff3cd !important;
+        opacity: 0.7;
+    }
+
+    .documento-usado:hover {
+        background-color: #ffeaa7 !important;
+    }
+
+    .valor-usado {
+        color: #856404;
+        font-style: italic;
+    }
+
+    /* Deshabilitar checkbox de documentos usados */
+    input[type="checkbox"]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     /* Mejoras adicionales */
     .opciones-documento {
         display: flex;
@@ -578,6 +630,7 @@
     private List<JsonElement> documentos = new();
     private List<JsonElement> documentosAsociados = new();
     private HashSet<string> documentosSeleccionados = new();
+    private HashSet<string> documentosUsadosEnSolicitudesPasadas = new();
 
     // Variables para filtrado
     private string filtroActual = "disponibles"; // "disponibles" o "asociados"
@@ -616,6 +669,7 @@
             documentos.Clear();
             documentosAsociados.Clear();
             documentosSeleccionados.Clear();
+            documentosUsadosEnSolicitudesPasadas.Clear();
             StateHasChanged();
 
             string endpoint = TipoDocumento switch
@@ -670,6 +724,9 @@
                             documentos.Add(doc);
                         }
                     }
+
+                    // Cargar información sobre documentos ya usados en solicitudes pasadas
+                    await CargarDocumentosUsadosEnSolicitudesPasadas(solicitudActivaId);
                 }
                 else
                 {
@@ -1056,6 +1113,12 @@
     {
         if (string.IsNullOrEmpty(idDocumento)) return;
 
+        // No permitir seleccionar documentos ya usados
+        if (documentosUsadosEnSolicitudesPasadas.Contains(idDocumento))
+        {
+            return;
+        }
+
         if (seleccionado)
         {
             documentosSeleccionados.Add(idDocumento);
@@ -1139,11 +1202,59 @@
                 return;
             }
 
-            // Aplicar documentos
+            // Verificar que los documentos no hayan sido usados en solicitudes pasadas
+            var documentosYaUsados = new List<string>();
+            var documentosDisponibles = new List<string>();
+
+            foreach (var docId in documentosSeleccionados.ToList())
+            {
+                if (documentosUsadosEnSolicitudesPasadas.Contains(docId))
+                {
+                    documentosYaUsados.Add(docId);
+                }
+                else
+                {
+                    documentosDisponibles.Add(docId);
+                }
+            }
+
+            // Si hay documentos ya usados, mostrar advertencia
+            if (documentosYaUsados.Any())
+            {
+                var tipoDocumento = TipoDocumento switch
+                {
+                    "articulos" => "artículos",
+                    "cursos" => "cursos", 
+                    "experiencias" => "experiencias laborales",
+                    "evaluaciones" => "evaluaciones",
+                    "investigaciones" => "investigaciones",
+                    "tesis" => "tesis dirigidas",
+                    _ => "documentos"
+                };
+
+                var mensaje = documentosYaUsados.Count == 1 
+                    ? $"El {tipoDocumento.Substring(0, tipoDocumento.Length - 1)} seleccionado ya fue utilizado en una solicitud anterior y no puede ser reutilizado."
+                    : $"{documentosYaUsados.Count} de los {tipoDocumento} seleccionados ya fueron utilizados en solicitudes anteriores y no pueden ser reutilizados.";
+
+                if (documentosDisponibles.Any())
+                {
+                    mensaje += $" Se procesarán únicamente los {documentosDisponibles.Count} {tipoDocumento} disponibles.";
+                }
+
+                await MostrarSweetAlert("Documentos ya utilizados", mensaje, "warning");
+
+                // Si no hay documentos disponibles, terminar
+                if (!documentosDisponibles.Any())
+                {
+                    return;
+                }
+            }
+
+            // Aplicar solo los documentos disponibles
             var aplicados = 0;
             var fallidos = 0;
 
-            foreach (var docId in documentosSeleccionados.ToList())
+            foreach (var docId in documentosDisponibles)
             {
                 try
                 {
@@ -1338,7 +1449,6 @@
                 var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
                     ? pdfRuta
                     : $"/uploads/{pdfRuta.TrimStart('/')}";
-
                 urlParaUsar = $"{baseUrl}{relativePath}";
             }
             
@@ -1867,6 +1977,148 @@
             // Versión estándar con botón de confirmación
             await JSRuntime.InvokeVoidAsync("Swal.fire", 
                 new { title = titulo, text = mensaje, icon = icono, confirmButtonColor = "#0a1d44" });
+        }
+    }
+
+    // Método para verificar si un documento ya fue usado en solicitudes pasadas
+    // NOTA: Este método usa endpoints del backend que pueden no estar implementados en todos los controladores
+    // Se mantiene comentado para referencia futura
+    /*
+    private async Task<bool> VerificarDocumentoYaUsado(string documentoId, string solicitudActualId)
+    {
+        try
+        {
+            var endpoint = TipoDocumento switch
+            {
+                "articulos" => $"api/articulos/verificar-uso-previo/{Uri.EscapeDataString(documentoId)}?solicitudActualId={solicitudActualId}",
+                "cursos" => $"api/cursos/{documentoId}/verificar-uso-previo?solicitudActualId={solicitudActualId}",
+                "experiencias" => $"api/experienciaslaborales/{documentoId}/verificar-uso-previo?solicitudActualId={solicitudActualId}",
+                "evaluaciones" => $"api/evaluaciones/{documentoId}/verificar-uso-previo?solicitudActualId={solicitudActualId}",
+                "investigaciones" => $"api/investigaciones/{documentoId}/verificar-uso-previo?solicitudActualId={solicitudActualId}",
+                "tesis" => $"api/TesisDirigidas/{documentoId}/verificar-uso-previo?solicitudActualId={solicitudActualId}",
+                _ => ""
+            };
+
+            if (string.IsNullOrEmpty(endpoint))
+                return false;
+
+            var response = await Http.GetAsync(endpoint);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonString);
+                
+                if (jsonDoc.RootElement.TryGetProperty("yaUsado", out var yaUsadoElement))
+                {
+                    return yaUsadoElement.GetBoolean();
+                }
+            }
+            
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar uso previo del documento {documentoId}: {ex.Message}");
+            return false; // En caso de error, permitir el uso para no bloquear la funcionalidad
+        }
+    }
+    */
+
+    // Método para cargar todos los documentos ya usados en solicitudes pasadas
+    private Task CargarDocumentosUsadosEnSolicitudesPasadas(string? solicitudActualId)
+    {
+        if (string.IsNullOrEmpty(solicitudActualId))
+            return Task.CompletedTask;
+
+        try
+        {
+            documentosUsadosEnSolicitudesPasadas.Clear();
+
+            // Para cada documento disponible, verificar si ya fue usado
+            foreach (var doc in documentos)
+            {
+                var docId = ObtenerIdDocumento(doc, TipoDocumento);
+                if (!string.IsNullOrEmpty(docId))
+                {
+                    // Verificar directamente las asociaciones del documento
+                    if (DocumentoTieneAsociacionesPrevias(doc, solicitudActualId))
+                    {
+                        documentosUsadosEnSolicitudesPasadas.Add(docId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar documentos usados: {ex.Message}");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // Método simplificado para verificar asociaciones previas
+    private bool DocumentoTieneAsociacionesPrevias(JsonElement doc, string solicitudActualId)
+    {
+        try
+        {
+            // Normalizar el ID de la solicitud actual
+            var solicitudActualNormalizada = solicitudActualId.Replace("-", "").ToUpperInvariant();
+
+            // Verificar en el array de solicitudes
+            if (doc.TryGetProperty("solicitudes", out var solicitudesElement) && 
+                solicitudesElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var solicitud in solicitudesElement.EnumerateArray())
+                {
+                    string? solicitudId = null;
+
+                    // Obtener el ID de la solicitud (puede ser string directo o objeto)
+                    if (solicitud.ValueKind == JsonValueKind.String)
+                    {
+                        solicitudId = solicitud.GetString();
+                    }
+                    else if (solicitud.TryGetProperty("solicitudId", out var solicitudIdProp))
+                    {
+                        solicitudId = solicitudIdProp.GetString();
+                    }
+                    else if (solicitud.TryGetProperty("id", out var idProp))
+                    {
+                        solicitudId = idProp.GetString();
+                    }
+
+                    // Si encontramos una asociación diferente a la actual, ya fue usado
+                    if (!string.IsNullOrEmpty(solicitudId))
+                    {
+                        var solicitudNormalizada = solicitudId.Replace("-", "").ToUpperInvariant();
+                        if (solicitudNormalizada != solicitudActualNormalizada)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // También verificar solicitudId directo
+            if (doc.TryGetProperty("solicitudId", out var solicitudIdElement) && 
+                solicitudIdElement.ValueKind == JsonValueKind.String)
+            {
+                var solicitudId = solicitudIdElement.GetString();
+                if (!string.IsNullOrEmpty(solicitudId))
+                {
+                    var solicitudNormalizada = solicitudId.Replace("-", "").ToUpperInvariant();
+                    if (solicitudNormalizada != solicitudActualNormalizada)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        catch (Exception)
+        {
+            return false; // En caso de error, permitir el uso
         }
     }
 }
