@@ -331,7 +331,7 @@
         align-items: center;
         padding: 1rem 2rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 1;
+        z-index: 5;
     }
 
     .branding {
@@ -392,7 +392,7 @@
         gap: 1.5rem;
         padding-left: 60px;
         /* espacio hacia la izquierda */
-        margin-top: 100px;
+        margin-top: 7vw;
         z-index:2;
 
     }
@@ -473,7 +473,7 @@
     .promotion-card {
         align-self: flex-start;
         flex: 20;
-        margin-top: 140px;
+        margin-top: 8vw;
         background: white;
         padding: 1.5rem;
         max-width: 500px;
@@ -735,7 +735,7 @@
                 @if (tieneSolicitudActiva)
                 {
                     <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continuar Proceso de Promocion</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/inventario"))">📄 Gestionar Documentos</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/inventario"))">📄 Inventario</button>
                     <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Solicitudes</button>
 
                 }
@@ -744,7 +744,7 @@
                     <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">🚀
                         Iniciar Nuevo Proceso de Promoción</button>
 
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/inventario"))">📄 Gestionar Documentos</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/inventario"))">📄 Inventario</button>
                     <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Solicitudes</button>
 
                 }
