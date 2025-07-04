@@ -441,7 +441,7 @@
     protected override async Task OnInitializedAsync()
     {
         // Obtener parámetro returnTo de la query string
-        var uri = new Uri(Navigation.Uri);
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
         returnTo = query["returnTo"] ?? "gestion-documentos";
 
@@ -642,7 +642,7 @@
                     });
                     
                     investigacionCreada = true;
-                    await Task.Delay(1000);
+                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
                     Navigation.NavigateTo(GetReturnUrl());
                 }
                 else

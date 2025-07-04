@@ -450,14 +450,15 @@
             var nombreDocumento = ObtenerNombreDocumentoSingular();
 
             // Redirigir a la página de creación correspondiente según el tipo de documento
+            // Incluir parámetro de retorno para volver al inventario
             string ruta = TipoDocumento switch
             {
-                "investigaciones" => "/agregar-investigacion",
-                "articulos" => "/agregar-articulo",
-                "experiencias" => "/agregar-experiencia",
-                "evaluaciones" => "/agregar-evaluacion",
-                "cursos" => "/agregar-curso",
-                "tesis" => "/agregar-tesis",
+                "investigaciones" => "/agregar-investigacion?returnTo=inventario",
+                "articulos" => "/agregar-articulo?returnTo=inventario",
+                "experiencias" => "/agregar-experiencia?returnTo=inventario",
+                "evaluaciones" => "/agregar-evaluacion?returnTo=inventario",
+                "cursos" => "/agregar-curso?returnTo=inventario",
+                "tesis" => "/agregar-tesis?returnTo=inventario",
                 _ => ""
             };
 
