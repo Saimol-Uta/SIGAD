@@ -99,8 +99,10 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.FechaCreacion).IsRequired();
                 entity.Property(e => e.Estado)
-                     .HasConversion<string>() // Esto convierte el enum a string en la base de datos
-                        .HasMaxLength(20)
+                     .HasConversion(
+                         v => ConvertEstadoToString(v),
+                         v => ConvertStringToEstado(v))
+                        .HasMaxLength(25)
                         .IsRequired();
                 entity.Property(e => e.AceptacionODemanda).HasMaxLength(50);
 
@@ -438,6 +440,41 @@ namespace SIGAD.Infrastructure.Persistence
                     .HasForeignKey(n => n.DocenteCedula)
                     .OnDelete(DeleteBehavior.Cascade); // Si se borra un docente, se borran sus notificaciones
             });
+        }
+
+        // Métodos de conversión para EstadoSolicitud
+        private static string ConvertEstadoToString(EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                EstadoSolicitud.Borrador => "Borrador",
+                EstadoSolicitud.Enviada => "Enviada",
+                EstadoSolicitud.EnRevision => "En Revision",
+                EstadoSolicitud.Aprobada => "Aprobada",
+                EstadoSolicitud.Rechazada => "Rechazada",
+                EstadoSolicitud.EnApelacion => "En Apelacion",
+                EstadoSolicitud.RechazadaDefinitiva => "Rechazada Definitiva",
+                EstadoSolicitud.AprobadaPorApelacion => "Aprobada Por Apelacion",
+                EstadoSolicitud.CerradaSinRespuesta => "Cerrada Sin Respuesta",
+                _ => throw new ArgumentOutOfRangeException(nameof(estado), estado, "Estado no válido")
+            };
+        }
+
+        private static EstadoSolicitud ConvertStringToEstado(string estado)
+        {
+            return estado switch
+            {
+                "Borrador" => EstadoSolicitud.Borrador,
+                "Enviada" => EstadoSolicitud.Enviada,
+                "En Revision" => EstadoSolicitud.EnRevision,
+                "Aprobada" => EstadoSolicitud.Aprobada,
+                "Rechazada" => EstadoSolicitud.Rechazada,
+                "En Apelacion" => EstadoSolicitud.EnApelacion,
+                "Rechazada Definitiva" => EstadoSolicitud.RechazadaDefinitiva,
+                "Aprobada Por Apelacion" => EstadoSolicitud.AprobadaPorApelacion,
+                "Cerrada Sin Respuesta" => EstadoSolicitud.CerradaSinRespuesta,
+                _ => throw new ArgumentOutOfRangeException(nameof(estado), estado, "Estado no válido")
+            };
         }
     }
 }
