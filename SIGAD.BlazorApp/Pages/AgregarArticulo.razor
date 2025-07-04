@@ -533,9 +533,8 @@
         var solicitudId = await SolicitudService.GetSolicitudActualAsync();
         if (string.IsNullOrEmpty(solicitudId))
         {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+            // Solo mostrar una advertencia, no redirigir automáticamente
+            errorMessage = "⚠️ No hay una solicitud de ascenso activa. Podrá agregar documentos, pero no se asociarán automáticamente a una solicitud.";
         }
     }
 
@@ -634,10 +633,22 @@
                 var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
                 if (string.IsNullOrEmpty(solicitudIdString))
                 {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
+                    // Preguntar al usuario qué quiere hacer
+                    var result = await JSRuntime.InvokeAsync<bool>("confirm", 
+                        "No hay una solicitud de ascenso activa. ¿Desea:\n" +
+                        "• Aceptar: Guardar el artículo sin asociarlo a una solicitud\n" +
+                        "• Cancelar: Ir a crear una solicitud de ascenso primero");
+                    
+                    if (!result)
+                    {
+                        // Usuario quiere crear una solicitud primero
+                        var redirectUrl = returnTo == "inventario" 
+                            ? "/iniciar-solicitud-ascenso?returnTo=inventario" 
+                            : "/iniciar-solicitud-ascenso";
+                        Navigation.NavigateTo(redirectUrl);
+                        return;
+                    }
+                    // Si result es true, continúa guardando sin SolicitudId
                 }
 
             // Crear el formulario multipart
@@ -656,7 +667,13 @@
             content.Add(new StringContent(articuloModel.Revista), "Revista");
             content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
             content.Add(new StringContent(cedula), "DocenteCedula");
-            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            
+            // Solo agregar SolicitudId si existe una solicitud activa
+            if (!string.IsNullOrEmpty(solicitudIdString))
+            {
+                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+            }
+            
             content.Add(new StringContent(articuloModel.IdiomaPublicacion ?? string.Empty), "IdiomaPublicacion"); // Nuevo campo
 
                 // Adjuntar archivo (obligatorio al agregar)
