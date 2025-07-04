@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities; // Asegúrate que el using a tus entidades es correcto
+using SIGAD.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -22,10 +23,35 @@ namespace SIGAD.Application.Services
 
         public async Task<IEnumerable<ReporteDataDto>> ObtenerSolicitudesPorEstado()
         {
-            return await _context.SolicitudesAscenso
-                .GroupBy(s => s.Estado.ToString()) // <-- CAMBIO CLAVE AQUÍ
-                .Select(g => new ReporteDataDto { Categoria = g.Key, Cantidad = g.Count() })
+            // Obtener datos agrupados por estado
+            var resultado = await _context.SolicitudesAscenso
+                .GroupBy(s => s.Estado)
+                .Select(g => new { Estado = g.Key, Cantidad = g.Count() })
                 .ToListAsync();
+
+            // Convertir a nombres legibles de estado
+            return resultado.Select(r => new ReporteDataDto
+            {
+                Categoria = GetEstadoDisplayName(r.Estado),
+                Cantidad = r.Cantidad
+            });
+        }
+
+        private string GetEstadoDisplayName(EstadoSolicitud estado)
+        {
+            return estado switch
+            {
+                EstadoSolicitud.Borrador => "Borrador",
+                EstadoSolicitud.Enviada => "Enviada",
+                EstadoSolicitud.EnRevision => "En Revisión",
+                EstadoSolicitud.Aprobada => "Aprobada",
+                EstadoSolicitud.Rechazada => "Rechazada",
+                EstadoSolicitud.EnApelacion => "En Apelación",
+                EstadoSolicitud.RechazadaDefinitiva => "Rechazada Definitivamente",
+                EstadoSolicitud.AprobadaPorApelacion => "Aprobada por Apelación",
+                EstadoSolicitud.CerradaSinRespuesta => "Cerrada por Falta de Respuesta",
+                _ => estado.ToString()
+            };
         }
 
         public async Task<IEnumerable<ReporteDataDto>> ObtenerSolicitudesPorNivel()
