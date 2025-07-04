@@ -435,7 +435,6 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarInformacionUsuario();
-
         if (Id != null)
         {
             try
@@ -446,7 +445,6 @@
                 {
                     var jsonString = await response.Content.ReadAsStringAsync();
                     var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonString);
-                    
                     if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
                     {
                         var articulo = dataElement;
@@ -476,22 +474,9 @@
                 errorMessage = $"Error al cargar el artículo: {ex.Message}";
             }
         }
-        else
-        {
-            await VerificarSolicitudActiva();
-        }
     }
 
-    private async Task VerificarSolicitudActiva()
-    {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
-        {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-        }
-    }
+   
 
     private async Task CargarInformacionUsuario()
     {
@@ -546,6 +531,7 @@
             if (string.IsNullOrEmpty(cedula))
             {
                 errorMessage = "No se pudo obtener la información del usuario";
+                enviandoFormulario = false;
                 return;
             }
 
@@ -584,16 +570,7 @@
             }
             else
             {
-                // AGREGAR ARTÍCULO
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
-                }
-
+                // AGREGAR ARTÍCULO (sin validar solicitud activa)
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(articuloModel.DOI), "DOI");
                 content.Add(new StringContent(articuloModel.Titulo), "Titulo");
@@ -622,7 +599,6 @@
                     });
                     
                     articuloGuardado = true;
-                    await Task.Delay(200);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else

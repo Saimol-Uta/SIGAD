@@ -743,16 +743,13 @@
             <div class="buttons">
                 @if (tieneSolicitudActiva)
                 {
-                    <button class="primary-btn" @onclick="ContinuarProceso">🔄 Continuar Proceso de Promocion</button>
                     <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar Documentos</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Solicitudes</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Gestionar Solicitudes</button>
                 }
                 else
                 {
-                    <button class="primary-btn" @onclick="@(() => Navigation.NavigateTo("/iniciar-solicitud-ascenso"))">🚀
-                        Iniciar Nuevo Proceso de Promoción</button>
                     <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">📄 Gestionar Documentos</button>
-                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Solicitudes</button>
+                    <button class="secondary-btn" @onclick="@(() => Navigation.NavigateTo("/historial-solicitudes"))">📋 Gestionar Solicitudes</button>
                 }
             </div>
         </div>
