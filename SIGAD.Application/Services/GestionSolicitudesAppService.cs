@@ -221,25 +221,38 @@ namespace SIGAD.Application.Services
 
         public async Task AprobarSolicitudAsync(Guid id, string observaciones)
         {
-            var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
-            if (solicitud == null) throw new KeyNotFoundException("Solicitud no encontrada.");
+            // 1. OBTENER LA ENTIDAD "VIGILADA" CON TODOS SUS DATOS
+            // Se usa el método que no tiene .AsNoTracking() para que EF vigile los cambios.
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
 
-            await _solicitudRepository.AprobarSolicitudAsync(id, observaciones);
-            await _unitOfWork.CompleteAsync();
+            // 2. APLICAR LA LÓGICA DE NEGOCIO DIRECTAMENTE SOBRE EL OBJETO
+            // (Asumo que tienes un método 'Aprobar' en tu entidad SolicitudAscenso)
+            solicitud.Aprobar(observaciones);
 
-            // --- CORRECCIÓN: LLAMADA AL NUEVO MÉTODO ESPECÍFICO ---
+            // 3. GUARDAR LOS CAMBIOS
+            // Ya no se necesita una llamada extra al repositorio, EF guardará los cambios del objeto 'solicitud'.
+            await _unitOfWork.CompleteAsync(); // o SaveChangesAsync()
+
+            // 4. ENVIAR LA NOTIFICACIÓN CON EL OBJETO COMPLETO
             await _notificacionService.EnviarNotificacionAprobacionAsync(solicitud, observaciones);
         }
 
         public async Task RechazarSolicitudAsync(Guid id, string observaciones)
         {
-            var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
-            if (solicitud == null) throw new KeyNotFoundException("Solicitud no encontrada.");
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
 
-            await _solicitudRepository.RechazarSolicitudAsync(id, observaciones);
+            solicitud.Rechazar(observaciones);
             await _unitOfWork.CompleteAsync();
 
-            // --- CORRECCIÓN: LLAMADA AL NUEVO MÉTODO ESPECÍFICO ---
+            // Esta llamada ahora SÍ FUNCIONARÁ.
             await _notificacionService.EnviarNotificacionRechazoAsync(solicitud, observaciones);
         }
         public async Task<SolicitudAscenso?> ObtenerBorradorActivoAsync(string docenteCedula)
@@ -344,13 +357,17 @@ namespace SIGAD.Application.Services
 
         public async Task FinalizarProcesoAsync(Guid id, string observaciones)
         {
-            var solicitud = await _solicitudRepository.GetByIdAsync(id);
-            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
 
             solicitud.FinalizarProceso(observaciones);
-
-            await _solicitudRepository.UpdateAsync(solicitud);
             await _unitOfWork.SaveChangesAsync();
+
+            // Esta llamada ahora SÍ FUNCIONARÁ.
+            await _notificacionService.EnviarNotificacionAprobacionAsync(solicitud, observaciones);
         }
     }
 }
