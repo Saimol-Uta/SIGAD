@@ -1,0 +1,551 @@
+@using System.Text.Json
+@using System.Net.Http.Json
+@using Microsoft.JSInterop
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="tabla-inventario">
+    <!-- ENCABEZADO -->
+    <div class="tabla-header">
+        <div class="titulo-seccion">
+            <h3>@config.Titulo</h3>
+            <button class="btn btn-cerrar" @onclick="CerrarTabla">
+                <i class="fas fa-times"></i> Cerrar
+            </button>
+        </div>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Cargando documentos...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            @mensajeError
+        </div>
+    }
+    else
+    {
+        @if (documentos.Any())
+        {
+            <div class="tabla-container">
+                <div class="info-documentos">
+                    <p><strong>Total de documentos:</strong> @documentos.Count</p>
+                </div>
+
+                <div class="tabla-responsive">
+                    <table class="tabla-documentos">
+                        <thead>
+                            <tr>
+                                @foreach (var columna in config.Columnas)
+                                {
+                                    <th>@columna</th>
+                                }
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var documento in documentosPaginados)
+                            {
+                                <tr>
+                                    @foreach (var campo in config.Campos)
+                                    {
+                                        <td>
+                                            @if (documento.TryGetProperty(campo, out var value))
+                                            {
+                                                @if (campo == "FechaSubida" && value.ValueKind == JsonValueKind.String)
+                                                {
+                                                    @if (DateTime.TryParse(value.GetString(), out var fecha))
+                                                    {
+                                                        @fecha.ToString("dd/MM/yyyy")
+                                                    }
+                                                    else
+                                                    {
+                                                        @value.GetString()
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    @value.ToString()
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                    <td class="acciones">
+                                        <button class="btn btn-sm btn-info" @onclick="() => VerDocumento(documento)"
+                                            title="Ver documento">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" @onclick="() => EditarDocumento(documento)"
+                                            title="Editar documento">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => EliminarDocumento(documento)"
+                                            title="Eliminar documento">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                @if (totalPaginas > 1)
+                {
+                    <div class="paginacion">
+                        <button class="btn btn-sm" @onclick="PaginaAnterior" disabled="@(paginaActual <= 1)">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <span class="info-pagina">Página @paginaActual de @totalPaginas</span>
+                        <button class="btn btn-sm" @onclick="PaginaSiguiente" disabled="@(paginaActual >= totalPaginas)">
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sin-documentos">
+                <div class="icono-vacio">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <h4>No hay documentos</h4>
+                <p>No se encontraron documentos de este tipo para mostrar.</p>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .tabla-inventario {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .tabla-header {
+        background: #0a1d44;
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .titulo-seccion {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .titulo-seccion h3 {
+        margin: 0;
+        font-size: 1.3rem;
+    }
+
+    .btn-cerrar {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-cerrar:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .loading-container {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0a1d44;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @@keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .tabla-container {
+        padding: 1.5rem;
+    }
+
+    .info-documentos {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 4px solid #0a1d44;
+    }
+
+    .tabla-responsive {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+    }
+
+    .tabla-documentos {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    .tabla-documentos th,
+    .tabla-documentos td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+    }
+
+    .tabla-documentos th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #0a1d44;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .tabla-documentos tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .acciones {
+        white-space: nowrap;
+    }
+
+    .acciones .btn {
+        margin-right: 0.25rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #138496;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .btn-warning:hover {
+        background-color: #e0a800;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+
+    .paginacion {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .info-pagina {
+        font-weight: 500;
+        color: #666;
+    }
+
+    .sin-documentos {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #666;
+    }
+
+    .icono-vacio {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+
+    .sin-documentos h4 {
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+    }
+
+    .alert {
+        padding: 1rem;
+        margin: 1rem;
+        border-radius: 4px;
+        border: 1px solid transparent;
+    }
+
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f1aeb5;
+    }
+
+    @@media (max-width: 768px) {
+        .tabla-header {
+            padding: 1rem;
+        }
+
+        .titulo-seccion {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .tabla-container {
+            padding: 1rem;
+        }
+
+        .tabla-responsive {
+            font-size: 0.875rem;
+        }
+
+        .paginacion {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public string TipoDocumento { get; set; } = "";
+    [Parameter] public string Cedula { get; set; } = "";
+    [Parameter] public EventCallback OnCerrar { get; set; }
+
+    private bool cargando = true;
+    private string? mensajeError = null;
+    private List<JsonElement> documentos = new();
+    private int paginaActual = 1;
+    private int porPagina = 10;
+
+    private ConfiguracionTabla config = new();
+    private List<JsonElement> documentosPaginados => documentos
+    .Skip((paginaActual - 1) * porPagina)
+    .Take(porPagina)
+    .ToList();
+    private int totalPaginas => (int)Math.Ceiling((double)documentos.Count / porPagina);
+
+    protected override async Task OnInitializedAsync()
+    {
+        config = ObtenerConfiguracion(TipoDocumento);
+        await CargarDocumentos();
+    }
+
+    private async Task CargarDocumentos()
+    {
+        if (string.IsNullOrEmpty(Cedula) || string.IsNullOrEmpty(TipoDocumento))
+            return;
+
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            documentos.Clear();
+            StateHasChanged();
+
+            // Usar exactamente los mismos endpoints que Tabla.razor
+            string endpoint = TipoDocumento switch
+            {
+                "investigaciones" => $"api/investigaciones/docente/{Cedula}",
+                "articulos" => $"api/articulos/docente/{Cedula}",
+                "tesis" => $"api/TesisDirigidas/docente/{Cedula}",
+                "experiencias" => $"api/experienciaslaborales/docente/{Cedula}",
+                "cursos" => $"api/cursos/docente/{Cedula}",
+                "evaluaciones" => $"api/evaluaciones/docente/{Cedula}",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(endpoint))
+            {
+                var response = await Http.GetAsync(endpoint);
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var jsonDoc = JsonDocument.Parse(jsonString);
+
+                    List<JsonElement> todosLosDocumentos = new();
+
+                    // Manejar tanto respuestas directas como con wrapper "data"
+                    if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        todosLosDocumentos = jsonDoc.RootElement.EnumerateArray().ToList();
+                    }
+                    else if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
+                    dataElement.ValueKind == JsonValueKind.Array)
+                    {
+                        todosLosDocumentos = dataElement.EnumerateArray().ToList();
+                    }
+
+                    // En modo inventario, mostramos todos los documentos
+                    documentos = todosLosDocumentos;
+                }
+                else
+                {
+                    mensajeError = $"Error al cargar {TipoDocumento}: {response.StatusCode}";
+                    documentos = new();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar documentos: {ex.Message}";
+            documentos = new();
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarTabla()
+    {
+        await OnCerrar.InvokeAsync();
+    }
+
+    private async Task VerDocumento(JsonElement documento)
+    {
+        // TODO: Implementar vista de documento
+        await JSRuntime.InvokeVoidAsync("alert", "Ver documento - Funcionalidad por implementar");
+    }
+
+    private async Task EditarDocumento(JsonElement documento)
+    {
+        // TODO: Implementar edición de documento
+        await JSRuntime.InvokeVoidAsync("alert", "Editar documento - Funcionalidad por implementar");
+    }
+
+    private async Task EliminarDocumento(JsonElement documento)
+    {
+        var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de que desea eliminar este documento?");
+        if (confirmacion)
+        {
+            // TODO: Implementar eliminación de documento
+            await JSRuntime.InvokeVoidAsync("alert", "Eliminar documento - Funcionalidad por implementar");
+        }
+    }
+
+    private void PaginaAnterior()
+    {
+        if (paginaActual > 1)
+        {
+            paginaActual--;
+            StateHasChanged();
+        }
+    }
+
+    private void PaginaSiguiente()
+    {
+        if (paginaActual < totalPaginas)
+        {
+            paginaActual++;
+            StateHasChanged();
+        }
+    }
+
+    private ConfiguracionTabla ObtenerConfiguracion(string tipoDocumento) => tipoDocumento.ToLower() switch
+    {
+        "investigaciones" => new ConfiguracionTabla
+        {
+            Titulo = "📊 Investigaciones",
+            Columnas = new[] { "Título", "Descripción", "Fecha de Subida", "Archivo" },
+            Campos = new[] { "Titulo", "Descripcion", "FechaSubida", "NombreArchivo" }
+        },
+        "articulos" => new ConfiguracionTabla
+        {
+            Titulo = "📄 Artículos",
+            Columnas = new[] { "Título", "Revista", "Fecha de Subida", "Archivo" },
+            Campos = new[] { "Titulo", "Revista", "FechaSubida", "NombreArchivo" }
+        },
+        "experiencias" => new ConfiguracionTabla
+        {
+            Titulo = "💼 Experiencia Laboral",
+            Columnas = new[] { "Empresa", "Cargo", "Fecha Inicio", "Fecha Fin" },
+            Campos = new[] { "Empresa", "Cargo", "FechaInicio", "FechaFin" }
+        },
+        "evaluaciones" => new ConfiguracionTabla
+        {
+            Titulo = "📈 Evaluaciones",
+            Columnas = new[] { "Tipo", "Período", "Calificación", "Fecha" },
+            Campos = new[] { "Tipo", "Periodo", "Calificacion", "Fecha" }
+        },
+        "cursos" => new ConfiguracionTabla
+        {
+            Titulo = "🎓 Cursos",
+            Columnas = new[] { "Nombre", "Institución", "Fecha de Subida", "Archivo" },
+            Campos = new[] { "Nombre", "Institucion", "FechaSubida", "NombreArchivo" }
+        },
+        "tesis" => new ConfiguracionTabla
+        {
+            Titulo = "📚 Tesis Dirigidas",
+            Columnas = new[] { "Título", "Estudiante", "Nivel", "Estado", "Fecha" },
+            Campos = new[] { "Titulo", "Estudiante", "Nivel", "Estado", "Fecha" }
+        },
+        _ => new ConfiguracionTabla
+        {
+            Titulo = "📋 Documentos",
+            Columnas = new[] { "Nombre", "Tipo", "Fecha" },
+            Campos = new[] { "Nombre", "Tipo", "Fecha" }
+        }
+    };
+
+    public class ConfiguracionTabla
+    {
+        public string Titulo { get; set; } = "";
+        public string[] Columnas { get; set; } = Array.Empty<string>();
+        public string[] Campos { get; set; } = Array.Empty<string>();
+    }
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public T? Data { get; set; }
+    }
+}

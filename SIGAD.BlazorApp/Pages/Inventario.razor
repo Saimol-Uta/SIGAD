@@ -7,6 +7,7 @@
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
 @using SIGAD.BlazorApp.Components
+@using SIGAD.BlazorApp.Pages
 @using System.Text.Json
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
@@ -232,6 +233,17 @@
         background-color: #0e2c6c;
     }
 
+    .btn-view {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background-color: #138496;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+    }
+
     .btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
@@ -316,6 +328,29 @@
         color: #856404;
     }
 
+    .submission-section {
+        margin-top: 3rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .submission-card {
+        background: white;
+        border: 2px solid #0a1d44;
+        border-radius: 12px;
+        padding: 2.5rem;
+        text-align: center;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-large {
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+
     /* --- Media Query para el tamaño intermedio (Tablets) --- */
     @@media (max-width: 1199px) and (min-width: 769px) {
 
@@ -365,6 +400,11 @@
             display: none;
         }
     }
+
+    /* Ocultar botones de importar y añadir en modo inventario */
+    .btn-añadir {
+        display: none !important;
+    }
 </style>
 
 <body>
@@ -375,7 +415,7 @@
         </div>
         <div class="user-profile">
             <a href="/Dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
-            <span>@nombreCompleto</span>
+            <span>@nombreUsuario</span>
             <img src="@urlFotoPerfil" alt="Usuario" />
             <button class="logout-btn" @onclick="Logout"><i class="fas fa-sign-out-alt"></i> Salir</button>
         </div>
@@ -383,9 +423,8 @@
 
     <div class="main-content">
         <div class="page-header">
-            <h1>Mi Portafolio Académico</h1>
-            <p class="subtitle">Administre aquí todas sus evidencias académicas. Puede visualizar, editar y eliminar sus
-                documentos.</p>
+            <h1>Inventario de Documentos</h1>
+            <p class="subtitle">Visualice y administre todas sus evidencias académicas de forma centralizada</p>
         </div>
 
         @if (isLoading)
@@ -425,7 +464,7 @@
                         realizados.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerInvestigaciones" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerInvestigaciones" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -442,7 +481,7 @@
                         Administre sus publicaciones científicas, artículos en revistas indexadas y ponencias en congresos.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerArticulos" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerArticulos" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -459,7 +498,7 @@
                         Administre su historial profesional, experiencia docente y trayectoria laboral relevante.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerExperiencias" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerExperiencias" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -477,7 +516,7 @@
                         institucional.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerEvaluaciones" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerEvaluaciones" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -494,7 +533,7 @@
                         Gestione los cursos de capacitación, seminarios y programas de formación continua completados.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerCursos" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerCursos" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -511,7 +550,7 @@
                         Administre las tesis de grado y postgrado que ha dirigido como tutor o director académico.
                     </p>
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="VerTesis" disabled="@operacionEnProceso">
+                        <button class="btn btn-view" @onclick="VerTesis" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver Documentos
                         </button>
                     </div>
@@ -522,30 +561,7 @@
             @if (!string.IsNullOrEmpty(tablaVisible))
             {
                 <div style="margin-top: 3rem;">
-                    @switch (tablaVisible)
-                    {
-                        case "investigaciones":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="investigaciones" ModoInventario="true" />
-                            break;
-                        case "articulos":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="articulos" ModoInventario="true" />
-                            break;
-                        case "cursos":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="cursos" ModoInventario="true" />
-                            break;
-                        case "experiencias":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="experiencias" ModoInventario="true" />
-                            break;
-                        case "evaluaciones":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="evaluaciones" ModoInventario="true" />
-                            break;
-                        case "tesis":
-                            <GestionEvidencias Cedula="@cedula" TipoDocumento="tesis" ModoInventario="true" />
-                            break;
-                    }
-                    <div class="text-center mt-3">
-                        <button class="btn btn-secondary" @onclick="CerrarTabla">Cerrar</button>
-                    </div>
+                    <TablaInventario TipoDocumento="@tablaVisible" Cedula="@cedula" OnCerrar="CerrarTabla" />
                 </div>
             }
 
@@ -645,8 +661,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/investigaciones/docente/{cedula}");
-            conteoInvestigaciones = response?.Data?.Count ?? 0;
+            conteoInvestigaciones = await ObtenerConteoDocumentos("api/investigaciones/docente/{0}");
         }
         catch { conteoInvestigaciones = 0; }
     }
@@ -655,8 +670,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/articulos/docente/{cedula}");
-            conteoArticulos = response?.Data?.Count ?? 0;
+            conteoArticulos = await ObtenerConteoDocumentos("api/articulos/docente/{0}");
         }
         catch { conteoArticulos = 0; }
     }
@@ -665,8 +679,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/experiencias/docente/{cedula}");
-            conteoExperiencias = response?.Data?.Count ?? 0;
+            conteoExperiencias = await ObtenerConteoDocumentos("api/experienciaslaborales/docente/{0}");
         }
         catch { conteoExperiencias = 0; }
     }
@@ -675,8 +688,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/evaluaciones/docente/{cedula}");
-            conteoEvaluaciones = response?.Data?.Count ?? 0;
+            conteoEvaluaciones = await ObtenerConteoDocumentos("api/evaluaciones/docente/{0}");
         }
         catch { conteoEvaluaciones = 0; }
     }
@@ -685,8 +697,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/cursos/docente/{cedula}");
-            conteoCursos = response?.Data?.Count ?? 0;
+            conteoCursos = await ObtenerConteoDocumentos("api/cursos/docente/{0}");
         }
         catch { conteoCursos = 0; }
     }
@@ -695,10 +706,42 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/tesis/docente/{cedula}");
-            conteoTesis = response?.Data?.Count ?? 0;
+            conteoTesis = await ObtenerConteoDocumentos("api/TesisDirigidas/docente/{0}");
         }
         catch { conteoTesis = 0; }
+    }
+
+    // Método auxiliar para obtener conteo usando la misma lógica que Tabla.razor
+    private async Task<int> ObtenerConteoDocumentos(string endpointTemplate)
+    {
+        try
+        {
+            var endpoint = string.Format(endpointTemplate, cedula);
+            var response = await Http.GetAsync(endpoint);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonString);
+
+                // Manejar tanto respuestas directas como con wrapper "data"
+                if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    return jsonDoc.RootElement.GetArrayLength();
+                }
+                else if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
+                dataElement.ValueKind == JsonValueKind.Array)
+                {
+                    return dataElement.GetArrayLength();
+                }
+            }
+
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private async Task Logout()
