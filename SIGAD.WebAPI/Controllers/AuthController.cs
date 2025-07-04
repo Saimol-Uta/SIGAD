@@ -516,7 +516,7 @@ namespace SIGAD.WebAPI.Controllers
                     _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
                     await _context.SaveChangesAsync();
                 }                // Crear rangos según el Reglamento para la Promoción del Personal Académico Titular de la UTA
-                // Resolución 0677-CU-P-2023
+                // Resolución 0677-CU-P-2023 - CAMPOS COMPLETOS
                 var rangosReglamento = new[]
                 {
                     // TITULAR AUXILIAR 1 - Rango inicial (sin requisitos previos para promoción)
@@ -527,7 +527,14 @@ namespace SIGAD.WebAPI.Controllers
                         HorasCursoRequeridas = 0,
                         MesesInvestigacionRequeridos = 0,
                         TesisDirigidasRequeridas = 0,
-                        PuntajePromedioEvaluacionesRequerido = 0.0m
+                        PuntajePromedioEvaluacionesRequerido = 0.0m,
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 0,
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = false,
+                        PermiteCoordinacionProyectos = false
                     },
                     
                     // TITULAR AUXILIAR 2 - Anexo 1, Promoción de auxiliar 1 a auxiliar 2
@@ -535,10 +542,17 @@ namespace SIGAD.WebAPI.Controllers
                         Nombre = "Titular Auxiliar 2",
                         ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
                         AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 1
-                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación total
                         MesesInvestigacionRequeridos = 0,  // No especifica proyectos de investigación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 24,  // 25% de 96h = 24h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,  // "durante el ejercicio de sus actividades en el grado"
+                        PermiteCoordinacionProyectos = false
                     },
                     
                     // TITULAR AGREGADO 1 - Promoción de auxiliar 2 a agregado 1  
@@ -546,10 +560,17 @@ namespace SIGAD.WebAPI.Controllers
                         Nombre = "Titular Agregado 1",
                         ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 2
-                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación total
                         MesesInvestigacionRequeridos = 12,  // 12 meses en proyectos de investigación/vinculación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 24,  // 25% de 96h = 24h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
                     // TITULAR AGREGADO 2 - Promoción de agregado 1 a agregado 2
@@ -557,10 +578,17 @@ namespace SIGAD.WebAPI.Controllers
                         Nombre = "Titular Agregado 2",
                         ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 1
-                        HorasCursoRequeridas = 128,  // 128 horas de capacitación (25% pedagógica = 32h)
+                        HorasCursoRequeridas = 128,  // 128 horas de capacitación total
                         MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 32,  // 25% de 128h = 32h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
                     // TITULAR AGREGADO 3 - Promoción de agregado 2 a agregado 3
@@ -568,10 +596,17 @@ namespace SIGAD.WebAPI.Controllers
                         Nombre = "Titular Agregado 3",
                         ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 2
-                        HorasCursoRequeridas = 160,  // 160 horas de capacitación (25% pedagógica = 40h)
+                        HorasCursoRequeridas = 160,  // 160 horas de capacitación total
                         MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
-                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis (solo para principales)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 40,  // 25% de 160h = 40h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
                     // TITULAR PRINCIPAL 1 - No aparece en el Anexo 1 del reglamento UTA
@@ -582,29 +617,50 @@ namespace SIGAD.WebAPI.Controllers
                         HorasCursoRequeridas = 0,  // No especificado en el reglamento
                         MesesInvestigacionRequeridos = 0,  // No especificado en el reglamento
                         TesisDirigidasRequeridas = 0,  // No especificado en el reglamento
-                        PuntajePromedioEvaluacionesRequerido = 0.0m  // No especificado en el reglamento
+                        PuntajePromedioEvaluacionesRequerido = 0.0m,  // No especificado en el reglamento
+                        // Campos adicionales - No especificados en el reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 0,
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = false,
+                        PermiteCoordinacionProyectos = false
                     },
                     
                     // TITULAR PRINCIPAL 2 - Promoción de principal 1 a principal 2
                     new {
                         Nombre = "Titular Principal 2",
-                        ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
-                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 2
-                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (25% pedagógica = 64h) + 80h impartidas
-                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos de investigación
-                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas/codirigidas
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (según reglamento)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
+                        HorasCursoRequeridas = 224,  // 224 horas de capacitación total (según reglamento)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas (según reglamento)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos para rangos principales
+                        HorasCapacitacionPedagogicaRequeridas = 56,  // 25% de 224h = 56h pedagógicas (según reglamento)
+                        HorasCapacitacionImpartidaRequeridas = 40,  // 40h capacitación impartida (según reglamento)
+                        PublicacionesIdiomaExtranjeroRequeridas = 1,  // 1 publicación en idioma extranjero (según reglamento)
+                        ProyectosInternacionalesRequeridos = 1,  // Al menos 1 proyecto internacional
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x2
                     },
                     
                     // TITULAR PRINCIPAL 3 - Rango máximo (sin promoción posterior)
                     new {
                         Nombre = "Titular Principal 3",
-                        ArticulosRequeridos = 15,  // Estimado para el rango máximo
-                        AniosExperienciaRequeridos = 25,  // Estimado para el rango máximo
-                        HorasCursoRequeridas = 300,  // Estimado para el rango máximo
-                        MesesInvestigacionRequeridos = 48,  // Estimado para el rango máximo
-                        TesisDirigidasRequeridas = 5,  // Estimado para el rango máximo
-                        PuntajePromedioEvaluacionesRequerido = 80.0m  // Estimado para el rango máximo
+                        ArticulosRequeridos = 12,  // 12 obras de relevancia (según reglamento)
+                        AniosExperienciaRequeridos = 3,  // 3 años como principal 2 (según reglamento)
+                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (según reglamento)
+                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos (según reglamento)
+                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas (según reglamento)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral (según reglamento)
+                        // Campos adicionales para el rango máximo
+                        HorasCapacitacionPedagogicaRequeridas = 64,  // 25% de 256h = 64h pedagógicas (según reglamento)
+                        HorasCapacitacionImpartidaRequeridas = 80,  // 80h capacitación impartida (según reglamento)
+                        PublicacionesIdiomaExtranjeroRequeridas = 2,  // 2 publicaciones en idioma extranjero (según reglamento)
+                        ProyectosInternacionalesRequeridos = 2,  // 2 proyectos internacionales (según reglamento)
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x2
                     }
                 };
 
@@ -621,7 +677,14 @@ namespace SIGAD.WebAPI.Controllers
                         HorasCursoRequeridas = rango.HorasCursoRequeridas,
                         MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
                         TesisDirigidasRequeridas = rango.TesisDirigidasRequeridas,
-                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
+                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido,
+                        // Campos adicionales del reglamento UTA
+                        HorasCapacitacionPedagogicaRequeridas = rango.HorasCapacitacionPedagogicaRequeridas,
+                        HorasCapacitacionImpartidaRequeridas = rango.HorasCapacitacionImpartidaRequeridas,
+                        PublicacionesIdiomaExtranjeroRequeridas = rango.PublicacionesIdiomaExtranjeroRequeridas,
+                        ProyectosInternacionalesRequeridos = rango.ProyectosInternacionalesRequeridos,
+                        RequiereArticuloEnGradoActual = rango.RequiereArticuloEnGradoActual,
+                        PermiteCoordinacionProyectos = rango.PermiteCoordinacionProyectos
                     };
 
                     _context.Rangos.Add(newRango);
@@ -639,7 +702,14 @@ namespace SIGAD.WebAPI.Controllers
                     horasCurso = r.HorasCursoRequeridas,
                     mesesInvestigacion = r.MesesInvestigacionRequeridos,
                     tesisDirigidas = r.TesisDirigidasRequeridas,
-                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
+                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido,
+                    // Campos adicionales del reglamento UTA
+                    horasCapacitacionPedagogica = r.HorasCapacitacionPedagogicaRequeridas,
+                    horasCapacitacionImpartida = r.HorasCapacitacionImpartidaRequeridas,
+                    publicacionesIdiomaExtranjero = r.PublicacionesIdiomaExtranjeroRequeridas,
+                    proyectosInternacionales = r.ProyectosInternacionalesRequeridos,
+                    requiereArticuloEnGradoActual = r.RequiereArticuloEnGradoActual,
+                    permiteCoordinacionProyectos = r.PermiteCoordinacionProyectos
                 }).ToList<object>(); _logger.LogInformation("Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023. Registros guardados: {Count}", savedRecords);
 
                 return Ok(new
@@ -1405,15 +1475,11 @@ namespace SIGAD.WebAPI.Controllers
             // Validar proyectos internacionales para rangos Principal
             if (!cumpleRequisitosInternacionales)
             {
-                if (rango.Id == 6) // Principal 1
-                {
-                    requisitosFaltantes.Add("Principal 1: Debe tener al menos 1 proyecto internacional dirigido/codirigido");
-                }
-                else if (rango.Id == 7) // Principal 2
+                if (rango.Id == 7) // Principal 2 (promoción de principal 1 a principal 2)
                 {
                     requisitosFaltantes.Add("Principal 2: Debe tener al menos 1 proyecto internacional dirigido/codirigido (24 meses mínimo)");
                 }
-                else if (rango.Id == 8) // Principal 3
+                else if (rango.Id == 8) // Principal 3 (promoción de principal 2 a principal 3)
                 {
                     requisitosFaltantes.Add("Principal 3: Debe tener al menos 2 proyectos internacionales dirigidos/codirigidos (36 meses mínimo)");
                 }
@@ -1445,7 +1511,12 @@ namespace SIGAD.WebAPI.Controllers
                 promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
                 totalEvaluaciones = evaluaciones.Count,
                 evaluacionesCumplen = evaluaciones.Count(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido),
-                tesisDirigidas = tesisCount
+                tesisDirigidas = tesisCount,
+                // Campos adicionales del reglamento UTA (valores actuales - implementación básica)
+                horasCapacitacionPedagogica = CalcularHorasCapacitacionPedagogica(cursos),
+                horasCapacitacionImpartida = CalcularHorasCapacitacionImpartida(cursos),
+                publicacionesIdiomaExtranjero = 0, // TODO: Implementar lógica específica cuando sea necesario
+                proyectosInternacionalesCount = resultadoInvestigacion.proyectosInternacionales
             };
 
             var valoresRequeridos = new
@@ -1458,6 +1529,13 @@ namespace SIGAD.WebAPI.Controllers
                 promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
                 rangoNombre = rango.Nombre,
                 tesisDirigidas = rango.TesisDirigidasRequeridas,
+                // Campos adicionales del reglamento UTA (valores requeridos)
+                horasCapacitacionPedagogica = rango.HorasCapacitacionPedagogicaRequeridas,
+                horasCapacitacionImpartida = rango.HorasCapacitacionImpartidaRequeridas,
+                publicacionesIdiomaExtranjero = rango.PublicacionesIdiomaExtranjeroRequeridas,
+                proyectosInternacionales = rango.ProyectosInternacionalesRequeridos,
+                requiereArticuloEnGradoActual = rango.RequiereArticuloEnGradoActual,
+                permiteCoordinacionProyectos = rango.PermiteCoordinacionProyectos,
                 notaEvaluaciones = "Pueden incluir las evaluaciones que consideren apropiadas, con promedio mínimo requerido",
                 notaInvestigacion = "Coordinador Principal = 2x tiempo, Coordinador Subrogante = 1.5x tiempo"
             };
@@ -1555,15 +1633,11 @@ namespace SIGAD.WebAPI.Controllers
 
             switch (rango.Id)
             {
-                case 6: // Principal 1 → Principal 2
-                    // Requiere al menos 1 proyecto internacional
-                    cumpleInternacionales = proyectosInternacionales >= 1;
-                    break;
-                case 7: // Principal 2 → Principal 3  
+                case 7: // Principal 2 (promoción de principal 1 a principal 2)
                     // Requiere al menos 1 proyecto internacional con 24+ meses
                     cumpleInternacionales = proyectosInternacionales >= 1 && mesesInternacionales >= 24;
                     break;
-                case 8: // Principal 3
+                case 8: // Principal 3 (promoción de principal 2 a principal 3)
                     // Requiere al menos 2 proyectos internacionales con 36+ meses total
                     cumpleInternacionales = proyectosInternacionales >= 2 && mesesInternacionales >= 36;
                     break;
@@ -1585,7 +1659,6 @@ namespace SIGAD.WebAPI.Controllers
         {
             return rangoId switch
             {
-                6 => 1, // Principal 1
                 7 => 1, // Principal 2 (con al menos 24 meses)
                 8 => 2, // Principal 3 (con al menos 36 meses total)
                 _ => 0  // Otros rangos no requieren proyectos internacionales
@@ -1807,7 +1880,32 @@ namespace SIGAD.WebAPI.Controllers
 
             return (errores.Count == 0, errores);
         }
+
+        /// <summary>
+        /// Calcula las horas de capacitación pedagógica (25% del total de horas de capacitación)
+        /// </summary>
+        private int CalcularHorasCapacitacionPedagogica(List<SIGAD.Domain.Entities.Curso> cursos)
+        {
+            // Filtrar solo cursos de capacitación pedagógica (no impartidos por el docente)
+            var cursosCapacitacion = cursos.Where(c => !c.ImpartidoPorDocente).ToList();
+            int totalHorasCapacitacion = cursosCapacitacion.Sum(c => c.NumeroHoras);
+
+            // Según el reglamento UTA, aproximadamente 25% deberían ser de capacitación pedagógica
+            // Por simplicidad, asumimos que 1/4 de las horas son pedagógicas
+            return (int)Math.Round(totalHorasCapacitacion * 0.25m);
+        }
+
+        /// <summary>
+        /// Calcula las horas de capacitación impartida por el docente
+        /// </summary>
+        private int CalcularHorasCapacitacionImpartida(List<SIGAD.Domain.Entities.Curso> cursos)
+        {
+            // Filtrar solo cursos impartidos por el docente
+            var cursosImpartidos = cursos.Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue).ToList();
+            return cursosImpartidos.Sum(c => c.HorasImpartidas ?? 0);
+        }
     }
+
     public class TestHtmlEmailDto
     {
         [Required]
