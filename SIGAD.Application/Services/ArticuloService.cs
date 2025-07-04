@@ -264,6 +264,39 @@ namespace SIGAD.Application.Services
             return Path.GetFileName(articulo.ArchivoRuta);
         }
 
+        public async Task<bool> VerificarUsoPrevioAsync(string doi, string? solicitudActualId = null)
+        {
+            try
+            {
+                var decodedDoi = Uri.UnescapeDataString(doi);
+                var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
+
+                if (articulo == null || articulo.ArticulosPorSolicitud == null)
+                {
+                    return false;
+                }
+
+                // Si no hay solicitud actual, verificar si tiene cualquier asociación
+                if (string.IsNullOrEmpty(solicitudActualId))
+                {
+                    return articulo.ArticulosPorSolicitud.Any();
+                }
+
+                // Si hay solicitud actual, verificar si hay asociaciones diferentes a la actual
+                if (Guid.TryParse(solicitudActualId, out var solicitudActualGuid))
+                {
+                    return articulo.ArticulosPorSolicitud.Any(ap => ap.SolicitudId != solicitudActualGuid);
+                }
+
+                return articulo.ArticulosPorSolicitud.Any();
+            }
+            catch (Exception)
+            {
+                // En caso de error, no bloquear la funcionalidad
+                return false;
+            }
+        }
+
         private static ArticuloDto MapToDto(Articulo articulo)
         {
             return new ArticuloDto

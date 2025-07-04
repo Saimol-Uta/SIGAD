@@ -831,10 +831,10 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("investigaciones"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("investigaciones"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
-                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Refrescar conteo">
+                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Recarga manual (solo si es necesario)">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -852,7 +852,7 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("articulos"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("articulos"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -870,7 +870,7 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("experiencias"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("experiencias"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -888,7 +888,7 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("evaluaciones"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("evaluaciones"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -906,7 +906,7 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("cursos"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("cursos"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
@@ -926,7 +926,7 @@
                     </p>
 
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => VerTabla("tesis"))" disabled="@operacionEnProceso">
+                        <button class="btn btn-import" @onclick="@(async () => await VerTabla("tesis"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver Documentos
                         </button>
                     </div>
@@ -943,7 +943,7 @@
                            Cedula="@cedula" 
                            OnImportar="ImportarDocumentos" 
                            OnAgregar="AgregarDocumento"
-                           OnCerrar="CerrarTabla"
+                           OnCerrar="@(async () => await CerrarTabla())"
                            OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
                 </div>
             }
@@ -1061,7 +1061,7 @@
                                     else
                                     {
                                         <div class="alert alert-danger">
-                                            ❌ <strong>No cumple los requisitos mánimos</strong> para el rango solicitado.
+                                            ❌ <strong>No cumple los requisitos minimos</strong> para el rango solicitado.
                                         </div>
                                         
                                         <div class="requirements-summary">
@@ -1671,8 +1671,12 @@
             mensajeOperacion = $"✅ Importación exitosa: {resultado}";
             operacionExitosa = true;
 
-            // Actualizar el contador especáfico de manera eficiente
+            // Actualizar el contador específico de manera eficiente
             await ActualizarContadorEspecifico(tipoDocumento);
+            
+            // Pequeña pausa y forzar actualización de UI
+            await Task.Delay(50);
+            StateHasChanged();
         }
         else
         {
@@ -1766,24 +1770,72 @@
             Navigation.NavigateTo("/login", true);
         }
     }
-    private async void VerTabla(string tipoDocumento)
+    private async Task VerTabla(string tipoDocumento)
     {
-        // Actualizar conteos antes de mostrar la tabla
-        await CargarConteoDocumentos();
-        
-        tablaVisible = tipoDocumento;
-        tipoDocumentoSeleccionado = tipoDocumento; // Establecer el tipo seleccionado para mostrar la guáa
-        StateHasChanged();
+        try
+        {
+            // Mostrar indicador de carga
+            operacionEnProceso = true;
+            StateHasChanged();
+
+            Console.WriteLine($"Debug - Abriendo tabla para: {tipoDocumento}");
+            
+            // Actualizar conteos específicos y general antes de mostrar la tabla
+            await ActualizarContadorEspecifico(tipoDocumento);
+            await CargarConteoDocumentos();
+            
+            tablaVisible = tipoDocumento;
+            tipoDocumentoSeleccionado = tipoDocumento; // Establecer el tipo seleccionado para mostrar la guía
+            
+            // Pequeña pausa para asegurar que la UI se actualice
+            await Task.Delay(50);
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Tabla abierta, conteo actual: {GetConteoByTipo(tipoDocumento)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al abrir tabla: {ex.Message}");
+        }
+        finally
+        {
+            operacionEnProceso = false;
+            StateHasChanged();
+        }
     }
 
-    private async void CerrarTabla()
+    private async Task CerrarTabla()
     {
-        tablaVisible = null;
-        tipoDocumentoSeleccionado = null; // Limpiar la selección de tipo de documento
-        
-        // Actualizar contadores dinámicamente cuando se cierra la tabla
-        await CargarConteoDocumentos();
-        StateHasChanged();
+        try
+        {
+            Console.WriteLine("Debug - Cerrando tabla...");
+            
+            string tipoAnterior = tablaVisible ?? "";
+            
+            tablaVisible = null;
+            tipoDocumentoSeleccionado = null; // Limpiar la selección de tipo de documento
+            
+            // Actualizar contadores dinámicamente cuando se cierra la tabla
+            if (!string.IsNullOrEmpty(tipoAnterior))
+            {
+                await ActualizarContadorEspecifico(tipoAnterior);
+            }
+            await CargarConteoDocumentos();
+            
+            // Pequeña pausa para asegurar que la UI se actualice
+            await Task.Delay(50);
+            StateHasChanged();
+            
+            Console.WriteLine("Debug - Tabla cerrada y conteos actualizados");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cerrar tabla: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
     }
 
     private void AgregarDocumento(string tipoDocumento)
@@ -1848,20 +1900,31 @@
         {
             Console.WriteLine("Debug - Actualizando conteos automáticamente...");
             
-            // Actualizar conteo de documentos primero
+            // Actualizar conteo de documentos específico si hay una tabla visible
+            if (!string.IsNullOrEmpty(tablaVisible))
+            {
+                await ActualizarContadorEspecifico(tablaVisible);
+            }
+            
+            // Actualizar conteo general de documentos
             await CargarConteoDocumentos();
+            
+            // Pequeña pausa para asegurar que la UI se actualice
+            await Task.Delay(100);
             
             // Forzar actualización de la UI
             StateHasChanged();
             
-            // Verificar si hay requisitos para verificar
-            if (!string.IsNullOrEmpty(solicitudId) && tieneDocumentosCompletos)
+            // Log de conteos actualizados
+            Console.WriteLine($"Debug - Conteos actualizados: Inv={conteoInvestigaciones}, Art={conteoArticulos}, Exp={conteoExperiencias}, Eval={conteoEvaluaciones}, Cur={conteoCursos}, Tesis={conteoTesis}");
+            
+            // Verificar si hay requisitos para verificar (solo si ya se habían verificado antes)
+            if (!string.IsNullOrEmpty(solicitudId) && mostrarDetallesRequisitos)
             {
-                // Verificar los requisitos automáticamente
+                Console.WriteLine("Debug - Re-verificando requisitos automáticamente...");
+                // Verificar los requisitos automáticamente solo si ya estaban siendo mostrados
                 await VerificarRequisitos();
             }
-            
-            Console.WriteLine($"Debug - Conteos actualizados: Inv={conteoInvestigaciones}, Art={conteoArticulos}, Exp={conteoExperiencias}");
         }
         catch (Exception ex)
         {

@@ -16,5 +16,6 @@ namespace SIGAD.Application.Services
         Task<bool> DesasociarArticuloDeSolicitudAsync(Guid solicitudId, string articuloDoi);
         Task<byte[]?> GetArchivoArticuloAsync(string doi);
         Task<string?> GetNombreArchivoAsync(string doi);
+        Task<bool> VerificarUsoPrevioAsync(string doi, string? solicitudActualId = null);
     }
-} 
+}
