@@ -27,7 +27,7 @@ namespace SIGAD.WebAPI.Controllers
         {
             try
             {
-                var rangos = await _unitOfWork.Rangos.GetAllAsync();
+                var rangos = (await _unitOfWork.Rangos.GetAllAsync()).OrderBy(r => r.Id);
                 var rangosDto = rangos.Select(r => new RangoDto
                 {
                     Id = r.Id,
@@ -37,14 +37,22 @@ namespace SIGAD.WebAPI.Controllers
                     HorasCursoRequeridas = r.HorasCursoRequeridas,
                     MesesInvestigacionRequeridos = r.MesesInvestigacionRequeridos,
                     TesisDirigidasRequeridas = r.TesisDirigidasRequeridas,
-                    PuntajePromedioEvaluacionesRequerido = r.PuntajePromedioEvaluacionesRequerido
+                    PuntajePromedioEvaluacionesRequerido = r.PuntajePromedioEvaluacionesRequerido,
+
+                    // Campos nuevos que faltaban
+                    HorasCapacitacionPedagogicaRequeridas = r.HorasCapacitacionPedagogicaRequeridas,
+                    HorasCapacitacionImpartidaRequeridas = r.HorasCapacitacionImpartidaRequeridas,
+                    PublicacionesIdiomaExtranjeroRequeridas = r.PublicacionesIdiomaExtranjeroRequeridas,
+                    ProyectosInternacionalesRequeridos = r.ProyectosInternacionalesRequeridos,
+                    RequiereArticuloEnGradoActual = r.RequiereArticuloEnGradoActual,
+                    PermiteCoordinacionProyectos = r.PermiteCoordinacionProyectos
                 });
-                return Ok(rangosDto);
+                return Ok(new { success = true, data = rangosDto });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener todos los rangos");
-                return StatusCode(500, "Error interno del servidor");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor", error = ex.Message });
             }
         }
 

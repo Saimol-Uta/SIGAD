@@ -10,5 +10,11 @@
         public int MesesInvestigacionRequeridos { get; set; }
         public decimal PuntajePromedioEvaluacionesRequerido { get; set; }
         public int TesisDirigidasRequeridas { get; set; } // NUEVO
+        public int HorasCapacitacionPedagogicaRequeridas { get; set; }
+        public int HorasCapacitacionImpartidaRequeridas { get; set; }
+        public int PublicacionesIdiomaExtranjeroRequeridas { get; set; }
+        public int ProyectosInternacionalesRequeridos { get; set; }
+        public bool RequiereArticuloEnGradoActual { get; set; }
+        public bool PermiteCoordinacionProyectos { get; set; }
     }
 }

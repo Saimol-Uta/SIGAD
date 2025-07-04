@@ -310,7 +310,7 @@ namespace SIGAD.Infrastructure.Migrations
                     FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaEnvio = table.Column<DateTime>(type: "datetime2", nullable: true),
                     FechaResolucion = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Estado = table.Column<string>(type: "nvarchar(25)", maxLength: 25, nullable: false),
                     ObservacionesAdmin = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FechaNotificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
                     AceptacionODemanda = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
