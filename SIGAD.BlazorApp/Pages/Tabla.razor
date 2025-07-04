@@ -1187,6 +1187,15 @@
                             // Log temporal para debug
                             Console.WriteLine($"[FRONTEND] Asociando experiencia - ID: {docId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
                         }
+                        else if (TipoDocumento == "investigaciones")
+                        {
+                            requestData = new { 
+                                InvestigacionId = int.Parse(docId),
+                                SolicitudId = solicitudId 
+                            };
+                            // Log temporal para debug
+                            Console.WriteLine($"[FRONTEND] Asociando investigación - ID: {docId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
+                        }
                         else
                         {
                             requestData = new { SolicitudId = solicitudId };
@@ -1195,7 +1204,7 @@
                         var response = await Http.PostAsJsonAsync(endpoint, requestData);
                         
                         // Log temporal para debug
-                        if (TipoDocumento == "articulos" || TipoDocumento == "experiencias")
+                        if (TipoDocumento == "articulos" || TipoDocumento == "experiencias" || TipoDocumento == "investigaciones")
                         {
                             Console.WriteLine($"[FRONTEND] Respuesta {TipoDocumento} - StatusCode: {response.StatusCode}, IsSuccessStatusCode: {response.IsSuccessStatusCode}");
                             if (!response.IsSuccessStatusCode)

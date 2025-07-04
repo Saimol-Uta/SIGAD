@@ -19,5 +19,7 @@ namespace SIGAD.Application.DTOs
 
         [Display(Name = "Nombre del Docente")]
         public string NombreDocente { get; set; } = string.Empty;
+
+        public string InformeRuta { get; set; } = string.Empty;
     }
 }

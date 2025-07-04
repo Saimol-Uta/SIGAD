@@ -1,117 +1,932 @@
 ﻿@page "/ver-solicitudes"
+@attribute [Layout(typeof(AdminLayout))]
 @using SIGAD.BlazorApp.Models
-@inject HttpClient Http
+@using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Components
+@using System.IO
+@inject SolicitudesService SolicitudesService
+@inject IJSRuntime JSRuntime
 
-<h3>Solicitudes</h3>
+<div class="container-fluid">
+    @* Fallback para errores críticos de renderizado o datos vacíos *@
+    @if (!mostrarNotificacion && !cargando && string.IsNullOrEmpty(mensajeError) && !solicitudes.Any())
+    {
+        <div class="alert alert-warning">
+            La página se cargó pero no se recibió ningún dato ni mensaje de error. Esto puede indicar un error crítico de Blazor, un problema de autenticación o un fallo de deserialización.
+        </div>
+    }
 
-@if (solicitudes == null)
-{
-    <p><em>Cargando...</em></p>
-}
-else if (!solicitudes.Any())
-{
-    <p>No hay solicitudes.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Nombre del Docente</th>
-                <th>Rango Actual</th>
-                <th>Rango Solicitado</th>
-                <th>Fecha de Creación</th>
-                <th>Estado</th>
-                <th>Cambiar Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var solicitud in solicitudes)
+    <!-- SweetAlert para notificaciones -->
+    @* Las notificaciones ahora se muestran con SweetAlert desde código *@
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            @if (!cargando && solicitudes.Any())
             {
-                <tr>
-                    <td>@solicitud.NombreDocente</td>
-                    <td>@solicitud.RangoActual</td>
-                    <td>@solicitud.RangoSolicitado</td>
-                    <td>@solicitud.FechaCreacion.ToShortDateString()</td>
-                    <td>@solicitud.Estado</td>
-                    <td>
-                        <select class="form-select" @onchange="(e) => CambiarEstado(solicitud.Id, e.Value?.ToString() ?? solicitud.Estado)">
-                            @foreach (var estado in estadosDisponibles)
-                            {
-                                <option value="@estado" selected="@(estado == solicitud.Estado)">
-                                    @estado
-                                </option>
-                            }
-                        </select>
-                    </td>
-                </tr>
+                <div class="d-flex gap-3">
+                    <small class="badge bg-primary text-white">
+                        <i class="fas fa-list me-1"></i>
+                        Total: @solicitudes.Count
+                    </small>
+                    <small class="badge bg-secondary text-white">
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        Pendientes: @solicitudes.Count(s => s.Estado == "PendienteRevision")
+                    </small>
+                </div>
             }
-        </tbody>
-    </table>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="CargarSolicitudes" disabled="@cargando">
+            @if (cargando)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            else
+            {
+                <i class="fas fa-sync-alt me-1"></i>
+            }
+            Actualizar
+        </button>
+    </div>
+
+    @if (cargando)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2"><em>Cargando solicitudes...</em></p>
+        </div>
+    }
+    else if (mensajeError != null)
+    {
+        <div class="alert alert-danger">
+            @mensajeError
+        </div>
+    }
+    else if (!solicitudes.Any())
+    {
+        <div class="alert alert-info">
+            No hay solicitudes registradas en el sistema.
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <style>
+  
+
+    .bloque-izquierdo {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .bloque-izquierdo h2 {
+        margin: 0;
+        color: #0a1d44;
+        font-size: 24px;
+    }
+
+    .btn, .btn-cerrar, .btn-import, .btn-añadir, .btn-aplicar, .btn-primary {
+        background-color: #0a1d44;
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .btn:hover, .btn-cerrar:hover, .btn-import:hover, .btn-añadir:hover {
+        background-color: #0f2554;
+    }
+
+    .btn-aplicar {
+        background-color: #28a745;
+    }
+
+    .btn-aplicar:hover {
+        background-color: #218838;
+    }
+
+    .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0a1d44;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .tabla-documentos {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .tabla-documentos thead {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .tabla-documentos th, .tabla-documentos td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    .tabla-documentos tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .opciones-documento {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-opcion {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .btn-opcion:hover {
+        transform: scale(1.1);
+    }
+
+    .paginacion {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin: 20px 0;
+    }
+
+    .btn-pagina {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        background-color: white;
+        color: #495057;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-pagina:hover {
+        background-color: #e9ecef;
+    }
+
+    .btn-pagina.activa {
+        background-color: #0a1d44;
+        color: white;
+        border-color: #0a1d44;
+    }
+
+    .info-paginacion {
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    .sin-documentos {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .sin-documentos h3 {
+        margin-bottom: 10px;
+        color: #495057;
+    }
+
+    /* Estilos para filtros/pestañas */
+    .filtros-container {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+
+    .filtro-btn {
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 8px 8px 0 0;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: #6c757d;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: none;
+        margin-bottom: -2px;
+        position: relative;
+    }
+
+    .filtro-btn:hover {
+        background: #e9ecef;
+        color: #495057;
+        transform: translateY(-2px);
+    }
+
+    .filtro-btn.activo {
+        background: #0a1d44;
+        color: white;
+        border-color: #0a1d44;
+        z-index: 1;
+    }
+
+    .filtro-btn.activo::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #0a1d44;
+    }
+
+    .filtro-btn i {
+        font-size: 16px;
+    }
+
+    /* Badge para documentos asociados */
+    .badge-asociado {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Mejoras adicionales */
+    .opciones-documento {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .btn-opcion {
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .btn-opcion:hover {
+        transform: scale(1.1);
+    }
+
+    .btn-opcion:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Estilo específico para el botón desasociar */
+    .btn-desasociar {
+        filter: hue-rotate(0deg) brightness(1);
+        transition: filter 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn-desasociar:hover {
+        filter: hue-rotate(15deg) brightness(1.1);
+        transform: scale(1.1);
+    }
+
+    /* Botón desasociar como elemento button */
+    .btn-desasociar-documento {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-left: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-desasociar-documento:hover {
+        background: #c82333;
+        transform: scale(1.05);
+    }
+
+    .btn-desasociar-documento i {
+        font-size: 10px;
+    }
+
+    /* Animación para cambio de filtros */
+    .tabla-documentos {
+        transition: opacity 0.3s ease;
+    }
+
+    /* Resaltar fila al hover */
+    .tabla-documentos tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Mejorar visibilidad de checkbox */
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+                    </style>
+                    <table class="table tabla-sigad">
+                        <thead>
+                            <tr>
+                                <th>Docente</th>
+                                <th>Cédula</th>
+                                <th>Rango Solicitado</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var solicitud in solicitudes)
+                            {
+                                <tr class="@GetRowClass(solicitud)" style="vertical-align: middle;">
+                                    <td>
+                                        <strong>@solicitud.DocenteNombreCompleto</strong>
+                                    </td>
+                                    <td>
+                                        <span>@solicitud.DocenteCedula</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">
+                                            @solicitud.RangoSolicitadoNombre
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @solicitud.FechaCreacion.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @GetEstadoBadge(solicitud.Estado)
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            @if (solicitud.Estado == "Aprobada" && solicitud.ApelacionId != null)
+                                            {
+                                                <button class="btn btn-info btn-sm" @onclick="() => MostrarModalDetalleApelacion((int)solicitud.ApelacionId)">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    Ver Detalle
+                                                </button>
+                                            }
+                                            else if (solicitud.TieneApelacion || solicitud.Estado == "EnApelacion")
+                                            {
+                                                <button class="btn btn-warning btn-sm" 
+                                                        @onclick="() => ResolverApelacion(solicitud.Id)">
+                                                    <i class="fas fa-gavel me-1"></i>
+                                                    Resolver Apelación
+                                                </button>
+                                            }
+                                            else if (solicitud.Estado == "PendienteRevision")
+                                            {
+                                                <button class="btn btn-success btn-sm" 
+                                                        @onclick="() => AprobarSolicitud(solicitud.Id)">
+                                                    <i class="fas fa-check me-1"></i>
+                                                    Aprobar
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" 
+                                                        @onclick="() => RechazarSolicitud(solicitud.Id)">
+                                                    <i class="fas fa-times me-1"></i>
+                                                    Rechazar
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Sin acciones disponibles
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal para resolver apelación o ver detalle -->
+@if (mostrarModalApelacion || mostrarModalDetalle)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(mostrarModalDetalle
+                            ? (MarkupString)"<i class='fas fa-eye me-2'></i> Detalle de Solicitud"
+                            : (MarkupString)"<i class='fas fa-gavel me-2'></i> Resolver Apelación")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalApelacion"></button>
+                </div>
+                <div class="modal-body">
+                    @if (cargandoApelacion)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="mt-2">Cargando detalles de la solicitud...</p>
+                        </div>
+                    }
+                    else if (apelacionDetalle != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Información del Docente</h6>
+                                <p><strong>Nombre:</strong> @(apelacionDetalle?.DocenteNombre ?? "")</p>
+                                <p><strong>Cédula:</strong> @(apelacionDetalle?.DocenteCedula ?? "")</p>
+                                <p><strong>Rango Solicitado:</strong> @(apelacionDetalle?.RangoSolicitado ?? "")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Información de la Solicitud</h6>
+                                <p><strong>Fecha de Solicitud:</strong> @(apelacionDetalle != null ? apelacionDetalle.FechaSolicitud.ToString("dd/MM/yyyy") : "")</p>
+                                <p><strong>Estado Actual:</strong> @(apelacionDetalle?.EstadoSolicitud ?? "")</p>
+                                <p><strong>Fecha de Apelación:</strong> @(apelacionDetalle != null ? apelacionDetalle.FechaCreacion.ToString("dd/MM/yyyy") : "")</p>
+                            </div>
+                        </div>
+                        <hr />
+                        <h6>Justificación de la Apelación</h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p>@(apelacionDetalle?.Justificacion ?? "")</p>
+                            </div>
+                        </div>
+                        @if (apelacionDetalle != null && apelacionDetalle.DocumentosAdjuntos != null && apelacionDetalle.DocumentosAdjuntos.Any())
+                        {
+                            <h6 class="mt-3">Documentos Adjuntos</h6>
+                            <ul class="list-group">
+                                @foreach (var documento in apelacionDetalle.DocumentosAdjuntos)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        @Path.GetFileName(documento)
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="@(() => AbrirPdf(documento))">
+                                            <i class="fas fa-file-pdf"></i> Ver PDF
+                                        </button>
+                                    </li>
+                                }
+
+@code {
+    // ...existing code...
+    // Cambia aquí la URL base de tu backend según tu entorno
+    private readonly string BackendBaseUrl = "https://localhost:7072";
+
+    private void AbrirPdf(string documento)
+    {
+        var baseUrl = BackendBaseUrl.TrimEnd('/');
+        string relativePath = documento;
+        // Normalizar para evitar doble /uploads/
+        if (relativePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            // Ya está bien
+        }
+        else if (relativePath.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            relativePath = "/" + relativePath;
+        }
+        else
+        {
+            relativePath = "/uploads/" + documento.TrimStart('/');
+        }
+        var urlCompleta = $"{baseUrl}{relativePath}";
+        JSRuntime.InvokeVoidAsync("window.open", urlCompleta, "_blank");
+    }
+    // ...existing code...
+}
+                            </ul>
+                        }
+                        @if (apelacionDetalle != null && !string.IsNullOrEmpty(apelacionDetalle.ObservacionesRechazo))
+                        {
+                            <h6 class="mt-3">Observaciones del Rechazo Original</h6>
+                            <div class="card bg-warning bg-opacity-25">
+                                <div class="card-body">
+                                    <p>@apelacionDetalle.ObservacionesRechazo</p>
+                                </div>
+                            </div>
+                        }
+                        @if (!mostrarModalDetalle)
+                        {
+                            <hr />
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Decisión sobre la Apelación</strong></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="decision" id="aceptar" 
+                                           @onchange="() => apelacionAceptada = true" checked="@apelacionAceptada">
+                                    <label class="form-check-label text-success" for="aceptar">
+                                        <i class="fas fa-check me-1"></i>
+                                        Aceptar Apelación (Aprobar solicitud automáticamente)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="decision" id="rechazar" 
+                                           @onchange="() => apelacionAceptada = false" checked="@(!apelacionAceptada)">
+                                    <label class="form-check-label text-danger" for="rechazar">
+                                        <i class="fas fa-times me-1"></i>
+                                        Rechazar Apelación (Mantener solicitud rechazada)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="observacionesResolucion" class="form-label">
+                                    <strong>Observaciones de la Resolución</strong>
+                                </label>
+                                <textarea class="form-control" id="observacionesResolucion" rows="4"
+                                          @bind="observacionesResolucion" 
+                                          placeholder="Ingrese las observaciones sobre la resolución de la apelación..."></textarea>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger">
+                            Error al cargar los detalles de la solicitud. Por favor, intente nuevamente.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalApelacion">
+                        Cerrar
+                    </button>
+                    @if (apelacionDetalle != null && !cargandoApelacion && !mostrarModalDetalle)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="ProcesarResolucionApelacion" disabled="@procesandoResolucion">
+                            @if (procesandoResolucion)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            <i class="fas fa-gavel me-1"></i>
+                            Resolver Apelación
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
 @code {
-    private List<VerSolicitudDTO>? solicitudes;
-
-    private readonly List<string> estadosDisponibles = new()
-    {
-        "Aprobada", "Rechazada"
-    };
+    private List<SolicitudConApelacionDto> solicitudes = new();
+    private bool cargando = true;
+    private string? mensajeError = null;
+    private string? mensajeExito = null;
+    private bool mostrarNotificacion = false;
+    
+    // Variables para el modal de apelación
+    private bool mostrarModalApelacion = false;
+    private bool mostrarModalDetalle = false;
+    private bool cargandoApelacion = false;
+    private ApelacionDetalleDto? apelacionDetalle = null;
+    private Guid solicitudSeleccionadaId = Guid.Empty;
+    private bool apelacionAceptada = true;
+    private string observacionesResolucion = "";
+    private bool procesandoResolucion = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulación de datos de ejemplo
-        await Task.Delay(500); // Simula una carga asíncrona
-        solicitudes = new List<VerSolicitudDTO>
+        try
         {
-            new VerSolicitudDTO
-            {
-                Id = Guid.NewGuid(),
-                NombreDocente = "Ana Pérez",
-                RangoActual = "Asistente",
-                RangoSolicitado = "Asociado",
-                Estado = "Aprobada",
-                FechaCreacion = DateTime.Now.AddDays(-3)
-            },
-            new VerSolicitudDTO
-            {
-                Id = Guid.NewGuid(),
-                NombreDocente = "Luis Gómez",
-                RangoActual = "Asociado",
-                RangoSolicitado = "Titular",
-                Estado = "Rechazada",
-                FechaCreacion = DateTime.Now.AddDays(-7)
-            }
-        };
+            await CargarSolicitudes();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error crítico al inicializar la página: {ex.Message}";
+            mostrarNotificacion = true;
+        }
     }
 
-    private async Task CambiarEstado(Guid id, string nuevoEstado)
+    private async Task CargarSolicitudes()
     {
-        if (string.IsNullOrEmpty(nuevoEstado))
+        try
         {
-            return; // No hacer nada si el nuevo estado es nulo o vacío
-        }
-
-        var solicitud = solicitudes?.FirstOrDefault(s => s.Id == id);
-        if (solicitud != null && nuevoEstado != solicitud.Estado)
-        {
+            cargando = true;
+            mensajeError = null;
+            solicitudes = new List<SolicitudConApelacionDto>();
             try
             {
-                // Aquí deberías hacer una llamada a la API para actualizar el estado de la solicitud
-                // Por ahora, solo actualizamos localmente
-                solicitud.Estado = nuevoEstado;
-                
-                // Ejemplo de cómo podría ser la llamada a la API:
-                // var response = await Http.PutAsJsonAsync($"api/solicitudes/{id}/estado", new { estado = nuevoEstado });
-                // if (response.IsSuccessStatusCode)
-                // {
-                //    // Actualización exitosa
-                // }
+                solicitudes = await SolicitudesService.GetSolicitudesConApelacionesAsync();
+                if (solicitudes == null || solicitudes.Count == 0)
+                {
+                    mensajeError = "No se encontraron solicitudes o la respuesta fue vacía.";
+                }
+            }
+            catch (System.Net.Http.HttpRequestException httpEx)
+            {
+                mensajeError = $"Error de red o autenticación al cargar las solicitudes: {httpEx.Message}";
+            }
+            catch (System.Text.Json.JsonException jsonEx)
+            {
+                mensajeError = $"Error de formato de datos al procesar la respuesta del servidor: {jsonEx.Message}";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cambiar el estado: {ex.Message}");
+                mensajeError = $"Error inesperado al cargar las solicitudes: {ex.Message}";
             }
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CambiarEstado(Guid solicitudId, string nuevoEstado)
+    {
+        try
+        {
+            (bool success, string message) resultado = (false, "Estado no soportado");
+
+            switch (nuevoEstado)
+            {
+                case "Aprobada":
+                    resultado = await SolicitudesService.AprobarSolicitudAsync(solicitudId, "Solicitud aprobada desde panel administrativo");
+                    break;
+                case "Rechazada":
+                    resultado = await SolicitudesService.RechazarSolicitudAsync(solicitudId, "Solicitud rechazada desde panel administrativo");
+                    break;
+                default:
+                    resultado = (false, $"Estado '{nuevoEstado}' no soportado para cambio directo");
+                    break;
+            }
+
+            if (resultado.success)
+            {
+                MostrarNotificacionExito(resultado.message);
+                await CargarSolicitudes(); // Recargar las solicitudes para mostrar cambios
+            }
+            else
+            {
+                MostrarNotificacionError(resultado.message);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarNotificacionError($"Error al cambiar estado: {ex.Message}");
+        }
+    }
+
+    private MarkupString GetEstadoBadge(string estado)
+    {
+        var badgeClass = estado switch
+        {
+            "PendienteRevision" => "bg-secondary",
+            "Aprobada" => "bg-success",
+            "Rechazada" => "bg-danger",
+            "EnApelacion" => "bg-warning text-dark",
+            "Finalizada" => "bg-primary",
+            _ => "bg-secondary"
+        };
+
+        var icon = estado switch
+        {
+            "PendienteRevision" => "fas fa-hourglass-half",
+            "Aprobada" => "fas fa-check-circle",
+            "Rechazada" => "fas fa-times-circle",
+            "EnApelacion" => "fas fa-gavel",
+            "Finalizada" => "fas fa-flag-checkered",
+            _ => "fas fa-question-circle"
+        };
+
+        return new MarkupString($"<span class=\"badge {badgeClass}\"><i class=\"{icon} me-1\"></i>{estado}</span>");
+    }
+
+    private string GetRowClass(SolicitudConApelacionDto solicitud)
+    {
+        if (solicitud.TieneApelacion && solicitud.Estado == "EnApelacion")
+        {
+            return "table-warning";
+        }
+        return "";
+    }
+
+    private async Task ResolverApelacion(Guid solicitudId)
+    {
+        await MostrarModalResolverApelacion(solicitudId, false);
+    }
+
+
+    private async Task MostrarModalDetalleApelacion(int apelacionId)
+    {
+        try
+        {
+            mostrarModalDetalle = true;
+            mostrarModalApelacion = false;
+            cargandoApelacion = true;
+            apelacionDetalle = null;
+            apelacionAceptada = true;
+            observacionesResolucion = "";
+
+            apelacionDetalle = await SolicitudesService.GetApelacionDetalleByApelacionIdAsync(apelacionId);
+
+            if (apelacionDetalle == null)
+            {
+                throw new Exception("RESTRINGIDO ya fue Resolvido");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarNotificacionError($"Error al cargar detalles de la apelación: {ex.Message}");
+            CerrarModalApelacion();
+        }
+        finally
+        {
+            cargandoApelacion = false;
+        }
+    }
+
+    private async Task MostrarModalResolverApelacion(Guid solicitudId, bool soloDetalle)
+    {
+        try
+        {
+            solicitudSeleccionadaId = solicitudId;
+            mostrarModalApelacion = !soloDetalle;
+            mostrarModalDetalle = soloDetalle;
+            cargandoApelacion = true;
+            apelacionDetalle = null;
+            apelacionAceptada = true;
+            observacionesResolucion = "";
+
+            // Cargar detalles de la apelación/solicitud
+            apelacionDetalle = await SolicitudesService.GetApelacionDetalleAsync(solicitudId);
+
+            if (apelacionDetalle == null)
+            {
+                throw new Exception("No se pudieron obtener los detalles de la solicitud");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarNotificacionError($"Error al cargar detalles de la solicitud: {ex.Message}");
+            CerrarModalApelacion();
+        }
+        finally
+        {
+            cargandoApelacion = false;
+        }
+    }
+
+    private void CerrarModalApelacion()
+    {
+        mostrarModalApelacion = false;
+        mostrarModalDetalle = false;
+        cargandoApelacion = false;
+        apelacionDetalle = null;
+        solicitudSeleccionadaId = Guid.Empty;
+        observacionesResolucion = "";
+        procesandoResolucion = false;
+    }
+
+    private async Task ProcesarResolucionApelacion()
+    {
+        if (apelacionDetalle is null) 
+        {
+            MostrarNotificacionError("No se puede procesar la apelación: detalles no disponibles");
+            return;
+        }
+
+        try
+        {
+            procesandoResolucion = true;
+            
+            Console.WriteLine($"Procesando resolución de apelación ID: {apelacionDetalle.Id}, Aceptada: {apelacionAceptada}, Observaciones: {observacionesResolucion}");
+            
+            var resultado = await SolicitudesService.ResolverApelacionAsync(
+                apelacionDetalle.Id, // Ahora es int, se pasa directo
+                apelacionAceptada, 
+                observacionesResolucion);
+
+            if (resultado.success)
+            {
+                MostrarNotificacionExito(resultado.message);
+                CerrarModalApelacion();
+                await CargarSolicitudes(); // Recargar la lista
+            }
+            else
+            {
+                MostrarNotificacionError(resultado.message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al resolver apelación: {ex}");
+            MostrarNotificacionError($"Error al resolver apelación: {ex.Message}");
+        }
+        finally
+        {
+            procesandoResolucion = false;
+        }
+    }
+
+    private async Task AprobarSolicitud(Guid solicitudId)
+    {
+        await CambiarEstado(solicitudId, "Aprobada");
+    }
+
+    private async Task RechazarSolicitud(Guid solicitudId)
+    {
+        await CambiarEstado(solicitudId, "Rechazada");
+    }
+
+    private void OcultarNotificacion()
+    {
+        mostrarNotificacion = false;
+        mensajeError = null;
+        mensajeExito = null;
+    }
+
+    // SweetAlert para notificaciones modernas
+    private async void MostrarNotificacionExito(string mensaje)
+    {
+        await MostrarSweetAlert("¡Éxito!", mensaje, "success", true);
+    }
+
+    private async void MostrarNotificacionError(string mensaje)
+    {
+        await MostrarSweetAlert("Error", mensaje, "error");
+    }
+
+    // Función auxiliar para SweetAlert
+    private async Task MostrarSweetAlert(string titulo, string mensaje, string icono, bool autoClose = false)
+    {
+        if (autoClose)
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", new
+            {
+                position = "center",
+                icon = icono,
+                title = titulo,
+                text = mensaje,
+                showConfirmButton = false,
+                timer = 1500
+            });
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire",
+                new { title = titulo, text = mensaje, icon = icono, confirmButtonColor = "#0a1d44" });
         }
     }
 }

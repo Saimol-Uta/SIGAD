@@ -386,14 +386,6 @@
                                      rows="4" />
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">
-                            Idioma de Publicación <span class="required">*</span>
-                        </label>
-                        <InputText @bind-Value="articuloModel.IdiomaPublicacion" class="form-control" placeholder="Ej: Español, Inglés, Francés" />
-                        <ValidationMessage For="@(() => articuloModel.IdiomaPublicacion)" />
-                    </div>
-
                                         <div class="form-group">
                         <label class="form-label">Archivo del Artículo <span class="required">*</span></label>
                         <InputFile OnChange="@OnArchivoSelected" accept=".pdf,.doc,.docx" />

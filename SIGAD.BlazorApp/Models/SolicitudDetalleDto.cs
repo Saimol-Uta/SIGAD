@@ -31,10 +31,23 @@ namespace SIGAD.BlazorApp.Models
     public class VerTesisDirigidaDto
     {
         public int Id { get; set; }
-        public string TituloTesis { get; set; } = string.Empty;
-        public string NivelAcademico { get; set; } = string.Empty;
-        public string Institucion { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty; // Cambiado de TituloTesis a Titulo
+        public string Nivel { get; set; } = string.Empty; // Cambiado de NivelAcademico a Nivel
         public string Estado { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
+        public DateTime? FechaFin { get; set; }
+        public string CertificacionPath { get; set; } = string.Empty; // Cambiado de CertificacionRuta
+        public string Institucion { get; set; } = string.Empty; // Mapea a Institucion de la entidad original
+        
+        // Propiedades calculadas para compatibilidad
+        public string TituloTesis => Titulo; // Para compatibilidad con vista existente
+        public string NivelAcademico => Nivel; // Para compatibilidad con vista existente
+        public string CertificacionRuta => CertificacionPath; // Para compatibilidad con vista existente
+        public bool TieneCertificacion => !string.IsNullOrEmpty(CertificacionPath);
+        
+        public string PeriodoFormateado => FechaInicio != default && FechaFin.HasValue
+            ? $"{FechaInicio:MM/yyyy} - {FechaFin.Value:MM/yyyy}"
+            : FechaInicio != default ? FechaInicio.ToString("MM/yyyy") : "Sin fecha";
     }
 
     public class VerArticuloDto
@@ -45,6 +58,7 @@ namespace SIGAD.BlazorApp.Models
         public int AnioPublicacion { get; set; }
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;
+        public string ArchivoRuta { get; set; } = string.Empty;
     }
 
     public class VerInvestigacionDto
@@ -55,6 +69,7 @@ namespace SIGAD.BlazorApp.Models
         public int MesesDeInvestigacion { get; set; }
         public string NombreDocente { get; set; } = string.Empty;
         public DateTime FechaFinalizacion { get; set; }
+        public string InformeRuta { get; set; } = string.Empty;
     }
 
     public class VerCursoDto
@@ -67,5 +82,6 @@ namespace SIGAD.BlazorApp.Models
         public string NombreDocente { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
         public bool TieneCertificado { get; set; }
+        public string CertificadoRuta { get; set; } = string.Empty;
     }
 }

@@ -227,11 +227,19 @@ namespace SIGAD.Application.Services
                 InformeRuta = investigacion.InformeRuta,
                 UrlCloudinary = investigacion.UrlCloudinary,
                 ContenidoHash = investigacion.ContenidoHash,
+                TipoProyecto = investigacion.TipoProyecto.ToString(),
+                MesesDeParticipacion = investigacion.MesesDeParticipacion,
+                UnidadVerificadora = investigacion.UnidadVerificadora,
+                EsInternacional = investigacion.EsInternacional,
 
                 // Mapeo de solicitudes asociadas
-                SolicitudId = null, // Ajuste temporal hasta que se defina InvestigacionesPorSolicitud
-                Solicitudes = new List<SolicitudBasicaDto>(), // Ajuste temporal
-                EsInternacional = investigacion.EsInternacional
+                SolicitudId = investigacion.InvestigacionesPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = investigacion.InvestigacionesPorSolicitud?.Select(ips => new SolicitudBasicaDto
+                {
+                    SolicitudId = ips.SolicitudId.ToString(),
+                    Estado = ips.SolicitudAscenso?.Estado.ToString() ?? "Desconocido",
+                    FechaCreacion = ips.SolicitudAscenso?.FechaCreacion
+                }).ToList() ?? new List<SolicitudBasicaDto>()
             };
         }
 
