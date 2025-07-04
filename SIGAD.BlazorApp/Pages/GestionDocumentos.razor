@@ -909,6 +909,8 @@
                 </div>
 
                 <!-- Tesis Asignadas -->
+                 @if (RangoRequiereTesis())
+                                            {
                 <div class="document-card">
                     <h3>
                         <span class="icon"><i class="fas fa-book text-danger"></i></span>
@@ -925,6 +927,8 @@
                         </button>
                     </div>
                 </div>
+       }
+               
             </div>
 
             <!-- Mostrar tabla cuando se selecciona un tipo -->
@@ -1013,10 +1017,13 @@
                                                 <span class="label">­Evaluaciones:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% ✅</span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">­ Tesis Dirigidas:</span>
-                                                <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
+                                                </div>
+                                            }
                                         </div>
 
                                         @if (solicitudEnviada)
@@ -1089,13 +1096,16 @@
                                                     @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "✅" : "❌")
                                                 </span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">­Tesis Dirigidas:</span>
-                                                <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
-                                                    @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
-                                                    @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
-                                                </span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
+                                                        @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
+                                                        @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
+                                                    </span>
+                                                </div>
+                                            }
                                         </div>
 
                                         <div class="missing-requirements">
@@ -1127,7 +1137,7 @@
                                     @if (conteoExperiencias == 0) { <li>Experiencia Laboral</li> }
                                     @if (conteoEvaluaciones == 0) { <li>Evaluaciones</li> }
                                     @if (conteoCursos == 0) { <li>Cursos</li> }
-                                    @if (conteoTesis == 0) { <li>Tesis Dirigidas</li> }
+                                    @if (conteoTesis == 0 && RangoRequiereTesis()) { <li>Tesis Dirigidas</li> }
                                 </ul>
                             </div>
                             <div class="submission-actions">
@@ -1265,12 +1275,14 @@
 
     private void VerificarDocumentosCompletos()
     {
+        bool requiereTesis = RangoRequiereTesis();
+        
         tieneDocumentosCompletos = conteoInvestigaciones > 0 && 
                                  conteoArticulos > 0 && 
                                  conteoExperiencias > 0 && 
                                  conteoEvaluaciones > 0 && 
                                  conteoCursos > 0 &&
-                                 conteoTesis > 0;
+                                 (requiereTesis ? conteoTesis > 0 : true);
     }
 
     private async Task VerificarRequisitos()
@@ -1882,5 +1894,10 @@
         public decimal PromedioEvaluaciones { get; set; }
         public string? RangoNombre { get; set; }
         public int TesisDirigidas { get; set; }
+    }
+
+    private bool RangoRequiereTesis()
+    {
+        return requisitosInfo?.ValoresRequeridos?.TesisDirigidas > 0;
     }
 }
