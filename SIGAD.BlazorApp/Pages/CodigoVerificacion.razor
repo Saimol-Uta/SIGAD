@@ -81,6 +81,35 @@
 }
 
 <div class="recovery-container">
+        <svg class="svg-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <linearGradient id="grad-dark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#081631" /><stop offset="100%" stop-color="#0a1d44" /></linearGradient>
+            <linearGradient id="grad-medium" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0a1d44" /><stop offset="100%" stop-color="#0e2c6c" /></linearGradient>
+            <linearGradient id="grad-light" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" stop-color="#1a3a8a" /><stop offset="100%" stop-color="#0e2c6c" /></linearGradient>
+        </defs>
+        <polygon points="0,0 20,0 10,25" fill="url(#grad-dark)" />
+        <polygon points="20,0 45,0 30,20" fill="url(#grad-medium)" />
+        <polygon points="45,0 70,0 60,30" fill="url(#grad-dark)" />
+        <polygon points="70,0 100,0 85,25" fill="url(#grad-light)" />
+        <polygon points="100,0 100,30 85,25" fill="url(#grad-medium)" />
+        <polygon points="0,0 0,35 10,25" fill="url(#grad-medium)" />
+        <polygon points="10,25 30,20 25,45" fill="url(#grad-light)" />
+        <polygon points="30,20 60,30 45,50" fill="url(#grad-dark)" />
+        <polygon points="60,30 85,25 70,55" fill="url(#grad-medium)" />
+        <polygon points="85,25 100,30 95,50" fill="url(#grad-dark)" />
+        <polygon points="0,35 25,45 5,60" fill="url(#grad-dark)" />
+        <polygon points="25,45 45,50 35,70" fill="url(#grad-medium)" />
+        <polygon points="45,50 70,55 60,80" fill="url(#grad-light)" />
+        <polygon points="70,55 95,50 80,75" fill="url(#grad-dark)" />
+        <polygon points="95,50 100,65 80,75" fill="url(#grad-medium)" />
+        <polygon points="0,100 0,60 5,60" fill="url(#grad-light)" />
+        <polygon points="5,60 35,70 20,100" fill="url(#grad-dark)" />
+        <polygon points="35,70 60,80 50,100" fill="url(#grad-medium)" />
+        <polygon points="60,80 80,75 70,100" fill="url(#grad-dark)" />
+        <polygon points="80,75 100,65 90,100" fill="url(#grad-light)" />
+        <polygon points="100,65 100,100 90,100" fill="url(#grad-medium)" />
+    </svg>
+
     <div class="recovery-box">
         <div class="logo-container">
             <img src="/images/logoSIGAD.png" class="logo" />
@@ -202,9 +231,20 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: linear-gradient(-45deg, #ece9e6, #ffffff, #dee3ea, #f7f9fc);
-    background-size: 600% 600%;
-    animation: fondoSuave 20s ease infinite;
+    background-color: #0a1d44; /* Cambia el fondo */
+    position: relative; /* Añade esto */
+    overflow: hidden; /* Añade esto para asegurar que el SVG no se desborde */
+    /* Las propiedades de 'animation' y 'background-size' ya no son necesarias */
+}
+
+.svg-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Para que esté detrás de todo */
+    opacity: 0.85;
 }
 
 .recovery-box {
@@ -215,6 +255,8 @@
     position: relative;
     border-radius: 0.2rem;
     text-align: center;
+        z-index: 2; /* Asegura que la caja esté sobre el SVG */
+
 }
 
 .recovery-box h2 {
@@ -255,7 +297,7 @@
 
 .btn {
     width: 60%;
-    background-color: #1a2c5b;
+    background-color: #0a1d44;
     color: white;
     border: none;
     padding: 0.8rem;
@@ -263,6 +305,11 @@
     cursor: pointer;
     margin-bottom: 1rem;
     margin-top: 1rem;
+
+}
+.btn:hover {
+                background-color: #0e2c6c;
+                color: white;
 
 }
 
