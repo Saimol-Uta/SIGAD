@@ -566,7 +566,6 @@
                     });
                     
                     evaluacionCreada = true;
-                    await Task.Delay(2000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
@@ -577,23 +576,13 @@
             }
             else
             {
-                // AGREGAR EVALUACIÓN
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
-                }
+           
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(evaluacionModel.TipoEvaluacion), "PeriodoAcademico");
                 content.Add(new StringContent(evaluacionModel.FechaEvaluacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaEvaluacion");
                 content.Add(new StringContent(evaluacionModel.Calificacion.ToString()), "PuntajePorcentual");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                // Ya no asociamos automáticamente a una solicitud
-                // content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
@@ -615,7 +604,6 @@
                     });
                     
                     evaluacionCreada = true;
-                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
