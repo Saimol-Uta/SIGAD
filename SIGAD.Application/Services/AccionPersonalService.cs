@@ -52,146 +52,124 @@ namespace SIGAD.Application.Services
                 {
                     // Configuración de la página
                     page.Size(PageSizes.Letter);
-                    page.Margin(0);
-                    page.PageColor(Colors.White);
+                    page.Margin(50);
                     page.DefaultTextStyle(x => x.FontFamily("Times New Roman"));
 
-                    // Borde izquierdo rojo (usando elementos en lugar de canvas)
-                    page.Content().PaddingLeft(0).Column(column =>
+                    // Contenido con decoración minimalista
+                    page.Content().Layers(layers =>
                     {
-                        // Crear un rectángulo rojo a la izquierda
-                        column.Item().Background(Colors.Red.Medium).Height(842).Width(120);
-                    });
+                        // ✅ Marco dorado completo alrededor de toda la página
+                        layers.Layer().Border(2).BorderColor("#DAA520");
 
-                    // Líneas doradas horizontales
-                    page.Content().Element(container =>
-                    {
-                        // Línea dorada superior
-                        container.Background(Colors.Orange.Medium)
-                            .Height(3)
-                            .Width(PageSizes.Letter.Width)
-                            .AlignTop()
-                            .PaddingTop(PageSizes.Letter.Height * 0.1f);
-
-                        // Línea dorada media
-                        container.Background(Colors.Orange.Medium)
-                            .Height(3)
-                            .Width(PageSizes.Letter.Width)
-                            .AlignTop()
-                            .PaddingTop(PageSizes.Letter.Height * 0.2f);
-
-                        // Línea dorada inferior
-                        container.Background(Colors.Orange.Medium)
-                            .Height(3)
-                            .Width(PageSizes.Letter.Width)
-                            .AlignBottom()
-                            .PaddingBottom(PageSizes.Letter.Height * 0.05f);
-                    });
-
-                    // Contenido del documento
-                    page.Content().Padding(50).Column(column =>
-                    {
-                        // Encabezado con logo
-                        column.Item().AlignCenter().Row(row =>
+                        // ✅ Contenido principal completamente centrado
+                        layers.PrimaryLayer().AlignCenter().AlignMiddle().Padding(20).Column(column =>
                         {
-                            row.RelativeItem().AlignCenter().Column(c =>
+                            column.Spacing(3);
+
+                            // Encabezado
+                            column.Item().AlignCenter().Column(c => 
                             {
-                                try
-                                {
-                                    c.Item().AlignCenter().Height(120).Image("wwwroot/images/logo_uta.png");
-                                }
-                                catch
-                                {
-                                    c.Item().AlignCenter().Height(120).Text("LOGO UTA").FontSize(20);
-                                }
-                                
                                 c.Item().AlignCenter().Text("UNIVERSIDAD TÉCNICA DE AMBATO")
-                                    .FontSize(18).Bold();
+                                    .FontSize(14).Bold();
                                 
                                 c.Item().AlignCenter().Text("DIRECCIÓN DE TALENTO HUMANO")
-                                    .FontSize(16).Bold();
-                            });
-                        });
-
-                        // Número de documento
-                        column.Item().PaddingVertical(20).AlignCenter().Text($"### *ACCIÓN DE PERSONAL Nro. UTA-AP-{datos.Anio}:{datos.Consecutivo}*")
-                            .FontSize(16).Bold();
-
-                        // Texto introductorio
-                        column.Item().PaddingTop(20).Text("El Rector de la Universidad Técnica de Ambato, en uso de sus atribuciones legales y estatutarias,")
-                            .FontSize(14);
-
-                        // Sección VISTOS
-                        column.Item().PaddingTop(20).AlignCenter().Text("VISTOS:")
-                            .FontSize(16).Bold();
-
-                        // Texto de solicitud
-                        column.Item().PaddingTop(10).Text($"La solicitud de promoción al grado escalafonario inmediato superior, presentada por el/la docente {datos.NombreCompleto}, con cédula de ciudadanía Nro. {datos.Cedula}.")
-                            .FontSize(14);
-
-                        // Sección CONSIDERANDO
-                        column.Item().PaddingTop(20).AlignCenter().Text("CONSIDERANDO:")
-                            .FontSize(16).Bold();
-
-                        // Lista de consideraciones
-                        column.Item().PaddingTop(10).Text("• Que, el Estatuto de la Universidad Técnica de Ambato confiere al Honorable Consejo Universitario la atribución de aprobar los procesos de promoción del personal académico titular.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text("• Que, el \"REGLAMENTO PARA LA PROMOCIÓN DEL PERSONAL ACADÉMICO TITULAR DE LA UNIVERSIDAD TÉCNICA DE AMBATO\", expedido mediante Resolución 0677-CU-P-2023, establece los requisitos y el procedimiento para el efecto.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text("• Que, la Comisión Académica de Escalafón y Promoción, tras el análisis de la documentación presentada por el/la solicitante, emitió el informe técnico favorable para la promoción.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text($"• Que, el Honorable Consejo Universitario, en sesión de {datos.FechaSesion}, conoció y aprobó el informe de promoción del personal académico titular correspondiente al período {datos.PeriodoConvocatoria}, en el cual consta el/la docente antes mencionado/a.")
-                            .FontSize(14);
-
-                        // Sección RESUELVE
-                        column.Item().PaddingTop(20).AlignCenter().Text("RESUELVE:")
-                            .FontSize(16).Bold();
-
-                        // Artículos resolutivos
-                        column.Item().PaddingTop(10).Text($"*Artículo 1.- PROMOVER, al/a la docente {datos.NombreCompleto}, de la categoría de {datos.RangoAnterior} a la categoría de {datos.RangoNuevo}* dentro del escalafón del personal académico titular de la Universidad Técnica de Ambato.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text($"*Artículo 2.- DISPONER, que la presente promoción rige a partir del {datos.FechaEfectivaPromocion}*, de conformidad con lo establecido en el Artículo 8 del reglamento de la materia.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text($"*Artículo 3.- FIJAR, la remuneración mensual unificada correspondiente a la categoría de {datos.RangoNuevo}*, conforme a la escala salarial vigente en la Institución.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).Text("*Artículo 4.- ENCARGAR*, la ejecución y registro de la presente Acción de Personal a la Dirección de Talento Humano y a la Dirección Financiera para los fines legales y económicos pertinentes.")
-                            .FontSize(14);
-
-                        // Fecha y lugar
-                        column.Item().PaddingTop(20).AlignCenter().Text($"Dado y firmado en la ciudad de Ambato, a los {dia} días del mes de {mes} de {anio}.")
-                            .FontSize(14);
-
-                        column.Item().PaddingTop(10).AlignCenter().Text("Comuníquese y cúmplase.")
-                            .FontSize(14);
-
-                        // Firmas
-                        column.Item().PaddingTop(40).Row(row =>
-                        {
-                            // Firma del Presidente
-                            row.RelativeItem().AlignCenter().Column(c =>
-                            {
-                                c.Item().AlignCenter().Height(80).Text("[FIRMA PRESIDENTE]").FontSize(12);
-                                c.Item().AlignCenter().Text("PRESIDENTE DEL H. CONSEJO")
-                                    .FontSize(10);
-                                c.Item().AlignCenter().Text("UNIVERSITARIO TÉCNICO DE AMBATO")
-                                    .FontSize(10);
+                                    .FontSize(12).Bold();
+                                    
+                                c.Item().Height(6);
+                                
+                                c.Item().AlignCenter().Text($"ACCIÓN DE PERSONAL Nro. UTA-AP-{datos.Anio}:{datos.Consecutivo}")
+                                    .FontSize(12).Bold();
                             });
 
-                            // Espacio entre firmas
-                            row.ConstantItem(50);
+                            // Espacio después del encabezado
+                            column.Item().Height(6);
 
-                            // Firma del Secretario
-                            row.RelativeItem().AlignCenter().Column(c =>
+                            // Texto introductorio
+                            column.Item().AlignCenter().Text("El Rector de la Universidad Técnica de Ambato, en uso de sus atribuciones legales y estatutarias,")
+                                .FontSize(9);
+
+                            column.Item().Height(4);
+
+                            // Sección VISTOS
+                            column.Item().AlignCenter().Text("VISTOS:")
+                                .FontSize(10).Bold();
+
+                            // Texto de solicitud
+                            column.Item().AlignCenter().Text($"La solicitud de promoción al grado escalafonario inmediato superior, presentada por el/la docente {datos.NombreCompleto}, con cédula de ciudadanía Nro. {datos.Cedula}.")
+                                .FontSize(9);
+
+                            column.Item().Height(4);
+
+                            // Sección CONSIDERANDO
+                            column.Item().AlignCenter().Text("CONSIDERANDO:")
+                                .FontSize(10).Bold();
+
+                            // Lista de consideraciones compacta
+                            column.Item().AlignLeft().Text("• Que, el Estatuto de la Universidad Técnica de Ambato confiere al Honorable Consejo Universitario la atribución de aprobar los procesos de promoción del personal académico titular.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text("• Que, el \"REGLAMENTO PARA LA PROMOCIÓN DEL PERSONAL ACADÉMICO TITULAR DE LA UNIVERSIDAD TÉCNICA DE AMBATO\", expedido mediante Resolución 0677-CU-P-2023, establece los requisitos y el procedimiento para el efecto.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text("• Que, la Comisión Académica de Escalafón y Promoción, tras el análisis de la documentación presentada por el/la solicitante, emitió el informe técnico favorable para la promoción.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text($"• Que, el Honorable Consejo Universitario, en sesión de {datos.FechaSesion}, conoció y aprobó el informe de promoción del personal académico titular correspondiente al período {datos.PeriodoConvocatoria}, en el cual consta el/la docente antes mencionado/a.")
+                                .FontSize(8);
+
+                            column.Item().Height(4);
+
+                            // Sección RESUELVE
+                            column.Item().AlignCenter().Text("RESUELVE:")
+                                .FontSize(10).Bold();
+
+                            // Artículos resolutivos compactos
+                            column.Item().AlignLeft().Text($"Artículo 1.- PROMOVER, al/a la docente {datos.NombreCompleto}, de la categoría de {datos.RangoAnterior} a la categoría de {datos.RangoNuevo} dentro del escalafón del personal académico titular de la Universidad Técnica de Ambato.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text($"Artículo 2.- DISPONER, que la presente promoción rige a partir del {datos.FechaEfectivaPromocion}, de conformidad con lo establecido en el Artículo 8 del reglamento de la materia.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text($"Artículo 3.- FIJAR, la remuneración mensual unificada correspondiente a la categoría de {datos.RangoNuevo}, conforme a la escala salarial vigente en la Institución.")
+                                .FontSize(8);
+
+                            column.Item().AlignLeft().Text("Artículo 4.- ENCARGAR, la ejecución y registro de la presente Acción de Personal a la Dirección de Talento Humano y a la Dirección Financiera para los fines legales y económicos pertinentes.")
+                                .FontSize(8);
+
+                            column.Item().Height(4);
+
+                            // Fecha y lugar
+                            column.Item().AlignCenter().Text($"Dado y firmado en la ciudad de Ambato, a los {dia} días del mes de {mes} de {anio}.")
+                                .FontSize(9);
+
+                            column.Item().AlignCenter().Text("Comuníquese y cúmplase.")
+                                .FontSize(9);
+
+                            column.Item().Height(6);
+
+                            // Firmas
+                            column.Item().Row(row =>
                             {
-                                c.Item().AlignCenter().Height(80).Text("[FIRMA SECRETARIO]").FontSize(12);
-                                c.Item().AlignCenter().Text("SECRETARIO GENERAL")
-                                    .FontSize(10);
+                                // Firma del Presidente
+                                row.RelativeItem().AlignCenter().Column(c =>
+                                {
+                                    c.Item().AlignCenter().Height(25).Text("[FIRMA PRESIDENTE]").FontSize(7);
+                                    c.Item().AlignCenter().Text("PRESIDENTE DEL H. CONSEJO")
+                                        .FontSize(6).Bold();
+                                    c.Item().AlignCenter().Text("UNIVERSITARIO TÉCNICO DE AMBATO")
+                                        .FontSize(6).Bold();
+                                });
+
+                                // Espacio entre firmas
+                                row.ConstantItem(15);
+
+                                // Firma del Secretario
+                                row.RelativeItem().AlignCenter().Column(c =>
+                                {
+                                    c.Item().AlignCenter().Height(25).Text("[FIRMA SECRETARIO]").FontSize(7);
+                                    c.Item().AlignCenter().Text("SECRETARIO GENERAL")
+                                        .FontSize(6).Bold();
+                                });
                             });
                         });
                     });
@@ -248,4 +226,4 @@ namespace SIGAD.Application.Services
             };
         }
     }
-} 
+}

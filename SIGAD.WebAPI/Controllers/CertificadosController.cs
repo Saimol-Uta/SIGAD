@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Interfaces;
+using SIGAD.Domain.Interfaces;
+using SIGAD.Domain.Enums;
 using System;
 using System.Threading.Tasks;
 
@@ -13,13 +15,16 @@ namespace SIGAD.WebAPI.Controllers
     public class CertificadosController : ControllerBase
     {
         private readonly IAccionPersonalService _accionPersonalService;
+        private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly ILogger<CertificadosController> _logger;
 
         public CertificadosController(
             IAccionPersonalService accionPersonalService,
+            ISolicitudAscensoRepository solicitudRepository,
             ILogger<CertificadosController> logger)
         {
             _accionPersonalService = accionPersonalService;
+            _solicitudRepository = solicitudRepository;
             _logger = logger;
         }
 
@@ -92,11 +97,52 @@ namespace SIGAD.WebAPI.Controllers
             {
                 _logger.LogInformation($"Generando certificado de acción de personal para solicitud ID: {solicitudId}");
                 
-                // Aquí se implementaría la lógica para obtener los datos de la solicitud
-                // y convertirlos en un AccionPersonalDto
+                // Obtener la solicitud con todos sus detalles
+                var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(solicitudId);
                 
-                // Por ahora, retornamos un error indicando que esta funcionalidad no está implementada
-                return StatusCode(501, new { success = false, message = "Funcionalidad no implementada" });
+                if (solicitud == null)
+                {
+                    _logger.LogWarning($"Solicitud no encontrada: {solicitudId}");
+                    return NotFound(new { success = false, message = "Solicitud no encontrada" });
+                }
+                
+                // Verificar que la solicitud esté aprobada
+                if (solicitud.Estado != EstadoSolicitud.Aprobada)
+                {
+                    _logger.LogWarning($"La solicitud {solicitudId} no está aprobada. Estado actual: {solicitud.Estado}");
+                    return BadRequest(new { success = false, message = "Solo se pueden generar certificados para solicitudes aprobadas" });
+                }
+                
+                // Verificar que la solicitud tenga los datos necesarios
+                if (solicitud.Docente == null || solicitud.RangoActual == null || solicitud.RangoSolicitado == null)
+                {
+                    _logger.LogWarning($"La solicitud {solicitudId} no tiene todos los datos necesarios para generar el certificado");
+                    return BadRequest(new { success = false, message = "La solicitud no tiene todos los datos necesarios" });
+                }
+
+                // Crear el DTO para generar el certificado
+                var datosAccionPersonal = new AccionPersonalDto
+                {
+                    NombreCompleto = solicitud.Docente.NombreCompleto,
+                    Cedula = solicitud.Docente.Cedula,
+                    RangoAnterior = solicitud.RangoActual.Nombre,
+                    RangoNuevo = solicitud.RangoSolicitado.Nombre,
+                    FechaSesion = solicitud.FechaAprobacionConsejo?.ToString("dd 'de' MMMM 'de' yyyy") ?? "N/A",
+                    PeriodoConvocatoria = $"{solicitud.FechaCreacion.Year}-{(solicitud.FechaCreacion.Month <= 6 ? "01" : "02")}",
+                    FechaEfectivaPromocion = solicitud.FechaResolucion?.ToString("dd 'de' MMMM 'de' yyyy") ?? DateTime.Now.ToString("dd 'de' MMMM 'de' yyyy"),
+                    Anio = DateTime.Now.Year.ToString(),
+                    Consecutivo = $"{solicitudId.ToString().Substring(0, 5)}",
+                    SolicitudId = solicitudId
+                };
+                
+                // Generar el PDF
+                var pdfBytes = await _accionPersonalService.GenerarAccionPersonalPdfAsync(datosAccionPersonal);
+                
+                string nombreArchivo = $"accion_personal_{datosAccionPersonal.Cedula}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+                
+                _logger.LogInformation($"Certificado generado exitosamente para solicitud {solicitudId}: {nombreArchivo}");
+                
+                return File(pdfBytes, "application/pdf", nombreArchivo);
             }
             catch (Exception ex)
             {
