@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using SIGAD.Application.Interfaces;
 
 namespace SIGAD.Application.Services
 {
@@ -14,15 +15,18 @@ namespace SIGAD.Application.Services
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificacionService _notificacionService;
 
         public GestionSolicitudesAppService(
             ISolicitudAscensoRepository solicitudRepository,
             IDocenteRepository docenteRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            INotificacionService notificacionService)
         {
             _solicitudRepository = solicitudRepository;
             _docenteRepository = docenteRepository;
             _unitOfWork = unitOfWork;
+            _notificacionService = notificacionService;
         }
 
         public async Task<Guid> EnviarSolicitudConEvidenciaAsync(EnviarSolicitudDto dto, string docenteCedula)
@@ -217,14 +221,26 @@ namespace SIGAD.Application.Services
 
         public async Task AprobarSolicitudAsync(Guid id, string observaciones)
         {
+            var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
+            if (solicitud == null) throw new KeyNotFoundException("Solicitud no encontrada.");
+
             await _solicitudRepository.AprobarSolicitudAsync(id, observaciones);
             await _unitOfWork.CompleteAsync();
+
+            // --- CORRECCIÓN: LLAMADA AL NUEVO MÉTODO ESPECÍFICO ---
+            await _notificacionService.EnviarNotificacionAprobacionAsync(solicitud, observaciones);
         }
 
         public async Task RechazarSolicitudAsync(Guid id, string observaciones)
         {
+            var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
+            if (solicitud == null) throw new KeyNotFoundException("Solicitud no encontrada.");
+
             await _solicitudRepository.RechazarSolicitudAsync(id, observaciones);
             await _unitOfWork.CompleteAsync();
+
+            // --- CORRECCIÓN: LLAMADA AL NUEVO MÉTODO ESPECÍFICO ---
+            await _notificacionService.EnviarNotificacionRechazoAsync(solicitud, observaciones);
         }
         public async Task<SolicitudAscenso?> ObtenerBorradorActivoAsync(string docenteCedula)
         {

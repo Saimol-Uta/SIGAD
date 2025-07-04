@@ -576,6 +576,44 @@ namespace SIGAD.Infrastructure.Migrations
                     b.ToTable("InvestigacionesPorSolicitud");
                 });
 
+            modelBuilder.Entity("SIGAD.Domain.Entities.Notificacion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DocenteCedula")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<bool>("EsLeida")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaLeida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("UrlRedireccion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocenteCedula");
+
+                    b.ToTable("Notificaciones");
+                });
+
             modelBuilder.Entity("SIGAD.Domain.Entities.Organizacion", b =>
                 {
                     b.Property<int>("Id")
@@ -1039,6 +1077,17 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Navigation("SolicitudAscenso");
                 });
 
+            modelBuilder.Entity("SIGAD.Domain.Entities.Notificacion", b =>
+                {
+                    b.HasOne("SIGAD.Domain.Entities.Docente", "Docente")
+                        .WithMany("Notificaciones")
+                        .HasForeignKey("DocenteCedula")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Docente");
+                });
+
             modelBuilder.Entity("SIGAD.Domain.Entities.SolicitudAscenso", b =>
                 {
                     b.HasOne("SIGAD.Domain.Entities.Docente", "Docente")
@@ -1125,6 +1174,8 @@ namespace SIGAD.Infrastructure.Migrations
                     b.Navigation("ExperienciasLaborales");
 
                     b.Navigation("Investigaciones");
+
+                    b.Navigation("Notificaciones");
 
                     b.Navigation("Solicitudes");
 

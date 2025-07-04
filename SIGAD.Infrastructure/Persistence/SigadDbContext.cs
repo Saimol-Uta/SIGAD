@@ -31,7 +31,7 @@ namespace SIGAD.Infrastructure.Persistence
         public DbSet<AccionesDePersonalPorSolicitud> AccionesDePersonalPorSolicitud { get; set; } = default!;
         public DbSet<Apelacion> Apelaciones { get; set; } = default!;
 
-
+        public DbSet<Notificacion> Notificaciones { get; set; } = default!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -411,6 +411,29 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany(s => s.Apelaciones)
                     .HasForeignKey(e => e.SolicitudAscensoId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Notificacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Mensaje)
+                    .IsRequired()
+                    .HasMaxLength(1000); // Un tamaño razonable para el mensaje
+
+                entity.Property(e => e.UrlRedireccion)
+                    .HasMaxLength(500); // Un tamaño razonable para la URL
+
+                entity.Property(e => e.DocenteCedula)
+                    .IsRequired()
+                    .HasMaxLength(10);
+
+                // Configuración de la relación con Docente
+                entity.HasOne(n => n.Docente)
+                    .WithMany(d => d.Notificaciones) // Asume que agregaremos una colección `Notificaciones` a la entidad Docente
+                    .HasForeignKey(n => n.DocenteCedula)
+                    .OnDelete(DeleteBehavior.Cascade); // Si se borra un docente, se borran sus notificaciones
             });
         }
     }

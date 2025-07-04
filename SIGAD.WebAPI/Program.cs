@@ -11,6 +11,7 @@ using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
 using SIGAD.Infrastructure.Repositories;
+using SIGAD.Infrastructure.Services;
 using SIGAD.WebAPI.Services;
 using SIGAD.WebAPI.Middleware;
 using System.Text;
@@ -67,6 +68,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<SmtpEmailService>();
+builder.Services.AddScoped<IApiEmailService, ApiEmailService>();
+builder.Services.AddScoped<IEmailService, ResilientEmailService>();
+builder.Services.AddScoped<INotificacionService, NotificacionService>();
+
 // 3. Registrar servicios para Inyección de Dependencias (DI)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
@@ -97,7 +104,7 @@ builder.Services.AddScoped<ActualizarRangoService>();
 builder.Services.AddScoped<GestionSolicitudesAppService>();
 builder.Services.AddScoped<ValidacionRequisitosService>();
 builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+//builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
