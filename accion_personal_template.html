@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acción de Personal</title>
+    <style>
+        body {
+            font-family: "Times New Roman", serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 1100px;
+        }
+
+        .sidebar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 120px;
+            height: 100%;
+            background-color: #8B0000;
+        }
+
+        .gold-line {
+            position: absolute;
+            left: 120px;
+            width: calc(100% - 120px);
+            height: 3px;
+            background-color: #DAA520;
+        }
+
+        .line1 { top: 100px; }
+        .line2 { top: 150px; }
+        .line3 { bottom: 100px; }
+
+        .content {
+            margin-left: 140px;
+            margin-right: 40px;
+            padding-top: 60px;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .header h2 {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .title {
+            text-align: center;
+            margin: 30px 0;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin: 20px 0;
+            text-align: justify;
+            font-size: 12px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .signatures {
+            margin-top: 80px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .signature-block {
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 200px;
+            margin-bottom: 5px;
+            height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar"></div>
+        <div class="gold-line line1"></div>
+        <div class="gold-line line2"></div>
+        <div class="gold-line line3"></div>
+
+        <div class="content">
+            <div class="header">
+                <h1>UNIVERSIDAD TÉCNICA DE AMBATO</h1>
+                <h2>DIRECCIÓN DE TALENTO HUMANO</h2>
+            </div>
+
+            <div class="title">
+                ACCIÓN DE PERSONAL Nro. UTA-AP-{{Anio}}:{{Consecutivo}}
+            </div>
+
+            <div class="section">
+                El Rector de la Universidad Técnica de Ambato, en uso de sus atribuciones legales y estatutarias,
+            </div>
+
+            <div class="section-title">VISTOS:</div>
+
+            <div class="section">
+                La solicitud de promoción al grado escalafonario inmediato superior, presentada por el/la docente <b>{{NombreCompleto}}</b>, con cédula de ciudadanía Nro. <b>{{Cedula}}</b>.
+            </div>
+
+            <div class="section-title">CONSIDERANDO:</div>
+
+            <div class="section">
+                • Que, el Estatuto de la Universidad Técnica de Ambato confiere al Honorable Consejo Universitario la atribución de aprobar los procesos de promoción del personal académico titular.<br>
+                • Que, el "REGLAMENTO PARA LA PROMOCIÓN DEL PERSONAL ACADÉMICO TITULAR DE LA UNIVERSIDAD TÉCNICA DE AMBATO", expedido mediante Resolución 0677-CU-P-2023, establece los requisitos y el procedimiento para el efecto.<br>
+                • Que, la Comisión Académica de Escalafón y Promoción, tras el análisis de la documentación presentada por el/la solicitante, emitió el informe técnico favorable para la promoción.<br>
+                • Que, el Honorable Consejo Universitario, en sesión de <b>{{FechaSesion}}</b>, conoció y aprobó el informe de promoción correspondiente al período <b>{{PeriodoConvocatoria}}</b>, en el cual consta el/la docente antes mencionado/a.
+            </div>
+
+            <div class="section-title">RESUELVE:</div>
+
+            <div class="section">
+                Artículo 1.- PROMOVER al/a la docente <b>{{NombreCompleto}}</b>, de la categoría de <b>{{RangoAnterior}}</b> a la categoría de <b>{{RangoNuevo}}</b> dentro del escalafón del personal académico titular de la Universidad Técnica de Ambato.<br><br>
+                Artículo 2.- DISPONER que la presente promoción rige a partir del <b>{{FechaEfectivaPromocion}}</b>, de conformidad con lo establecido en el Artículo 8 del reglamento de la materia.<br><br>
+                Artículo 3.- FIJAR la remuneración mensual unificada correspondiente a la categoría de <b>{{RangoNuevo}}</b>, conforme a la escala salarial vigente en la Institución.<br><br>
+                Artículo 4.- ENCARGAR la ejecución y registro de la presente Acción de Personal a la Dirección de Talento Humano y a la Dirección Financiera para los fines legales y económicos pertinentes.
+            </div>
+
+            <div class="section">
+                Dado y firmado en la ciudad de Ambato, a los <b>{{Dia}}</b> días del mes de <b>{{Mes}}</b> de <b>{{Anio}}</b>.<br><br>
+                Comuníquese y cúmplase.
+            </div>
+
+            <div class="signatures">
+                <div class="signature-block">
+                    <div class="signature-line"></div>
+                    PRESIDENTE DEL H. CONSEJO<br>UNIVERSITARIO TÉCNICO DE AMBATO
+                </div>
+                <div class="signature-block">
+                    <div class="signature-line"></div>
+                    SECRETARIO GENERAL
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

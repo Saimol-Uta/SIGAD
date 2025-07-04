@@ -75,3 +75,28 @@ window.clickElement = (elementId) => {
         element.click();
     }
 };
+
+// Función para descargar archivos desde bytes (para PDFs generados en el backend)
+window.downloadFileFromBytes = (fileName, bytesArray) => {
+    // Convertir el array de bytes a Uint8Array
+    const bytes = new Uint8Array(bytesArray);
+    
+    // Crear un blob con el contenido PDF
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    
+    // Crear una URL temporal para el blob
+    const url = window.URL.createObjectURL(blob);
+    
+    // Crear un elemento <a> temporal para la descarga
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    
+    // Agregar el enlace al DOM, hacer clic y removerlo
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Limpiar la URL temporal
+    window.URL.revokeObjectURL(url);
+};

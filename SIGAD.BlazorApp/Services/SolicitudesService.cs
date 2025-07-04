@@ -31,6 +31,9 @@ namespace SIGAD.BlazorApp.Services
         Task<List<SolicitudConApelacionDto>> GetSolicitudesConApelacionesAsync();
         Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId);
         Task<(bool success, string message)> ResolverApelacionAsync(int apelacionId, bool aceptada, string observaciones);
+        
+        // Método para generar certificados
+        Task<(bool success, string message, byte[] pdfData)> DescargarCertificadoAsync(Guid solicitudId);
     }
 
     public class SolicitudesService : ISolicitudesService
@@ -539,7 +542,35 @@ namespace SIGAD.BlazorApp.Services
                 return (false, $"Error inesperado al resolver la apelación: {ex.Message}");
             }
         }
-    }
+
+        public async Task<(bool success, string message, byte[] pdfData)> DescargarCertificadoAsync(Guid solicitudId)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                var response = await _httpClient.GetAsync($"api/certificados/accion-personal/solicitud/{solicitudId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+                    return (true, "Certificado generado exitosamente", pdfBytes);
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    return (false, $"Error al generar certificado: {errorContent}", new byte[0]);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return (false, $"Error de conexión al generar certificado: {ex.Message}", new byte[0]);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error inesperado al generar certificado: {ex.Message}", new byte[0]);
+            }
+        }
+     }
 
     // Clase para deserializar respuestas del API
     public class ApiResponse
