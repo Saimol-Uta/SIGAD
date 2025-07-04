@@ -50,8 +50,8 @@ namespace SIGAD.BlazorApp.Services
             _httpClient = httpClient;
             _localStorage = localStorage;
 
-            // Configurar timeout más largo para operaciones complejas
-            _httpClient.Timeout = TimeSpan.FromMinutes(10); // 10 minutos para operaciones críticas
+            // En Blazor WebAssembly, no podemos modificar el Timeout de HttpClient después de que haya sido usado
+            // El timeout se debe configurar en Program.cs durante el registro del servicio
         }
 
         private async Task EnsureAuthenticationHeaderAsync()

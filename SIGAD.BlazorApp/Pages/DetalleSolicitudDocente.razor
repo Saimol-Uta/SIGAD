@@ -440,6 +440,16 @@
                     {
                         <div class="alert alert-danger">
                             @mensajeErrorApelacion
+                            
+                            @if (mensajeErrorApelacion.Contains("configuración en el sistema"))
+                            {
+                                <div class="mt-2">
+                                    <small>
+                                        <strong>Información técnica:</strong> La base de datos necesita una actualización para soportar el estado "En Apelación". 
+                                        El administrador debe ejecutar el script <code>Scripts_ConstraintEstadoFinal.sql</code>.
+                                    </small>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -838,6 +848,13 @@
                 return;
             }
 
+            // Validar que la solicitud esté en estado correcto
+            if (!EsSolicitudRechazada())
+            {
+                mensajeErrorApelacion = "Solo se pueden apelar solicitudes rechazadas";
+                return;
+            }
+
             // Llamar al servicio para enviar la apelación
             var (success, message) = await SolicitudesService.PresentarApelacionAsync(guid, modeloApelacion.Motivo, archivosApelacion);
             
@@ -852,10 +869,25 @@
                 }
                 
                 CerrarModalApelacion();
+                
+                // Recargar la página para reflejar los cambios
+                await CargarDetalle();
             }
             else
             {
-                mensajeErrorApelacion = message;
+                // Mostrar error más detallado al usuario
+                if (message.Contains("CHECK constraint"))
+                {
+                    mensajeErrorApelacion = "Error de configuración en el sistema. Por favor contacte al administrador para que actualice la base de datos.";
+                }
+                else if (message.Contains("timeout") || message.Contains("Timeout"))
+                {
+                    mensajeErrorApelacion = "La operación está tardando más de lo esperado. Por favor intente nuevamente en unos momentos.";
+                }
+                else
+                {
+                    mensajeErrorApelacion = message;
+                }
             }
         }
         catch (Exception ex)

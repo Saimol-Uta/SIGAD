@@ -24,6 +24,10 @@ builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.B
 
 builder.Services.AddScoped<ReporteService>();
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7072") });
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri("https://localhost:7072"),
+    Timeout = TimeSpan.FromMinutes(10) // 10 minutos para operaciones críticas como apelaciones
+});
 
 await builder.Build().RunAsync();

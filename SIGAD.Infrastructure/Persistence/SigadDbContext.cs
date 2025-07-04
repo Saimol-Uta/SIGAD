@@ -121,8 +121,11 @@ namespace SIGAD.Infrastructure.Persistence
                     .HasForeignKey(e => e.RangoSolicitadoId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasCheckConstraint("CK_SolicitudesAscenso_Estado",
-                    "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
+                entity.ToTable("SolicitudesAscenso", t =>
+                {
+                    t.HasCheckConstraint("CK_SolicitudesAscenso_Estado",
+                        "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada', 'En Apelacion', 'Rechazada Definitiva', 'Aprobada Por Apelacion', 'Cerrada Sin Respuesta')");
+                });
             });
 
             // Configuración de la tabla intermedia EvaluacionesPorSolicitud

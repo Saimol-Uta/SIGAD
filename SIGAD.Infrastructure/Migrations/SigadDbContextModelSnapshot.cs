@@ -774,9 +774,9 @@ namespace SIGAD.Infrastructure.Migrations
 
                     b.HasIndex("RangoSolicitadoId");
 
-                    b.ToTable("SolicitudesAscenso", t =>
+                    b.ToTable("SolicitudesAscenso", null, t =>
                         {
-                            t.HasCheckConstraint("CK_SolicitudesAscenso_Estado", "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
+                            t.HasCheckConstraint("CK_SolicitudesAscenso_Estado", "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada', 'En Apelacion', 'Rechazada Definitiva', 'Aprobada Por Apelacion', 'Cerrada Sin Respuesta')");
                         });
                 });
 
