@@ -3,6 +3,7 @@
 @using Microsoft.JSInterop
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <div class="tabla-inventario">
     <!-- ENCABEZADO -->
@@ -451,23 +452,153 @@
 
     private async Task VerDocumento(JsonElement documento)
     {
-        // TODO: Implementar vista de documento
-        await JSRuntime.InvokeVoidAsync("alert", "Ver documento - Funcionalidad por implementar");
+        try
+        {
+            // Obtener las rutas del documento
+            var pdfRuta = ObtenerRutaPdf(documento, TipoDocumento);
+            var cloudinaryUrl = ObtenerUrlCloudinary(documento, TipoDocumento);
+
+            string? urlParaUsar = null;
+
+            // Usar la misma lógica que Tabla.razor
+            // PRIORIDAD 1: Cloudinary URL (CDN rápido)
+            if (!string.IsNullOrEmpty(cloudinaryUrl))
+            {
+                urlParaUsar = cloudinaryUrl;
+            }
+            // PRIORIDAD 2: URL local como fallback
+            else if (!string.IsNullOrEmpty(pdfRuta))
+            {
+                // Usar la URL base configurada del HttpClient
+                var baseUrl = Http.BaseAddress?.ToString().TrimEnd('/') ?? "https://localhost:7072";
+
+                var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
+                ? pdfRuta
+                : $"/uploads/{pdfRuta.TrimStart('/')}";
+
+                urlParaUsar = $"{baseUrl}{relativePath}";
+            }
+
+            if (!string.IsNullOrEmpty(urlParaUsar))
+            {
+                await JSRuntime.InvokeVoidAsync("window.open", urlParaUsar, "_blank");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay PDF disponible para este documento.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al abrir PDF: {ex.Message}");
+        }
     }
 
     private async Task EditarDocumento(JsonElement documento)
     {
-        // TODO: Implementar edición de documento
-        await JSRuntime.InvokeVoidAsync("alert", "Editar documento - Funcionalidad por implementar");
+        try
+        {
+            var id = ObtenerIdDocumento(documento, TipoDocumento);
+            if (string.IsNullOrEmpty(id))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No se pudo obtener el identificador del documento");
+                return;
+            }
+
+            // Obtener nombre descriptivo para el mensaje
+            var nombreDocumento = TipoDocumento switch
+            {
+                "investigaciones" => "investigación",
+                "articulos" => "artículo",
+                "experiencias" => "experiencia laboral",
+                "evaluaciones" => "evaluación",
+                "cursos" => "curso",
+                "tesis" => "tesis",
+                _ => "documento"
+            };
+
+            // Redirigir a la página de edición correspondiente según el tipo de documento
+            string ruta = TipoDocumento switch
+            {
+                "investigaciones" => $"/editar-investigacion/{id}",
+                "articulos" => $"/editar-articulo/{Uri.EscapeDataString(id)}",
+                "experiencias" => $"/editar-experiencia/{id}",
+                "evaluaciones" => $"/editar-evaluacion/{id}",
+                "cursos" => $"/editar-curso/{id}",
+                "tesis" => $"/editar-tesis/{id}",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(ruta))
+            {
+                // Mostrar mensaje de confirmación
+                var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Desea editar esta {nombreDocumento}? Será redirigido al formulario de edición.");
+
+                if (confirmacion)
+                {
+                    Navigation.NavigateTo(ruta);
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no soportado para edición");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al editar documento: {ex.Message}");
+        }
     }
 
     private async Task EliminarDocumento(JsonElement documento)
     {
-        var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de que desea eliminar este documento?");
-        if (confirmacion)
+        var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
+        "¿Está seguro de que desea eliminar este documento? Esta acción no se puede deshacer.");
+
+        if (!confirmacion) return;
+
+        try
         {
-            // TODO: Implementar eliminación de documento
-            await JSRuntime.InvokeVoidAsync("alert", "Eliminar documento - Funcionalidad por implementar");
+            var id = ObtenerIdDocumento(documento, TipoDocumento);
+            if (string.IsNullOrEmpty(id))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No se pudo obtener el identificador del documento");
+                return;
+            }
+
+            var endpoint = TipoDocumento switch
+            {
+                "investigaciones" => $"api/investigaciones/{id}",
+                "articulos" => $"api/articulos/{Uri.EscapeDataString(id)}",
+                "tesis" => $"api/TesisDirigidas/{id}",
+                "experiencias" => $"api/experienciaslaborales/{id}",
+                "cursos" => $"api/cursos/{id}",
+                "evaluaciones" => $"api/evaluaciones/{id}",
+                _ => ""
+            };
+
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido para eliminación");
+                return;
+            }
+
+            var response = await Http.DeleteAsync(endpoint);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Documento eliminado correctamente");
+                await CargarDocumentos(); // Recargar la lista
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Error al eliminar el documento");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al eliminar documento: {ex.Message}");
         }
     }
 
@@ -535,6 +666,123 @@
         }
     };
 
+    private string? ObtenerIdDocumento(JsonElement doc, string tipo)
+    {
+        if (tipo == "articulos")
+        {
+            if (doc.TryGetProperty("doi", out var doiElement) && doiElement.ValueKind == JsonValueKind.String)
+            {
+                return doiElement.GetString();
+            }
+            return null;
+        }
+
+        if (doc.TryGetProperty("id", out var idElement))
+        {
+            if (idElement.ValueKind == JsonValueKind.Number)
+                return idElement.GetInt32().ToString();
+            if (idElement.ValueKind == JsonValueKind.String)
+                return idElement.GetString();
+        }
+        return null;
+    }
+
+    private string? ObtenerRutaPdf(JsonElement doc, string tipo)
+    {
+        try
+        {
+            // Propiedades específicas por tipo de documento
+            var propiedadesPorTipo = tipo switch
+            {
+                "cursos" => new[] { "certificadoRuta", "rutaPdf" },
+                "experiencias" => new[] { "certificadoRuta", "rutaPdf" },
+                "investigaciones" => new[] { "informeRuta", "rutaPdf" },
+                "articulos" => new[] { "archivoRuta" },
+                "evaluaciones" => new[] { "informeRuta", "rutaPdf" },
+                "tesis" => new[] { "certificacionRuta", "CertificacionRuta", "certificadoRuta", "rutaPdf" },
+                _ => new[] { "rutaPdf" }
+            };
+
+            // Buscar en las propiedades específicas del tipo
+            foreach (var propiedad in propiedadesPorTipo)
+            {
+                if (doc.TryGetProperty(propiedad, out var rutaElement) &&
+                rutaElement.ValueKind == JsonValueKind.String)
+                {
+                    var ruta = rutaElement.GetString();
+                    if (!string.IsNullOrEmpty(ruta))
+                    {
+                        return ruta;
+                    }
+                }
+            }
+
+            // Búsqueda adicional en propiedades generales
+            var propiedadesGenerales = new[] {
+"rutaArchivo",
+"archivoPdf",
+"rutaDocumento",
+"pdfPath",
+"filePath"
+};
+
+            foreach (var propiedad in propiedadesGenerales)
+            {
+                if (doc.TryGetProperty(propiedad, out var rutaElement) &&
+                rutaElement.ValueKind == JsonValueKind.String)
+                {
+                    var ruta = rutaElement.GetString();
+                    if (!string.IsNullOrEmpty(ruta))
+                    {
+                        return ruta;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private string? ObtenerUrlCloudinary(JsonElement doc, string tipo)
+    {
+        try
+        {
+            // Lista de propiedades posibles para buscar la URL de Cloudinary
+            var propiedadesPosibles = new[] {
+"urlCloudinary", // ✅ Propiedad estándar para todos los tipos
+"UrlCloudinary", // Con U mayúscula (usado en TesisDirigidaDto)
+"cloudinaryUrl",
+"urlDocumento",
+"cloudUrl",
+"urlArchivo"
+};
+
+            // Buscar en todas las propiedades posibles
+            foreach (var propiedad in propiedadesPosibles)
+            {
+                if (doc.TryGetProperty(propiedad, out var urlElement) &&
+                urlElement.ValueKind == JsonValueKind.String)
+                {
+                    var url = urlElement.GetString();
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        return url;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public class ConfiguracionTabla
     {
         public string Titulo { get; set; } = "";
@@ -549,3 +797,5 @@
         public T? Data { get; set; }
     }
 }
+
+                                                                                                                                                                               
