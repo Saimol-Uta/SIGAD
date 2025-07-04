@@ -1,6 +1,7 @@
 @page "/agregar-articulo"
 @page "/editar-articulo/{Id?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
@@ -405,7 +406,7 @@
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary"
-                                @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                                @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
                         <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario)">
@@ -430,7 +431,6 @@
 @code {
     [Parameter] public string? Id { get; set; }
 
-
     private string nombreUsuario = "";
     private ArticuloModel articuloModel = new();
     private bool enviandoFormulario = false;
@@ -438,6 +438,7 @@
     private string? errorMessage;
     private IBrowserFile? archivoFile;
     private string archivoSeleccionado = "";
+    private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
     private void OnArchivoSelected(InputFileChangeEventArgs e)
     {
@@ -470,6 +471,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer parámetro returnTo de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+        var returnToParam = queryParams["returnTo"];
+        if (!string.IsNullOrEmpty(returnToParam))
+        {
+            returnTo = returnToParam;
+        }
+
         await CargarInformacionUsuario();
 
         if (Id != null)
@@ -610,7 +620,7 @@
                 {
                     articuloGuardado = true;
                     await Task.Delay(2000);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {
@@ -670,7 +680,7 @@
                     
                     articuloGuardado = true;
                     await Task.Delay(200);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {
@@ -687,6 +697,11 @@
         {
             enviandoFormulario = false;
         }
+    }
+
+    private string GetReturnUrl()
+    {
+        return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
     }
 
     private async Task<string?> ObtenerCedulaUsuario()

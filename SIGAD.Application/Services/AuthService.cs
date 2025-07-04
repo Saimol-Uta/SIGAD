@@ -171,12 +171,12 @@ namespace SIGAD.Application.Services
 
                 // Obtener rango actual del docente
                 var rangoActual = await GetRangoActualDocenteAsync(cuenta.DocenteCedula);
-                
+
                 // Generar token JWT
                 _logger.LogInformation("Generando token JWT para {Correo}...", loginRequest.Correo);
                 var token = GenerateJwtToken(
-                    cuenta.Correo, 
-                    cuenta.Rol.ToString(), 
+                    cuenta.Correo,
+                    cuenta.Rol.ToString(),
                     cuenta.DocenteCedula,
                     cuenta.Docente.Nombre1,
                     cuenta.Docente.Nombre2,
@@ -220,7 +220,7 @@ namespace SIGAD.Application.Services
             try
             {
                 _logger.LogInformation("Obteniendo rango actual para docente {Cedula}", docenteCedula);
-                
+
                 // Buscar la última solicitud aprobada del docente
                 var todasLasSolicitudes = await _solicitudRepository.GetAllAsync();
                 var ultimaSolicitudAprobada = todasLasSolicitudes
@@ -232,7 +232,7 @@ namespace SIGAD.Application.Services
                 {
                     // Si tiene solicitudes aprobadas, el rango actual es el último rango solicitado aprobado
                     var rango = await _rangoRepository.GetByIdAsync(ultimaSolicitudAprobada.RangoSolicitadoId);
-                    _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                    _logger.LogInformation("Rango actual encontrado para {Cedula}: {RangoNombre} (ID: {RangoId})",
                         docenteCedula, rango?.Nombre, rango?.Id);
                     return rango;
                 }
@@ -242,13 +242,13 @@ namespace SIGAD.Application.Services
                     _logger.LogInformation("Docente {Cedula} sin rango actual - Asumiendo rango nivel 1 por defecto", docenteCedula);
                     var todosLosRangos = await _rangoRepository.GetAllAsync();
                     var rangoNivel1 = todosLosRangos.OrderBy(r => r.Id).FirstOrDefault();
-                    
+
                     if (rangoNivel1 != null)
                     {
-                        _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})", 
+                        _logger.LogInformation("Rango nivel 1 asumido para {Cedula}: {RangoNombre} (ID: {RangoId})",
                             docenteCedula, rangoNivel1.Nombre, rangoNivel1.Id);
                     }
-                    
+
                     return rangoNivel1;
                 }
             }
@@ -277,13 +277,15 @@ namespace SIGAD.Application.Services
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, correo),
+                new Claim(ClaimTypes.Name, correo), // Para compatibilidad
+                new Claim(ClaimTypes.NameIdentifier, cedula), // Cédula como identificador principal
                 new Claim(ClaimTypes.Role, rol),
-                new Claim("cedula", cedula),
+                new Claim("cedula", cedula), // Mantener para compatibilidad
                 new Claim("nombre1", nombre1),
                 new Claim("nombre2", nombre2 ?? ""),
                 new Claim("apellido1", apellido1),
                 new Claim("apellido2", apellido2),
-                new Claim("nombreCompleto", nombreCompleto),
+                new Claim("NombreCompleto", nombreCompleto), // Cambio de nombre para que coincida con Inventario.razor
                 new Claim("rangoId", rangoId?.ToString() ?? ""),
                 new Claim("rangoNombre", rangoNombre ?? "Sin rango asignado"),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

@@ -1,6 +1,7 @@
 @page "/agregar-experiencia-laboral"
 @page "/editar-experiencia/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @using System.IO
 @using System.Linq
 @using System.ComponentModel.DataAnnotations
@@ -283,7 +284,9 @@
             <h1>SIGAD</h1>
         </div>
         <div class="user-profile">
-            <a href="/gestion-documentos" class="back-btn">← Volver a Gestión</a>
+            <button class="back-btn" @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
+                ← Volver
+            </button>
             <span>@nombreUsuario</span>
             <img src="/images/IconoUser.png" alt="Usuario" />
             <button class="logout-btn" @onclick="Logout">Salir</button>
@@ -402,7 +405,7 @@
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary" 
-                                @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                                @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
                         <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (Id == null && archivoFormulario == null))">
@@ -434,6 +437,7 @@
     private ExperienciaLaboralModel experienciaModel = new();
     private IBrowserFile? archivoFormulario;
     private string archivoSeleccionado = "";
+    private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
     // Variables de estado
     private bool enviandoFormulario = false;
@@ -442,6 +446,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer parámetro returnTo de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+        var returnToParam = queryParams["returnTo"];
+        if (!string.IsNullOrEmpty(returnToParam))
+        {
+            returnTo = returnToParam;
+        }
+
         await CargarInformacionUsuario();
 
         if (Id != null)
@@ -488,6 +501,11 @@
             // Modo agregar: verificar solicitud activa
             await VerificarSolicitudActiva();
         }
+    }
+
+    private string GetReturnUrl()
+    {
+        return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
     }
 
     private async Task VerificarSolicitudActiva()
@@ -604,7 +622,7 @@
                 {
                     experienciaCreada = true;
                     await Task.Delay(1000);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {
@@ -667,8 +685,8 @@
                     });
                     
                     // Esperar y redirigir
-                    await Task.Delay(1000);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {

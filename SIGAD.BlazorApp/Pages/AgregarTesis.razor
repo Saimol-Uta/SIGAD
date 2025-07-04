@@ -2,6 +2,7 @@
 @page "/editar-tesis/{Id:int?}"
 
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @using System.IO
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
@@ -477,9 +478,17 @@
     private IBrowserFile? archivoFormulario;
     private string archivoSeleccionado = "";
 
+    // Variable para el parámetro de retorno
+    private string? returnTo;
+
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer el parámetro returnTo de la URL
+        var uri = new Uri(Navigation.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        returnTo = query["returnTo"];
+
         await CargarInformacionUsuario();
 
         if (Id.HasValue)
@@ -544,6 +553,15 @@
             operacionExitosa = false;
         }
     }
+
+    private string GetReturnUrl()
+    {
+        return returnTo switch
+        {
+            "inventario" => "/inventario",
+            _ => "/gestion-documentos"
+        };
+    }
     private async Task GuardarTesis()
     {
         if (guardandoTesis) return;
@@ -606,8 +624,10 @@
                     ? "✅ Tesis editada exitosamente."
                     : "✅ Tesis dirigida guardada exitosamente.";
                 operacionExitosa = true;
-                await Task.Delay(1000);
-                Navigation.NavigateTo("/gestion-documentos", true);
+                
+                // Esperar a que se muestre el SweetAlert antes de navegar
+                await Task.Delay(2500);
+                Navigation.NavigateTo(GetReturnUrl(), true);
             }
             else
             {
@@ -705,7 +725,7 @@
 
     private void Cancelar()
     {
-        Navigation.NavigateTo("/gestion-documentos");
+        Navigation.NavigateTo(GetReturnUrl());
     }
 
     private async Task Logout()

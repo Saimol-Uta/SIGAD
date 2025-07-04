@@ -6,6 +6,7 @@ namespace SIGAD.Domain.Interfaces
     public interface ISolicitudAscensoRepository
     {
         Task<SolicitudAscenso?> GetByIdAsync(Guid id);
+        Task<SolicitudAscenso?> GetTrackedByIdWithDetailsAsync(Guid id);
         Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync();
         Task<SolicitudAscenso?> GetByIdWithDetailsAsync(Guid id);
         Task AddAsync(SolicitudAscenso solicitud);

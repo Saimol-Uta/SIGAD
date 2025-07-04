@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SIGAD.Application.DTOs;
-using SIGAD.Application.Services;
-using System.ComponentModel.DataAnnotations;
-using SIGAD.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
+using SIGAD.Application.Services;
+using SIGAD.Domain.Entities;
+using SIGAD.Infrastructure.Persistence;
+using System.ComponentModel.DataAnnotations;
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -55,12 +57,14 @@ namespace SIGAD.WebAPI.Controllers
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly SigadDbContext _context;
+        private readonly INotificacionService _notificacionService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger, SigadDbContext context)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, SigadDbContext context, INotificacionService notificacionService)
         {
             _authService = authService;
             _logger = logger;
             _context = context;
+            _notificacionService = notificacionService; // <-- Y AQUÍ
         }
 
         /// <summary>
@@ -111,6 +115,63 @@ namespace SIGAD.WebAPI.Controllers
                     success = false,
                     message = "Error al conectar con la base de datos",
                     error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// PRUEBA EL ENVÍO DE CORREO USANDO LA PLANTILLA HTML.
+        /// </summary>
+        [HttpPost("test-html-email")]
+        [AllowAnonymous]
+        public async Task<IActionResult> TestHtmlEmail([FromBody] TestHtmlEmailDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando envío de correo de prueba con plantilla a: {ToEmail}", dto.ToEmail);
+
+                // 1. Creamos un objeto "falso" de SolicitudAscenso con los datos necesarios
+                //    para que el NotificacionService pueda trabajar. No viene de la BD.
+                var dummySolicitud = new SolicitudAscenso
+                {
+                    Docente = new Docente
+                    {
+                        Nombre1 = dto.DocenteNombre,
+                        Apellido1 = "", // No es necesario para la plantilla
+                        Cuenta = new Cuenta { Correo = dto.ToEmail }
+                    },
+                    RangoSolicitado = new Rango { Nombre = dto.RangoNombre },
+                    DocenteCedula = "1234567890" // Valor de relleno
+                };
+
+                // 2. Llamamos al método correspondiente del servicio de notificación
+                if (dto.EsAprobacion)
+                {
+                    await _notificacionService.EnviarNotificacionAprobacionAsync(dummySolicitud, dto.Observaciones);
+                }
+                else
+                {
+                    await _notificacionService.EnviarNotificacionRechazoAsync(dummySolicitud, dto.Observaciones);
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Intento de envío de correo con plantilla a {dto.ToEmail} completado."
+                });
+            }
+            catch (Exception ex)
+            {
+                // Si algo falla, este bloque nos dirá exactamente qué es.
+                _logger.LogError(ex, "FALLO el envío del correo de prueba con plantilla a {ToEmail}", dto.ToEmail);
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Ocurrió un error al procesar la notificación.",
+                    errorType = ex.GetType().Name, // Nos dice si es FileNotFoundException, SmtpException, etc.
+                    errorMessage = ex.Message,
                     innerError = ex.InnerException?.Message
                 });
             }
@@ -317,6 +378,8 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        
+        
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             try
@@ -389,12 +452,12 @@ namespace SIGAD.WebAPI.Controllers
             // El middleware de JWT ya validó el token si llegamos aquí
             var correo = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            var cedula = User.FindFirst("cedula")?.Value;
+            var cedula = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("cedula")?.Value; // Fallback para compatibilidad
             var nombre1 = User.FindFirst("nombre1")?.Value;
             var nombre2 = User.FindFirst("nombre2")?.Value;
             var apellido1 = User.FindFirst("apellido1")?.Value;
             var apellido2 = User.FindFirst("apellido2")?.Value;
-            var nombreCompleto = User.FindFirst("nombreCompleto")?.Value;
+            var nombreCompleto = User.FindFirst("NombreCompleto")?.Value ?? User.FindFirst("nombreCompleto")?.Value; // Fallback para compatibilidad
             var rangoId = User.FindFirst("rangoId")?.Value;
             var rangoNombre = User.FindFirst("rangoNombre")?.Value;
 
@@ -1266,7 +1329,7 @@ namespace SIGAD.WebAPI.Controllers
                 .ToListAsync();
 
             int totalHorasCursos = 0;
-            
+
             // Para rangos 4 y superiores (Agregado 3, Principal 1, 2, 3): usar horas impartidas
             if (rango.Id >= 5) // Asumiendo que rango 5+ son los avanzados
             {
@@ -1347,7 +1410,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // VALIDAR EVALUACIONES DOCENTES - NUEVA LÓGICA ESPECÍFICA
             var validacionEvaluaciones = ValidarEvaluacionesParaSolicitud(evaluaciones);
-            
+
             if (!validacionEvaluaciones.esValida)
             {
                 requisitosFaltantes.AddRange(validacionEvaluaciones.errores);
@@ -1432,7 +1495,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="rango">Rango solicitado</param>
         /// <returns>Tupla con meses totales, cantidad de proyectos internacionales y si cumple requisitos</returns>
         private (decimal mesesTotales, int proyectosInternacionales, bool cumpleInternacionales) CalcularMesesInvestigacionConReglamento(
-            List<SIGAD.Domain.Entities.Investigacion> investigaciones, 
+            List<SIGAD.Domain.Entities.Investigacion> investigaciones,
             SIGAD.Domain.Entities.Rango rango)
         {
             decimal totalMeses = 0;
@@ -1473,7 +1536,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // Validar requisitos internacionales según el rango
             bool cumpleInternacionales = true;
-            
+
             switch (rango.Id)
             {
                 case 6: // Principal 1 → Principal 2
@@ -1692,13 +1755,13 @@ namespace SIGAD.WebAPI.Controllers
             {
                 int anoMenor = anosEvaluaciones[0];
                 int anoMayor = anosEvaluaciones[1];
-                
+
                 if (anoMayor - anoMenor != 1)
                 {
                     errores.Add($"Evaluaciones: Los años {anoMenor} y {anoMayor} no son consecutivos. Se requieren evaluaciones de exactamente 2 años consecutivos.");
                     return (false, errores);
                 }
-                
+
                 // Si llegamos aquí, tenemos exactamente 2 años consecutivos ✅
             }
             else
@@ -1709,7 +1772,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // 5. Verificar que el promedio sea al menos 75%
             decimal promedioEvaluaciones = evaluacionesValidas.Average(e => e.PuntajePorcentual);
-            
+
             if (promedioEvaluaciones < 75.0m)
             {
                 errores.Add($"Evaluaciones: El promedio es {promedioEvaluaciones:F1}%, pero se requiere un mínimo de 75%");
@@ -1728,5 +1791,22 @@ namespace SIGAD.WebAPI.Controllers
 
             return (errores.Count == 0, errores);
         }
+    }
+    public class TestHtmlEmailDto
+    {
+        [Required]
+        [EmailAddress]
+        public string ToEmail { get; set; } = "tu.correo@ejemplo.com";
+
+        [Required]
+        public string DocenteNombre { get; set; } = "Juan Pérez";
+
+        [Required]
+        public string RangoNombre { get; set; } = "Titular Agregado 1";
+
+        public string Observaciones { get; set; } = "Prueba de envío con plantilla.";
+
+        // Para probar ambos casos (aprobado o rechazado)
+        public bool EsAprobacion { get; set; } = true;
     }
 }

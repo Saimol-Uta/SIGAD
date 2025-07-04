@@ -27,5 +27,6 @@ namespace SIGAD.Domain.Entities
         public virtual ICollection<Investigacion> Investigaciones { get; set; } = new List<Investigacion>();
         public virtual ICollection<TesisDirigida> TesisDirigidas { get; set; } = new List<TesisDirigida>();
         public virtual ICollection<AccionesDePersonal> AccionesDePersonal { get; set; } = new List<AccionesDePersonal>();
+        public virtual ICollection<Notificacion> Notificaciones { get; set; } = new HashSet<Notificacion>();
     }
 }

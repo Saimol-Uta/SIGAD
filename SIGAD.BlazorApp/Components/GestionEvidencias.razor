@@ -1,0 +1,173 @@
+@* ================================================================== *@
+@* COMPONENTE REUTILIZABLE: GestionEvidencias.razor          *@
+@* ================================================================== *@
+
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@using System.Text.Json
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+@if (isLoading)
+{
+    <div class="text-center p-4">
+        <div class="spinner"></div>
+        <p class="mt-2">Cargando portafolio...</p>
+    </div>
+}
+else
+{
+    <div class="documents-grid">
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-microscope text-primary"></i></span>Investigaciones<span
+                    class="document-count">@conteoInvestigaciones</span></h3>
+            <p class="description">Gestione sus proyectos de investigación, informes y documentos relacionados.</p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("investigaciones")'><i class="fas fa-search"></i>
+                    Ver documentos</button>
+            </div>
+        </div>
+
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-newspaper text-info"></i></span>Artículos<span
+                    class="document-count">@conteoArticulos</span></h3>
+            <p class="description">Administre sus publicaciones científicas, artículos de revista y documentos académicos.
+            </p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("articulos")'><i class="fas fa-search"></i> Ver
+                    documentos</button>
+            </div>
+        </div>
+
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-briefcase text-success"></i></span>Experiencia Laboral<span
+                    class="document-count">@conteoExperiencias</span></h3>
+            <p class="description">Gestione su historial profesional, certificados laborales y documentos de experiencia.
+            </p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("experiencias")'><i class="fas fa-search"></i> Ver
+                    documentos</button>
+            </div>
+        </div>
+
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-chart-line text-warning"></i></span>Evaluaciones<span
+                    class="document-count">@conteoEvaluaciones</span></h3>
+            <p class="description">Administre sus evaluaciones docentes, reportes de desempeño y documentos de evaluación.
+            </p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("evaluaciones")'><i class="fas fa-search"></i> Ver
+                    documentos</button>
+            </div>
+        </div>
+
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-graduation-cap text-secondary"></i></span>Cursos<span
+                    class="document-count">@conteoCursos</span></h3>
+            <p class="description">Gestione sus cursos impartidos, certificados de capacitación y documentos de formación.
+            </p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("cursos")'><i class="fas fa-search"></i> Ver
+                    documentos</button>
+            </div>
+        </div>
+
+        <div class="document-card">
+            <h3><span class="icon"><i class="fas fa-book text-danger"></i></span>Tesis Dirigidas<span
+                    class="document-count">@conteoTesis</span></h3>
+            <p class="description">Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas
+                oficialmente.</p>
+            <div class="document-actions">
+                <button class="btn btn-import" @onclick='() => VerTabla("tesis")'><i class="fas fa-search"></i> Ver
+                    documentos</button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(tablaVisible))
+    {
+        <div style="margin-top: 3rem;">
+            <Tabla TipoDocumento="@tablaVisible" Cedula="@Cedula" ModoInventario="@ModoInventario" SolicitudId="@SolicitudId"
+                OnCerrar="CerrarTabla" OnAgregar="AgregarDocumento" />
+        </div>
+    }
+}
+
+
+@code {
+    [Parameter]
+    public string Cedula { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool ModoInventario { get; set; }
+
+    [Parameter]
+    public string? SolicitudId { get; set; }
+
+    private bool isLoading = true;
+    private string? tablaVisible = null;
+    private int conteoInvestigaciones, conteoArticulos, conteoCursos, conteoTesis, conteoEvaluaciones, conteoExperiencias;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTodosLosConteos();
+        isLoading = false;
+    }
+
+    private async Task CargarTodosLosConteos()
+    {
+        if (string.IsNullOrEmpty(Cedula)) return;
+
+        // Ejecutar todas las llamadas a la API para los contadores en paralelo
+        await Task.WhenAll(
+        CargarConteoEspecifico("investigaciones"),
+        CargarConteoEspecifico("articulos"),
+        CargarConteoEspecifico("cursos"),
+        CargarConteoEspecifico("tesis"),
+        CargarConteoEspecifico("evaluaciones"),
+        CargarConteoEspecifico("experiencias")
+        );
+        StateHasChanged();
+    }
+
+    private async Task CargarConteoEspecifico(string tipo)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/{tipo}/docente/{Cedula}/count");
+            if (response.IsSuccessStatusCode)
+            {
+                var count = await response.Content.ReadFromJsonAsync<int>();
+                switch (tipo)
+                {
+                    case "investigaciones": conteoInvestigaciones = count; break;
+                    case "articulos": conteoArticulos = count; break;
+                    case "cursos": conteoCursos = count; break;
+                    case "tesis": conteoTesis = count; break;
+                    case "evaluaciones": conteoEvaluaciones = count; break;
+                    case "experiencias": conteoExperiencias = count; break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando conteo de {tipo}: {ex.Message}");
+        }
+    }
+
+    private void VerTabla(string tipo)
+    {
+        tablaVisible = tipo;
+    }
+
+    private async void CerrarTabla()
+    {
+        tablaVisible = null;
+        await CargarTodosLosConteos(); // Recargar conteos por si hubo cambios
+    }
+
+    private void AgregarDocumento(string tipo)
+    {
+        Navigation.NavigateTo($"/docente/agregar-{tipo}");
+    }
+}
