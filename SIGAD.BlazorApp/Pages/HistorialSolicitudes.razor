@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject SolicitudesService SolicitudesService
 
 <div class="page-wrapper">
     <div class="admin-dashboard">
@@ -26,24 +27,45 @@
                 </div>
             </div>
 
+            <!-- MENSAJES DE NOTIFICACIÓN -->
+            @if (!string.IsNullOrEmpty(mensajeExito))
+            {
+                <div class="notification success">
+                    <i class="fas fa-check-circle"></i>
+                    @mensajeExito
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="notification error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @mensajeError
+                </div>
+            }
+
             <!-- TARJETAS DE ESTADÍSTICA -->
             <div class="cards">
-                <div class="card @(estadoSeleccionado == "TODAS" ? "selected" : "")" @onclick='() => FiltrarPor("TODAS")'>
+                <div class="card @(estadoSeleccionado == "TODAS" ? "selected" : "")"
+                    @onclick='() => FiltrarPor("TODAS")'>
                     <h4>Total de Solicitudes</h4>
                     <div class="cantidad">@TotalSolicitudes</div>
                     <p>Todas las solicitudes enviadas</p>
                 </div>
-                <div class="card @(estadoSeleccionado == "EN_PROCESO" ? "selected" : "")" @onclick='() => FiltrarPor("EN_PROCESO")'>
+                <div class="card @(estadoSeleccionado == "EN_PROCESO" ? "selected" : "")"
+                    @onclick='() => FiltrarPor("EN_PROCESO")'>
                     <h4>En Proceso</h4>
                     <div class="cantidad">@SolicitudesEnProceso</div>
                     <p>Solicitudes siendo evaluadas</p>
                 </div>
-                <div class="card @(estadoSeleccionado == "APROBADAS" ? "selected" : "")" @onclick='() => FiltrarPor("APROBADAS")'>
+                <div class="card @(estadoSeleccionado == "APROBADAS" ? "selected" : "")"
+                    @onclick='() => FiltrarPor("APROBADAS")'>
                     <h4>Aprobadas</h4>
                     <div class="cantidad">@SolicitudesAprobadas</div>
                     <p>Solicitudes exitosamente aprobadas</p>
                 </div>
-                <div class="card @(estadoSeleccionado == "RECHAZADAS" ? "selected" : "")" @onclick='() => FiltrarPor("RECHAZADAS")'>
+                <div class="card @(estadoSeleccionado == "RECHAZADAS" ? "selected" : "")"
+                    @onclick='() => FiltrarPor("RECHAZADAS")'>
                     <h4>Rechazadas</h4>
                     <div class="cantidad">@SolicitudesRechazadas</div>
                     <p>Solicitudes que no fueron aprobadas</p>
@@ -54,7 +76,8 @@
             <div class="filtros-container">
                 <div class="filtro-principal">
                     <img src="/images/search.png" alt="Buscar" style="width: 20px; height: 20px; margin-right: 10px;" />
-                    <input type="text" @bind="filtroRango" @bind:event="oninput" placeholder="Filtrar por rango solicitado..." class="input-filtro" />
+                    <input type="text" @bind="filtroRango" @bind:event="oninput"
+                        placeholder="Filtrar por rango solicitado..." class="input-filtro" />
                     @if (!string.IsNullOrEmpty(filtroRango))
                     {
                         <button @onclick="LimpiarFiltroRango" class="btn-limpiar">✕</button>
@@ -91,7 +114,7 @@
                         <thead>
                             <tr>
                                 <th @onclick='() => OrdenarPor("Id")' class="sortable">
-                                    ID Solicitud 
+                                    ID Solicitud
                                     @if (campoOrden == "Id")
                                     {
                                         <span class="sort-arrow">@(ordenAscendente ? "▲" : "▼")</span>
@@ -170,6 +193,22 @@
                                             <button @onclick="() => VerDetalle(solicitud.Id)" class="btn-detalle">
                                                 Ver Detalle
                                             </button>
+                                            @if (solicitud.Estado?.Trim() == "Aprobada")
+                                            {
+                                                <button class="btn-certificado" @onclick="() => GenerarCertificado(solicitud.Id)"
+                                                    disabled="@generandoCertificado" title="Generar certificado de acción de personal">
+                                                    @if (generandoCertificado)
+                                                    {
+                                                        <i class="fas fa-spinner fa-spin"></i>
+                                                        <span>Generando...</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-certificate"></i>
+                                                        <span>Certificado</span>
+                                                    }
+                                                </button>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -239,7 +278,7 @@
         background: white;
         padding: 20px;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .header-left h2 {
@@ -268,6 +307,47 @@
 
     .btn-volver:hover {
         background: #0f2554;
+    }
+
+    /* NOTIFICACIONES */
+    .notification {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        animation: slideIn 0.3s ease;
+    }
+
+    .notification.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .notification.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .notification i {
+        font-size: 18px;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     /* TARJETAS */
@@ -323,7 +403,7 @@
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .filtro-principal {
@@ -390,7 +470,7 @@
         border-radius: 8px;
         overflow: hidden;
         background-color: white;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
     .solicitudes-table thead {
@@ -440,11 +520,30 @@
         text-transform: uppercase;
     }
 
-    .estado-borrador { background: #f8f9fa; color: #6c757d; }
-    .estado-enviada { background: #fff3cd; color: #856404; }
-    .estado-en-revision { background: #d1ecf1; color: #0c5460; }
-    .estado-aprobada { background: #d4edda; color: #155724; }
-    .estado-rechazada { background: #f8d7da; color: #721c24; }
+    .estado-borrador {
+        background: #f8f9fa;
+        color: #6c757d;
+    }
+
+    .estado-enviada {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .estado-en-revision {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .estado-aprobada {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .estado-rechazada {
+        background: #f8d7da;
+        color: #721c24;
+    }
 
     /* BOTONES */
     .btn-detalle {
@@ -456,37 +555,72 @@
         cursor: pointer;
         font-size: 12px;
         transition: background-color 0.2s;
+        margin-right: 5px;
     }
 
     .btn-detalle:hover {
         background: #0f2554;
     }
 
+    .btn-certificado {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background-color 0.2s;
+        margin-left: 5px;
+    }
+
+    .btn-certificado:hover {
+        background: #218838;
+    }
+
+    .btn-certificado:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-certificado i {
+        margin-right: 4px;
+    }
+
+    .btn-certificado .fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+
     /* ESTADOS VACÍOS */
-    .empty-state, .no-results {
+    .empty-state,
+    .no-results {
         text-align: center;
         padding: 60px 20px;
         background: #f8f9fa;
     }
 
-    .empty-state-content, .no-results-content {
+    .empty-state-content,
+    .no-results-content {
         max-width: 400px;
         margin: 0 auto;
     }
 
-    .empty-state-icon, .no-results-icon {
+    .empty-state-icon,
+    .no-results-icon {
         font-size: 48px;
         margin-bottom: 20px;
         opacity: 0.6;
     }
 
-    .empty-state h3, .no-results h3 {
+    .empty-state h3,
+    .no-results h3 {
         margin: 0 0 10px 0;
         color: #0a1d44;
         font-size: 20px;
     }
 
-    .empty-state p, .no-results p {
+    .empty-state p,
+    .no-results p {
         margin: 0 0 20px 0;
         color: #666;
         font-size: 14px;
@@ -590,8 +724,13 @@
     }
 
     @@keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     /* RESPONSIVE */
@@ -615,17 +754,19 @@
 @code {
     // Variables de estado
     private bool cargando = true;
+    private bool generandoCertificado = false;
     private string? mensajeError;
+    private string? mensajeExito;
     private List<SolicitudHistorialDto> TodasSolicitudes = new();
     private string estadoSeleccionado = "TODAS";
-    
+
     // Variables de filtrado
     private string filtroRango = "";
-    
+
     // Variables de paginación
     private int paginaActual = 1;
     private int porPagina = 10;
-    
+
     // Variables de ordenamiento
     private string campoOrden = "FechaEnvio";
     private bool ordenAscendente = false;
@@ -635,14 +776,14 @@
     private int SolicitudesEnProceso => TodasSolicitudes.Count(s => s.Estado == "Enviada" || s.Estado == "En_Revision");
     private int SolicitudesAprobadas => TodasSolicitudes.Count(s => s.Estado == "Aprobada");
     private int SolicitudesRechazadas => TodasSolicitudes.Count(s => s.Estado == "Rechazada");
-    
+
     private IEnumerable<SolicitudHistorialDto> Filtradas => AplicarFiltros();
     private int TotalFiltradas => Filtradas.Count();
     private int PaginasTotales => (int)Math.Ceiling(TotalFiltradas / (double)porPagina);
-    
-    private bool TieneFiltrosActivos => 
-        !string.IsNullOrEmpty(filtroRango) ||
-        estadoSeleccionado != "TODAS";
+
+    private bool TieneFiltrosActivos =>
+    !string.IsNullOrEmpty(filtroRango) ||
+    estadoSeleccionado != "TODAS";
 
     protected override async Task OnInitializedAsync()
     {
@@ -662,11 +803,11 @@
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Response JSON: {jsonString}"); // Debug log
-                
+
                 var jsonDoc = JsonDocument.Parse(jsonString);
-                
+
                 TodasSolicitudes.Clear();
-                
+
                 if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var element in jsonDoc.RootElement.EnumerateArray())
@@ -678,7 +819,7 @@
                         }
                     }
                 }
-                
+
                 Console.WriteLine($"Solicitudes cargadas: {TodasSolicitudes.Count}"); // Debug log
             }
             else
@@ -707,13 +848,15 @@
             return new SolicitudHistorialDto
             {
                 Id = element.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "",
-                RangoActual = element.TryGetProperty("rangoActual", out var rangoActualProp) ? rangoActualProp.GetString() ?? "N/A" : "N/A",
-                RangoSolicitado = element.TryGetProperty("rangoSolicitado", out var rangoSolProp) ? rangoSolProp.GetString() ?? "N/A" : "N/A",
+                RangoActual = element.TryGetProperty("rangoActual", out var rangoActualProp) ? rangoActualProp.GetString() ?? "N/A" :
+            "N/A",
+                RangoSolicitado = element.TryGetProperty("rangoSolicitado", out var rangoSolProp) ? rangoSolProp.GetString() ?? "N/A" :
+            "N/A",
                 Estado = element.TryGetProperty("estado", out var estadoProp) ? estadoProp.GetString() ?? "Desconocido" : "Desconocido",
-                FechaEnvio = element.TryGetProperty("fechaEnvio", out var fechaEnvioProp) && 
-                           DateTime.TryParse(fechaEnvioProp.GetString(), out var fechaEnvio) ? fechaEnvio : null,
-                FechaResolucion = element.TryGetProperty("fechaResolucion", out var fechaResProp) && 
-                                DateTime.TryParse(fechaResProp.GetString(), out var fechaRes) ? fechaRes : null
+                FechaEnvio = element.TryGetProperty("fechaEnvio", out var fechaEnvioProp) &&
+            DateTime.TryParse(fechaEnvioProp.GetString(), out var fechaEnvio) ? fechaEnvio : null,
+                FechaResolucion = element.TryGetProperty("fechaResolucion", out var fechaResProp) &&
+            DateTime.TryParse(fechaResProp.GetString(), out var fechaRes) ? fechaRes : null
             };
         }
         catch
@@ -746,19 +889,22 @@
         // Filtro por rango
         if (!string.IsNullOrEmpty(filtroRango))
         {
-            filtradas = filtradas.Where(s => 
-                s.RangoSolicitado.Contains(filtroRango, StringComparison.OrdinalIgnoreCase));
+            filtradas = filtradas.Where(s =>
+            s.RangoSolicitado.Contains(filtroRango, StringComparison.OrdinalIgnoreCase));
         }
 
         // Ordenamiento
         filtradas = campoOrden switch
         {
             "Id" => ordenAscendente ? filtradas.OrderBy(s => s.Id) : filtradas.OrderByDescending(s => s.Id),
-            "RangoActual" => ordenAscendente ? filtradas.OrderBy(s => s.RangoActual) : filtradas.OrderByDescending(s => s.RangoActual),
-            "RangoSolicitado" => ordenAscendente ? filtradas.OrderBy(s => s.RangoSolicitado) : filtradas.OrderByDescending(s => s.RangoSolicitado),
+            "RangoActual" => ordenAscendente ? filtradas.OrderBy(s => s.RangoActual) : filtradas.OrderByDescending(s =>
+            s.RangoActual),
+            "RangoSolicitado" => ordenAscendente ? filtradas.OrderBy(s => s.RangoSolicitado) : filtradas.OrderByDescending(s =>
+            s.RangoSolicitado),
             "Estado" => ordenAscendente ? filtradas.OrderBy(s => s.Estado) : filtradas.OrderByDescending(s => s.Estado),
             "FechaEnvio" => ordenAscendente ? filtradas.OrderBy(s => s.FechaEnvio) : filtradas.OrderByDescending(s => s.FechaEnvio),
-            "FechaResolucion" => ordenAscendente ? filtradas.OrderBy(s => s.FechaResolucion) : filtradas.OrderByDescending(s => s.FechaResolucion),
+            "FechaResolucion" => ordenAscendente ? filtradas.OrderBy(s => s.FechaResolucion) : filtradas.OrderByDescending(s =>
+            s.FechaResolucion),
             _ => filtradas.OrderByDescending(s => s.FechaEnvio)
         };
 
@@ -829,13 +975,51 @@
         Navigation.NavigateTo($"/docente/solicitud/{solicitudId}");
     }
 
-    // Métodos de utilidad para estados
-    private string GetEstadoClass(string estado)
+    private async Task GenerarCertificado(string solicitudId)
     {
+        try
+        {
+            generandoCertificado = true;
+            StateHasChanged();
+
+            var resultado = await SolicitudesService.DescargarCertificadoAsync(Guid.Parse(solicitudId));
+
+            if (resultado.success)
+            {
+                // Crear nombre del archivo con timestamp
+                var fileName = $"certificado_accion_personal_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+
+                // Descargar el archivo usando JavaScript
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, resultado.pdfData);
+
+                MostrarNotificacionExito("Certificado generado y descargado exitosamente");
+            }
+            else
+            {
+                MostrarNotificacionError(resultado.message);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarNotificacionError($"Error inesperado al generar certificado: {ex.Message}");
+        }
+        finally
+        {
+            generandoCertificado = false;
+            StateHasChanged();
+        }
+    }
+
+    // Métodos de utilidad para estados
+    private string GetEstadoClass(string? estado)
+    {
+        if (string.IsNullOrEmpty(estado))
+            return "estado-borrador";
+
         return estado.ToLower() switch
         {
             "borrador" => "estado-borrador",
-            "enviada" => "estado-enviada", 
+            "enviada" => "estado-enviada",
             "en_revision" => "estado-en-revision",
             "aprobada" => "estado-aprobada",
             "rechazada" => "estado-rechazada",
@@ -843,8 +1027,11 @@
         };
     }
 
-    private string GetEstadoDisplay(string estado)
+    private string GetEstadoDisplay(string? estado)
     {
+        if (string.IsNullOrEmpty(estado))
+            return "Desconocido";
+
         return estado switch
         {
             "Borrador" => "Borrador",
@@ -854,6 +1041,35 @@
             "Rechazada" => "Rechazada",
             _ => estado
         };
+    }
+
+    // Métodos de notificación
+    private void MostrarNotificacionExito(string mensaje)
+    {
+        mensajeExito = mensaje;
+        mensajeError = null;
+        StateHasChanged();
+
+        // Limpiar mensaje después de 5 segundos
+        Task.Delay(5000).ContinueWith(_ =>
+        {
+            mensajeExito = null;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void MostrarNotificacionError(string mensaje)
+    {
+        mensajeError = mensaje;
+        mensajeExito = null;
+        StateHasChanged();
+
+        // Limpiar mensaje después de 8 segundos
+        Task.Delay(8000).ContinueWith(_ =>
+        {
+            mensajeError = null;
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     // DTO para el historial
@@ -867,3 +1083,32 @@
         public DateTime? FechaResolucion { get; set; }
     }
 }
+
+<script>
+    window.downloadFileFromBytes = (fileName, base64Data) => {
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+</script>
+
+   
+   
+   
+   
+   
+                                                
+                                
