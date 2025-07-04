@@ -276,6 +276,30 @@ namespace SIGAD.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Notificaciones",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DocenteCedula = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Mensaje = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    UrlRedireccion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    EsLeida = table.Column<bool>(type: "bit", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FechaLeida = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notificaciones", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notificaciones_Docentes_DocenteCedula",
+                        column: x => x.DocenteCedula,
+                        principalTable: "Docentes",
+                        principalColumn: "Cedula",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SolicitudesAscenso",
                 columns: table => new
                 {
@@ -639,6 +663,11 @@ namespace SIGAD.Infrastructure.Migrations
                 column: "InvestigacionId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Notificaciones_DocenteCedula",
+                table: "Notificaciones",
+                column: "DocenteCedula");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Rangos_Nombre",
                 table: "Rangos",
                 column: "Nombre",
@@ -696,6 +725,9 @@ namespace SIGAD.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "InvestigacionesPorSolicitud");
+
+            migrationBuilder.DropTable(
+                name: "Notificaciones");
 
             migrationBuilder.DropTable(
                 name: "TesisPorSolicitud");

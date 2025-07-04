@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using SIGAD.Application.Interfaces;
 
 namespace SIGAD.Application.Services
 {
@@ -14,15 +15,18 @@ namespace SIGAD.Application.Services
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IDocenteRepository _docenteRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificacionService _notificacionService;
 
         public GestionSolicitudesAppService(
             ISolicitudAscensoRepository solicitudRepository,
             IDocenteRepository docenteRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            INotificacionService notificacionService)
         {
             _solicitudRepository = solicitudRepository;
             _docenteRepository = docenteRepository;
             _unitOfWork = unitOfWork;
+            _notificacionService = notificacionService;
         }
 
         public async Task<Guid> EnviarSolicitudConEvidenciaAsync(EnviarSolicitudDto dto, string docenteCedula)
@@ -217,14 +221,39 @@ namespace SIGAD.Application.Services
 
         public async Task AprobarSolicitudAsync(Guid id, string observaciones)
         {
-            await _solicitudRepository.AprobarSolicitudAsync(id, observaciones);
-            await _unitOfWork.CompleteAsync();
+            // 1. OBTENER LA ENTIDAD "VIGILADA" CON TODOS SUS DATOS
+            // Se usa el método que no tiene .AsNoTracking() para que EF vigile los cambios.
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
+
+            // 2. APLICAR LA LÓGICA DE NEGOCIO DIRECTAMENTE SOBRE EL OBJETO
+            // (Asumo que tienes un método 'Aprobar' en tu entidad SolicitudAscenso)
+            solicitud.Aprobar(observaciones);
+
+            // 3. GUARDAR LOS CAMBIOS
+            // Ya no se necesita una llamada extra al repositorio, EF guardará los cambios del objeto 'solicitud'.
+            await _unitOfWork.CompleteAsync(); // o SaveChangesAsync()
+
+            // 4. ENVIAR LA NOTIFICACIÓN CON EL OBJETO COMPLETO
+            await _notificacionService.EnviarNotificacionAprobacionAsync(solicitud, observaciones);
         }
 
         public async Task RechazarSolicitudAsync(Guid id, string observaciones)
         {
-            await _solicitudRepository.RechazarSolicitudAsync(id, observaciones);
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
+
+            solicitud.Rechazar(observaciones);
             await _unitOfWork.CompleteAsync();
+
+            // Esta llamada ahora SÍ FUNCIONARÁ.
+            await _notificacionService.EnviarNotificacionRechazoAsync(solicitud, observaciones);
         }
         public async Task<SolicitudAscenso?> ObtenerBorradorActivoAsync(string docenteCedula)
         {
@@ -328,13 +357,17 @@ namespace SIGAD.Application.Services
 
         public async Task FinalizarProcesoAsync(Guid id, string observaciones)
         {
-            var solicitud = await _solicitudRepository.GetByIdAsync(id);
-            if (solicitud == null) throw new ArgumentException("Solicitud no encontrada");
+            var solicitud = await _solicitudRepository.GetTrackedByIdWithDetailsAsync(id);
+            if (solicitud == null)
+            {
+                throw new KeyNotFoundException("Solicitud no encontrada.");
+            }
 
             solicitud.FinalizarProceso(observaciones);
-
-            await _solicitudRepository.UpdateAsync(solicitud);
             await _unitOfWork.SaveChangesAsync();
+
+            // Esta llamada ahora SÍ FUNCIONARÁ.
+            await _notificacionService.EnviarNotificacionAprobacionAsync(solicitud, observaciones);
         }
     }
 }

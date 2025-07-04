@@ -23,7 +23,7 @@ namespace SIGAD.Domain.Interfaces
         IApelacionRepository Apelaciones { get; } // ⚠️ NUEVO - Para proceso de apelaciones según Reglamento UTA
 
         IPromocionService PromocionService { get; } // ⚠️ CRÍTICO
-
+        INotificacionRepository Notificaciones { get; }
         Task CompleteAsync();
     }
 }
