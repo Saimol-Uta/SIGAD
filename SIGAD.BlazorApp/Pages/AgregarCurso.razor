@@ -504,10 +504,6 @@
                 errorMessage = "No se pudo cargar el curso para editar.";
             }
         }
-        else
-        {
-            await VerificarSolicitudActiva();
-        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -604,7 +600,6 @@
                 if (response.IsSuccessStatusCode)
                 {
                     cursoGuardado = true;
-                    await Task.Delay(2000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
@@ -615,16 +610,7 @@
             }
             else
             {
-                // AGREGAR CURSO
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
-                }
-
+                // AGREGAR CURSO (sin validar solicitud activa)
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(cursoModel.Nombre), "Nombre");
                 
@@ -663,7 +649,6 @@
                     });
                     
                     // Esperar y redirigir
-                    await Task.Delay(200);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else

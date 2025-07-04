@@ -559,7 +559,6 @@
                 if (response.IsSuccessStatusCode)
                 {
                     articuloGuardado = true;
-                    await Task.Delay(2000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
