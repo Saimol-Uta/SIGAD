@@ -10,7 +10,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISolicitudService SolicitudService
+
 
 <PageTitle>@(Id != null ? "Editar Experiencia Laboral - SIGAD" : "Agregar Experiencia Laboral - SIGAD")</PageTitle>
 
@@ -498,8 +498,7 @@
         }
         else
         {
-            // Modo agregar: verificar solicitud activa
-            await VerificarSolicitudActiva();
+            // Ya no es necesario verificar solicitud activa para agregar experiencia
         }
     }
 
