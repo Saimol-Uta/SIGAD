@@ -833,6 +833,9 @@
                         <button class="btn btn-import" @onclick="@(() => VerTabla("investigaciones"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
+                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Refrescar conteo">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -1511,12 +1514,32 @@
             var response = await Http.GetAsync($"api/investigaciones/docente/{cedula}");
             if (response.IsSuccessStatusCode)
             {
-                var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
-                conteoInvestigaciones = investigaciones?.Count ?? 0;
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - Respuesta API Investigaciones: {content}");
+                
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                if (result?.Success == true && result.Data != null)
+                {
+                    conteoInvestigaciones = result.Data.Count;
+                }
+                else
+                {
+                    // Intentar deserializar directamente como lista
+                    var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
+                    conteoInvestigaciones = investigaciones?.Count ?? 0;
+                }
+                
+                Console.WriteLine($"Debug - Conteo investigaciones: {conteoInvestigaciones}");
+            }
+            else
+            {
+                Console.WriteLine($"Debug - Error API Investigaciones: {response.StatusCode}");
+                conteoInvestigaciones = 0;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"Debug - Exception investigaciones: {ex.Message}");
             conteoInvestigaciones = 0;
         }
     }
@@ -1736,8 +1759,11 @@
             Navigation.NavigateTo("/login", true);
         }
     }
-    private void VerTabla(string tipoDocumento)
+    private async void VerTabla(string tipoDocumento)
     {
+        // Actualizar conteos antes de mostrar la tabla
+        await CargarConteoDocumentos();
+        
         tablaVisible = tipoDocumento;
         tipoDocumentoSeleccionado = tipoDocumento; // Establecer el tipo seleccionado para mostrar la guáa
         StateHasChanged();
@@ -1813,8 +1839,13 @@
     {
         try
         {
+            Console.WriteLine("Debug - Actualizando conteos automáticamente...");
+            
             // Actualizar conteo de documentos primero
             await CargarConteoDocumentos();
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
             
             // Verificar si hay requisitos para verificar
             if (!string.IsNullOrEmpty(solicitudId) && tieneDocumentosCompletos)
@@ -1822,11 +1853,71 @@
                 // Verificar los requisitos automáticamente
                 await VerificarRequisitos();
             }
+            
+            Console.WriteLine($"Debug - Conteos actualizados: Inv={conteoInvestigaciones}, Art={conteoArticulos}, Exp={conteoExperiencias}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al actualizar requisitos automáticamente: {ex.Message}");
         }
+    }
+
+    // Método para actualizar conteo manual de un tipo específico de documento
+    private async Task ActualizarConteoManual(string tipoDocumento)
+    {
+        try
+        {
+            Console.WriteLine($"Debug - Actualizando conteo manual para: {tipoDocumento}");
+            
+            switch (tipoDocumento)
+            {
+                case "investigaciones":
+                    await CargarConteoInvestigaciones();
+                    break;
+                case "articulos":
+                    await CargarConteoArticulos();
+                    break;
+                case "experiencias":
+                    await CargarConteoExperiencias();
+                    break;
+                case "evaluaciones":
+                    await CargarConteoEvaluaciones();
+                    break;
+                case "cursos":
+                    await CargarConteoCursos();
+                    break;
+                case "tesis":
+                    await CargarConteoTesis();
+                    break;
+                default:
+                    // Actualizar todos
+                    await CargarConteoDocumentos();
+                    break;
+            }
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Conteo actualizado: {tipoDocumento} = {GetConteoByTipo(tipoDocumento)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar conteo manual: {ex.Message}");
+        }
+    }
+    
+    private int GetConteoByTipo(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => conteoInvestigaciones,
+            "articulos" => conteoArticulos,
+            "experiencias" => conteoExperiencias,
+            "evaluaciones" => conteoEvaluaciones,
+            "cursos" => conteoCursos,
+            "tesis" => conteoTesis,
+            _ => 0
+        };
     }
 
     // Modelos para las respuestas de API
