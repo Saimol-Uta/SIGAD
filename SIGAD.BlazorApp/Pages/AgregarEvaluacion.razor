@@ -1,14 +1,17 @@
 @page "/agregar-evaluacion"
 @page "/editar-evaluacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+@using System.Web
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject ISolicitudService SolicitudService
 
 <PageTitle>@(Id.HasValue ? "Editar Evaluación - SIGAD" : "Agregar Evaluación - SIGAD")</PageTitle>
 

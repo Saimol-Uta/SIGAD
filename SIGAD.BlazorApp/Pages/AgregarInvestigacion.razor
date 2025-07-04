@@ -1,13 +1,16 @@
 @page "/agregar-investigacion"
 @page "/editar-investigacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISolicitudService SolicitudService
 @inject HttpClient Http
 
 
@@ -671,6 +674,7 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
         public string RolEnInvestigacion { get; set; } = "";
         public int MesesDeInvestigacion { get; set; } = 1;
+        public bool EsInternacional { get; set; } = false;
     }
 
     public class InvestigacionDto

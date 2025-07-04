@@ -1,15 +1,18 @@
 @page "/agregar-experiencia-laboral"
 @page "/editar-experiencia/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@using System.Web
-@using System.IO
-@using System.Linq
-@using System.ComponentModel.DataAnnotations
 @attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+@using System.ComponentModel.DataAnnotations
+@using System.Web
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject ISolicitudService SolicitudService
 
 
 <PageTitle>@(Id != null ? "Editar Experiencia Laboral - SIGAD" : "Agregar Experiencia Laboral - SIGAD")</PageTitle>
