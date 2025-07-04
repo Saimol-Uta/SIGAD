@@ -389,12 +389,12 @@ namespace SIGAD.WebAPI.Controllers
             // El middleware de JWT ya validó el token si llegamos aquí
             var correo = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            var cedula = User.FindFirst("cedula")?.Value;
+            var cedula = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("cedula")?.Value; // Fallback para compatibilidad
             var nombre1 = User.FindFirst("nombre1")?.Value;
             var nombre2 = User.FindFirst("nombre2")?.Value;
             var apellido1 = User.FindFirst("apellido1")?.Value;
             var apellido2 = User.FindFirst("apellido2")?.Value;
-            var nombreCompleto = User.FindFirst("nombreCompleto")?.Value;
+            var nombreCompleto = User.FindFirst("NombreCompleto")?.Value ?? User.FindFirst("nombreCompleto")?.Value; // Fallback para compatibilidad
             var rangoId = User.FindFirst("rangoId")?.Value;
             var rangoNombre = User.FindFirst("rangoNombre")?.Value;
 
@@ -1266,7 +1266,7 @@ namespace SIGAD.WebAPI.Controllers
                 .ToListAsync();
 
             int totalHorasCursos = 0;
-            
+
             // Para rangos 4 y superiores (Agregado 3, Principal 1, 2, 3): usar horas impartidas
             if (rango.Id >= 5) // Asumiendo que rango 5+ son los avanzados
             {
@@ -1347,7 +1347,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // VALIDAR EVALUACIONES DOCENTES - NUEVA LÓGICA ESPECÍFICA
             var validacionEvaluaciones = ValidarEvaluacionesParaSolicitud(evaluaciones);
-            
+
             if (!validacionEvaluaciones.esValida)
             {
                 requisitosFaltantes.AddRange(validacionEvaluaciones.errores);
@@ -1432,7 +1432,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="rango">Rango solicitado</param>
         /// <returns>Tupla con meses totales, cantidad de proyectos internacionales y si cumple requisitos</returns>
         private (decimal mesesTotales, int proyectosInternacionales, bool cumpleInternacionales) CalcularMesesInvestigacionConReglamento(
-            List<SIGAD.Domain.Entities.Investigacion> investigaciones, 
+            List<SIGAD.Domain.Entities.Investigacion> investigaciones,
             SIGAD.Domain.Entities.Rango rango)
         {
             decimal totalMeses = 0;
@@ -1473,7 +1473,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // Validar requisitos internacionales según el rango
             bool cumpleInternacionales = true;
-            
+
             switch (rango.Id)
             {
                 case 6: // Principal 1 → Principal 2
@@ -1692,13 +1692,13 @@ namespace SIGAD.WebAPI.Controllers
             {
                 int anoMenor = anosEvaluaciones[0];
                 int anoMayor = anosEvaluaciones[1];
-                
+
                 if (anoMayor - anoMenor != 1)
                 {
                     errores.Add($"Evaluaciones: Los años {anoMenor} y {anoMayor} no son consecutivos. Se requieren evaluaciones de exactamente 2 años consecutivos.");
                     return (false, errores);
                 }
-                
+
                 // Si llegamos aquí, tenemos exactamente 2 años consecutivos ✅
             }
             else
@@ -1709,7 +1709,7 @@ namespace SIGAD.WebAPI.Controllers
 
             // 5. Verificar que el promedio sea al menos 75%
             decimal promedioEvaluaciones = evaluacionesValidas.Average(e => e.PuntajePorcentual);
-            
+
             if (promedioEvaluaciones < 75.0m)
             {
                 errores.Add($"Evaluaciones: El promedio es {promedioEvaluaciones:F1}%, pero se requiere un mínimo de 75%");

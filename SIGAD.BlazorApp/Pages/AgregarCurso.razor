@@ -1,6 +1,7 @@
 @page "/agregar-curso"
 @page "/editar-curso/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
@@ -411,7 +412,7 @@
 
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary"
-                                @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                                @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
                         <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario)">
@@ -443,6 +444,7 @@
     private string? errorMessage;
     private IBrowserFile? certificadoFile;
     private string certificadoSeleccionado = "";
+    private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
     // Lista de organizaciones de ejemplo
     private List<OrganizacionModel> organizaciones = new()
@@ -485,6 +487,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer parámetro returnTo de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+        var returnToParam = queryParams["returnTo"];
+        if (!string.IsNullOrEmpty(returnToParam))
+        {
+            returnTo = returnToParam;
+        }
+
         await CargarInformacionUsuario();
 
         if (Id.HasValue)
@@ -605,7 +616,7 @@
                 {
                     cursoGuardado = true;
                     await Task.Delay(2000);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {
@@ -663,8 +674,8 @@
                     });
                     
                     // Esperar y redirigir
-                    await Task.Delay(200);
-                    Navigation.NavigateTo("/gestion-documentos");
+                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                    Navigation.NavigateTo(GetReturnUrl());
                 }
                 else
                 {
@@ -681,6 +692,11 @@
         {
             enviandoFormulario = false;
         }
+    }
+
+    private string GetReturnUrl()
+    {
+        return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
     }
 
     private async Task<string?> ObtenerCedulaUsuario()

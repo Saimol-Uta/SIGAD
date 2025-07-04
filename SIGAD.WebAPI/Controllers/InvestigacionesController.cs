@@ -66,11 +66,33 @@ namespace SIGAD.WebAPI.Controllers
         /// <summary>
         /// Obtiene las investigaciones de un docente específico
         /// </summary>
-        [HttpGet("docente/{cedula}")]
-        public async Task<ActionResult<IEnumerable<InvestigacionDto>>> GetByDocente(string cedula)
+        [HttpGet("docente/{docenteCedula}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetByDocente(string docenteCedula)
         {
-            var investigaciones = await _investigacionService.GetByDocenteCedulaAsync(cedula);
-            return Ok(investigaciones);
+            try
+            {
+                var investigaciones = await _investigacionService.GetByDocenteCedulaAsync(docenteCedula);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Investigaciones del docente obtenidas exitosamente",
+                    data = investigaciones,
+                    count = investigaciones.Count(),
+                    docenteCedula = docenteCedula
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener investigaciones del docente {DocenteCedula}", docenteCedula);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
         }
 
         /// <summary>
@@ -253,7 +275,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al asociar investigación {InvestigacionId} a solicitud {SolicitudId}", 
+                _logger.LogError(ex, "Error al asociar investigación {InvestigacionId} a solicitud {SolicitudId}",
                     id, request.SolicitudId);
                 return StatusCode(500, new
                 {
@@ -286,7 +308,7 @@ namespace SIGAD.WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al desasociar investigación {InvestigacionId} de solicitud {SolicitudId}", 
+                _logger.LogError(ex, "Error al desasociar investigación {InvestigacionId} de solicitud {SolicitudId}",
                     investigacionId, solicitudId);
                 return StatusCode(500, new
                 {

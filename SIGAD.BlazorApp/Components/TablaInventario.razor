@@ -1,0 +1,917 @@
+@using System.Text.Json
+@using System.Net.Http.Json
+@using Microsoft.JSInterop
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="page-wrapper">
+    <div class="admin-dashboard">
+        <div class="main-content">
+            <!-- ENCABEZADO -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div class="flex bloque-izquierdo">
+                    <h2>@config.Titulo</h2>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-agregar" @onclick="AgregarDocumento">
+                        <i class="fas fa-plus"></i> Agregar @ObtenerNombreDocumentoSingular()
+                    </button>
+                    <button class="btn btn-cerrar" @onclick="CerrarTabla">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
+
+            <!-- MENSAJES -->
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger">
+                    @mensajeError
+                </div>
+            }
+
+            <!-- TABLA -->
+            @if (cargando)
+            {
+                <div class="sin-documentos">
+                    <div class="spinner"></div>
+                    <h3>Cargando documentos...</h3>
+                </div>
+            }
+            else if (documentosPaginados.Any())
+            {
+                <div class="tabla-responsive">
+                    <table class="tabla-documentos">
+                        <thead>
+                            <tr>
+                                @foreach (var columna in config.Columnas)
+                                {
+                                    <th>@columna</th>
+                                }
+                                <th style="width: 150px; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in documentosPaginados)
+                            {
+                                <tr>
+                                    @foreach (var valor in ObtenerValoresDocumento(doc, TipoDocumento))
+                                    {
+                                        <td>@valor</td>
+                                    }
+                                    <td>
+                                        <div class="opciones-documento">
+                                            @if (!string.IsNullOrEmpty(ObtenerRutaPdf(doc, TipoDocumento)) || !string.IsNullOrEmpty(ObtenerUrlCloudinary(doc, TipoDocumento)))
+                                            {
+                                                <img src="/images/pdf.png" alt="Ver PDF" title="Ver PDF" class="btn-opcion" @onclick="() => VerDocumento(doc)" />
+                                            }
+                                            <img src="/images/editar.png" alt="Editar" title="Editar" class="btn-opcion" @onclick="() => EditarDocumento(doc)" />
+                                            <img src="/images/borrar.png" alt="Eliminar" title="Eliminar" class="btn-opcion" @onclick="() => EliminarDocumento(doc)" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINACIÓN -->
+                @if (PaginasTotales > 1)
+                {
+                    <div class="paginacion">
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(1)" disabled="@(paginaActual == 1)">
+                            ««
+                        </button>
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(paginaActual - 1)" disabled="@(paginaActual == 1)">
+                            ‹
+                        </button>
+
+                        @for (int pagina = Math.Max(1, paginaActual - 2); pagina <= Math.Min(PaginasTotales, paginaActual + 2); pagina++)
+                        {
+                            <button class="btn-pagina @(pagina == paginaActual ? "activa" : "")" 
+                                    @onclick="() => CambiarPagina(pagina)">
+                                @pagina
+                            </button>
+                        }
+
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(paginaActual + 1)" disabled="@(paginaActual == PaginasTotales)">
+                            ›
+                        </button>
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(PaginasTotales)" disabled="@(paginaActual == PaginasTotales)">
+                            »»
+                        </button>
+                    </div>
+                    
+                    <div class="info-paginacion">
+                        Mostrando @((paginaActual - 1) * porPagina + 1) - @(Math.Min(paginaActual * porPagina, documentos.Count)) de @documentos.Count documentos
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="sin-documentos">
+                    <h3>Sin documentos</h3>
+                    <p>No se encontraron @config.Titulo.ToLower() para este docente.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-wrapper {
+        min-height: 100vh;
+        background-color: #f5f5f5;
+    }
+
+    .admin-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .main-content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .bloque-izquierdo {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .bloque-izquierdo h2 {
+        margin: 0;
+        color: #0a1d44;
+        font-size: 24px;
+    }
+
+    .btn, .btn-cerrar {
+        background-color: #0a1d44;
+        color: white;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .btn:hover, .btn-cerrar:hover {
+        background-color: #0f2554;
+    }
+
+    .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0a1d44;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .tabla-documentos {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .tabla-documentos thead {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .tabla-documentos th, .tabla-documentos td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    .tabla-documentos tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .opciones-documento {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .btn-opcion {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .btn-opcion:hover {
+        transform: scale(1.1);
+    }
+
+    .btn-agregar {
+        background-color: #28a745;
+    }
+
+    .btn-agregar:hover {
+        background-color: #218838;
+    }
+
+    .paginacion {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin: 20px 0;
+    }
+
+    .btn-pagina {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        background-color: white;
+        color: #495057;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-pagina:hover {
+        background-color: #e9ecef;
+    }
+
+    .btn-pagina.activa {
+        background-color: #0a1d44;
+        color: white;
+        border-color: #0a1d44;
+    }
+
+    .info-paginacion {
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+        margin-top: 10px;
+    }
+
+    .sin-documentos {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .sin-documentos h3 {
+        margin-bottom: 10px;
+        color: #495057;
+    }
+</style>
+
+@code {
+    [Parameter] public string TipoDocumento { get; set; } = "";
+    [Parameter] public string Cedula { get; set; } = "";
+    [Parameter] public EventCallback OnCerrar { get; set; }
+
+    // Variables de estado
+    private bool cargando = true;
+    private string? mensajeError = null;
+
+    // Variables de paginación  
+    private int paginaActual = 1;
+    private int porPagina => TipoDocumento == "evaluaciones" ? 10 : 8;
+
+    // Variables para documentos
+    private List<JsonElement> documentos = new();
+
+    // Configuración dinámica
+    private DocumentConfig config = new();
+
+    // Propiedades calculadas
+    private IEnumerable<JsonElement> documentosPaginados => documentos
+        .Skip((paginaActual - 1) * porPagina)
+        .Take(porPagina);
+
+    private int PaginasTotales => (int)Math.Ceiling(documentos.Count / (double)porPagina);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Console.WriteLine($"[DEBUG TablaInventario] OnParametersSetAsync - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
+        
+        // Solo recargar si ambos parámetros están disponibles y ha habido un cambio
+        if (!string.IsNullOrEmpty(TipoDocumento) && !string.IsNullOrEmpty(Cedula))
+        {
+            config = ObtenerConfiguracion(TipoDocumento);
+            Console.WriteLine($"[DEBUG TablaInventario] Configuración actualizada: {config.Titulo}");
+            await CargarDocumentos();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine($"[DEBUG TablaInventario] OnInitializedAsync - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
+        config = ObtenerConfiguracion(TipoDocumento);
+        Console.WriteLine($"[DEBUG TablaInventario] Configuración obtenida: {config.Titulo}");
+        await CargarDocumentos();
+        Console.WriteLine($"[DEBUG TablaInventario] OnInitializedAsync completado");
+    }
+
+    private async Task CargarDocumentos()
+    {
+        if (string.IsNullOrEmpty(Cedula) || string.IsNullOrEmpty(TipoDocumento))
+        {
+            Console.WriteLine($"[DEBUG TablaInventario] Cedula o TipoDocumento vacío - Cedula: '{Cedula}', TipoDocumento: '{TipoDocumento}'");
+            return;
+        }
+
+        try
+        {
+            cargando = true;
+            mensajeError = null;
+            documentos.Clear();
+            StateHasChanged();
+
+            // Usar exactamente los mismos endpoints que Tabla.razor
+            string endpoint = TipoDocumento switch
+            {
+                "investigaciones" => $"api/investigaciones/docente/{Cedula}",
+                "articulos" => $"api/articulos/docente/{Cedula}",
+                "tesis" => $"api/TesisDirigidas/docente/{Cedula}",
+                "experiencias" => $"api/experienciaslaborales/docente/{Cedula}",
+                "cursos" => $"api/cursos/docente/{Cedula}",
+                "evaluaciones" => $"api/evaluaciones/docente/{Cedula}",
+                _ => ""
+            };
+
+            Console.WriteLine($"[DEBUG TablaInventario] Cargando {TipoDocumento} para cedula {Cedula}");
+            Console.WriteLine($"[DEBUG TablaInventario] Endpoint: {endpoint}");
+
+            if (!string.IsNullOrEmpty(endpoint))
+            {
+                Console.WriteLine($"[DEBUG TablaInventario] Haciendo llamada HTTP GET a: {endpoint}");
+                var response = await Http.GetAsync(endpoint);
+                Console.WriteLine($"[DEBUG TablaInventario] Respuesta HTTP: {response.StatusCode}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[DEBUG TablaInventario] JSON recibido: {jsonString.Substring(0, Math.Min(200, jsonString.Length))}...");
+                    
+                    var jsonDoc = JsonDocument.Parse(jsonString);
+
+                    List<JsonElement> todosLosDocumentos = new();
+
+                    // Manejar tanto respuestas directas como con wrapper "data"
+                    if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        todosLosDocumentos = jsonDoc.RootElement.EnumerateArray().ToList();
+                        Console.WriteLine($"[DEBUG TablaInventario] Respuesta directa - Array con {todosLosDocumentos.Count} elementos");
+                    }
+                    else if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
+                             dataElement.ValueKind == JsonValueKind.Array)
+                    {
+                        todosLosDocumentos = dataElement.EnumerateArray().ToList();
+                        Console.WriteLine($"[DEBUG TablaInventario] Respuesta con wrapper 'data' - Array con {todosLosDocumentos.Count} elementos");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG TablaInventario] Formato de respuesta no reconocido. ValueKind: {jsonDoc.RootElement.ValueKind}");
+                    }
+
+                    // En modo inventario, mostramos todos los documentos
+                    documentos = todosLosDocumentos;
+                    Console.WriteLine($"[DEBUG TablaInventario] Documentos cargados: {documentos.Count}");
+                }
+                else
+                {
+                    mensajeError = $"Error al cargar {TipoDocumento}: {response.StatusCode}";
+                    documentos = new();
+                    Console.WriteLine($"[DEBUG TablaInventario] Error HTTP: {response.StatusCode} - {mensajeError}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG TablaInventario] Endpoint vacío para tipo: {TipoDocumento}");
+                mensajeError = $"Tipo de documento no soportado: {TipoDocumento}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar documentos: {ex.Message}";
+            documentos = new();
+            Console.WriteLine($"[DEBUG TablaInventario] Excepción: {ex.Message}");
+            Console.WriteLine($"[DEBUG TablaInventario] StackTrace: {ex.StackTrace}");
+        }
+        finally
+        {
+            cargando = false;
+            Console.WriteLine($"[DEBUG TablaInventario] Finalizando carga - cargando: {cargando}, documentos: {documentos.Count}, mensajeError: {mensajeError}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarTabla()
+    {
+        await OnCerrar.InvokeAsync();
+    }
+
+    private async Task AgregarDocumento()
+    {
+        try
+        {
+            // Obtener nombre descriptivo para el mensaje
+            var nombreDocumento = ObtenerNombreDocumentoSingular();
+
+            // Redirigir a la página de creación correspondiente según el tipo de documento
+            // Incluir parámetro de retorno para volver al inventario
+            string ruta = TipoDocumento switch
+            {
+                "investigaciones" => "/agregar-investigacion?returnTo=inventario",
+                "articulos" => "/agregar-articulo?returnTo=inventario",
+                "experiencias" => "/agregar-experiencia?returnTo=inventario",
+                "evaluaciones" => "/agregar-evaluacion?returnTo=inventario",
+                "cursos" => "/agregar-curso?returnTo=inventario",
+                "tesis" => "/agregar-tesis?returnTo=inventario",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(ruta))
+            {
+                Navigation.NavigateTo(ruta);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no soportado para creación");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al navegar a crear documento: {ex.Message}");
+        }
+    }
+
+    private string ObtenerNombreDocumentoSingular()
+    {
+        return TipoDocumento switch
+        {
+            "investigaciones" => "Investigación",
+            "articulos" => "Artículo",
+            "experiencias" => "Experiencia Laboral",
+            "evaluaciones" => "Evaluación",
+            "cursos" => "Curso",
+            "tesis" => "Tesis",
+            _ => "Documento"
+        };
+    }
+
+    private async Task VerDocumento(JsonElement documento)
+    {
+        try
+        {
+            // Obtener las rutas del documento
+            var pdfRuta = ObtenerRutaPdf(documento, TipoDocumento);
+            var cloudinaryUrl = ObtenerUrlCloudinary(documento, TipoDocumento);
+
+            string? urlParaUsar = null;
+
+            // Usar la misma lógica que Tabla.razor
+            // PRIORIDAD 1: Cloudinary URL (CDN rápido)
+            if (!string.IsNullOrEmpty(cloudinaryUrl))
+            {
+                urlParaUsar = cloudinaryUrl;
+            }
+            // PRIORIDAD 2: URL local como fallback
+            else if (!string.IsNullOrEmpty(pdfRuta))
+            {
+                // Usar la URL base configurada del HttpClient
+                var baseUrl = Http.BaseAddress?.ToString().TrimEnd('/') ?? "https://localhost:7072";
+
+                var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
+                    ? pdfRuta
+                    : $"/uploads/{pdfRuta.TrimStart('/')}";
+
+                urlParaUsar = $"{baseUrl}{relativePath}";
+            }
+
+            if (!string.IsNullOrEmpty(urlParaUsar))
+            {
+                await JSRuntime.InvokeVoidAsync("window.open", urlParaUsar, "_blank");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay PDF disponible para este documento.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al abrir PDF: {ex.Message}");
+        }
+    }
+
+    private async Task EditarDocumento(JsonElement documento)
+    {
+        try
+        {
+            var id = ObtenerIdDocumento(documento, TipoDocumento);
+            if (string.IsNullOrEmpty(id))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No se pudo obtener el identificador del documento");
+                return;
+            }
+
+            // Obtener nombre descriptivo para el mensaje
+            var nombreDocumento = TipoDocumento switch
+            {
+                "investigaciones" => "investigación",
+                "articulos" => "artículo",
+                "experiencias" => "experiencia laboral",
+                "evaluaciones" => "evaluación",
+                "cursos" => "curso",
+                "tesis" => "tesis",
+                _ => "documento"
+            };
+
+            // Redirigir a la página de edición correspondiente según el tipo de documento
+            // Incluir parámetro de retorno para volver al inventario
+            string ruta = TipoDocumento switch
+            {
+                "investigaciones" => $"/editar-investigacion/{id}?returnTo=inventario",
+                "articulos" => $"/editar-articulo/{Uri.EscapeDataString(id)}?returnTo=inventario",
+                "experiencias" => $"/editar-experiencia/{id}?returnTo=inventario",
+                "evaluaciones" => $"/editar-evaluacion/{id}?returnTo=inventario",
+                "cursos" => $"/editar-curso/{id}?returnTo=inventario",
+                "tesis" => $"/editar-tesis/{id}?returnTo=inventario",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(ruta))
+            {
+                // Mostrar mensaje de confirmación
+                var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
+                    $"¿Desea editar esta {nombreDocumento}? Será redirigido al formulario de edición.");
+
+                if (confirmacion)
+                {
+                    Navigation.NavigateTo(ruta);
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no soportado para edición");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al editar documento: {ex.Message}");
+        }
+    }
+
+    private async Task EliminarDocumento(JsonElement documento)
+    {
+        var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
+            "¿Está seguro de que desea eliminar este documento? Esta acción no se puede deshacer.");
+
+        if (!confirmacion) return;
+
+        try
+        {
+            var id = ObtenerIdDocumento(documento, TipoDocumento);
+            if (string.IsNullOrEmpty(id))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No se pudo obtener el identificador del documento");
+                return;
+            }
+
+            var endpoint = TipoDocumento switch
+            {
+                "investigaciones" => $"api/investigaciones/{id}",
+                "articulos" => $"api/articulos/{Uri.EscapeDataString(id)}",
+                "tesis" => $"api/TesisDirigidas/{id}",
+                "experiencias" => $"api/experienciaslaborales/{id}",
+                "cursos" => $"api/cursos/{id}",
+                "evaluaciones" => $"api/evaluaciones/{id}",
+                _ => ""
+            };
+
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Tipo de documento no válido para eliminación");
+                return;
+            }
+
+            var response = await Http.DeleteAsync(endpoint);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Documento eliminado correctamente");
+                await CargarDocumentos(); // Recargar la lista
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Error al eliminar el documento");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al eliminar documento: {ex.Message}");
+        }
+    }
+
+    // Configuración dinámica según el tipo de documento
+    private DocumentConfig ObtenerConfiguracion(string tipo)
+    {
+        return tipo switch
+        {
+            "investigaciones" => new DocumentConfig
+            {
+                Titulo = "🔬 Investigaciones",
+                Columnas = new() { "Título", "Rol", "Fecha Inicio", "Fecha Fin", "Meses" }
+            },
+            "articulos" => new DocumentConfig
+            {
+                Titulo = "📄 Artículos",
+                Columnas = new() { "DOI", "Título", "Revista", "Año", "Idioma" }
+            },
+            "experiencias" => new DocumentConfig
+            {
+                Titulo = "💼 Experiencia Laboral",
+                Columnas = new() { "Institución", "Cargo", "Fecha Inicio", "Fecha Fin", "Años" }
+            },
+            "evaluaciones" => new DocumentConfig
+            {
+                Titulo = "📊 Evaluaciones",
+                Columnas = new() { "Periodo Académico", "Calificación", "Fecha Evaluación" }
+            },
+            "cursos" => new DocumentConfig
+            {
+                Titulo = "🎓 Cursos",
+                Columnas = new() { "Nombre", "Tipo", "Horas", "Fecha", "Institución" }
+            },
+            "tesis" => new DocumentConfig
+            {
+                Titulo = "📚 Tesis Dirigidas",
+                Columnas = new() { "Título", "Nivel", "Estado", "Fecha Inicio", "Institución" }
+            },
+            _ => new DocumentConfig { Titulo = "Documentos", Columnas = new() { "Información" } }
+        };
+    }
+
+    public class DocumentConfig
+    {
+        public string Titulo { get; set; } = "";
+        public List<string> Columnas { get; set; } = new();
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= PaginasTotales)
+        {
+            paginaActual = nuevaPagina;
+            StateHasChanged();
+        }
+    }
+
+    private string? ObtenerIdDocumento(JsonElement doc, string tipo)
+    {
+        if (tipo == "articulos")
+        {
+            if (doc.TryGetProperty("doi", out var doiElement) && doiElement.ValueKind == JsonValueKind.String)
+            {
+                return doiElement.GetString();
+            }
+            return null;
+        }
+
+        if (doc.TryGetProperty("id", out var idElement))
+        {
+            if (idElement.ValueKind == JsonValueKind.Number)
+                return idElement.GetInt32().ToString();
+            if (idElement.ValueKind == JsonValueKind.String)
+                return idElement.GetString();
+        }
+        return null;
+    }
+
+    private string? ObtenerRutaPdf(JsonElement doc, string tipo)
+    {
+        try
+        {
+            // Propiedades específicas por tipo de documento
+            var propiedadesPorTipo = tipo switch
+            {
+                "cursos" => new[] { "certificadoRuta", "rutaPdf" },
+                "experiencias" => new[] { "certificadoRuta", "rutaPdf" },
+                "investigaciones" => new[] { "informeRuta", "rutaPdf" },
+                "articulos" => new[] { "archivoRuta" },
+                "evaluaciones" => new[] { "informeRuta", "rutaPdf" },
+                "tesis" => new[] { "certificacionRuta", "CertificacionRuta", "certificadoRuta", "rutaPdf" },
+                _ => new[] { "rutaPdf" }
+            };
+
+            // Buscar en las propiedades específicas del tipo
+            foreach (var propiedad in propiedadesPorTipo)
+            {
+                if (doc.TryGetProperty(propiedad, out var rutaElement) &&
+                    rutaElement.ValueKind == JsonValueKind.String)
+                {
+                    var ruta = rutaElement.GetString();
+                    if (!string.IsNullOrEmpty(ruta))
+                    {
+                        return ruta;
+                    }
+                }
+            }
+
+            // Búsqueda adicional en propiedades generales
+            var propiedadesGenerales = new[] {
+                "rutaArchivo",
+                "archivoPdf",
+                "rutaDocumento",
+                "pdfPath",
+                "filePath"
+            };
+
+            foreach (var propiedad in propiedadesGenerales)
+            {
+                if (doc.TryGetProperty(propiedad, out var rutaElement) &&
+                    rutaElement.ValueKind == JsonValueKind.String)
+                {
+                    var ruta = rutaElement.GetString();
+                    if (!string.IsNullOrEmpty(ruta))
+                    {
+                        return ruta;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private string? ObtenerUrlCloudinary(JsonElement doc, string tipo)
+    {
+        try
+        {
+            // Lista de propiedades posibles para buscar la URL de Cloudinary
+            var propiedadesPosibles = new[] {
+                "urlCloudinary", // ✅ Propiedad estándar para todos los tipos
+                "UrlCloudinary", // Con U mayúscula (usado en TesisDirigidaDto)
+                "cloudinaryUrl",
+                "urlDocumento",
+                "cloudUrl",
+                "urlArchivo"
+            };
+
+            // Buscar en todas las propiedades posibles
+            foreach (var propiedad in propiedadesPosibles)
+            {
+                if (doc.TryGetProperty(propiedad, out var urlElement) &&
+                    urlElement.ValueKind == JsonValueKind.String)
+                {
+                    var url = urlElement.GetString();
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        return url;
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private List<string> ObtenerValoresDocumento(JsonElement doc, string tipo)
+    {
+        try
+        {
+            return tipo switch
+            {
+                "investigaciones" => new List<string>
+                {
+                    doc.TryGetProperty("titulo", out var titulo) ? titulo.GetString() ?? "" : "",
+                    doc.TryGetProperty("rolEnInvestigacion", out var rol) ? rol.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicio) ? fechaInicio.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("fechaFinalizacion", out var fechaFin) ? fechaFin.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("mesesDeInvestigacion", out var meses) ? meses.GetDecimal().ToString("F0") : ""
+                },
+                "articulos" => new List<string>
+                {
+                    doc.TryGetProperty("doi", out var doi) ? doi.GetString() ?? "" : "",
+                    doc.TryGetProperty("titulo", out var tituloArt) ? tituloArt.GetString() ?? "" : "",
+                    doc.TryGetProperty("revista", out var revista) ? revista.GetString() ?? "" : "",
+                    doc.TryGetProperty("anioPublicacion", out var anio) ? anio.GetInt32().ToString() : "",
+                    doc.TryGetProperty("idiomaPublicacion", out var idioma) ? idioma.GetString() ?? "" : ""
+                },
+                "experiencias" => new List<string>
+                {
+                    doc.TryGetProperty("organizacionNombre", out var institucion) ? institucion.GetString() ?? "" : "",
+                    doc.TryGetProperty("cargo", out var cargo) ? cargo.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicioExp) ? fechaInicioExp.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("fechaFin", out var fechaFinExp) && fechaFinExp.ValueKind != JsonValueKind.Null ? fechaFinExp.GetDateTime().ToString("yyyy-MM-dd") : "Actual",
+                    ObtenerAniosExperiencia(doc)
+                },
+                "evaluaciones" => new List<string>
+                {
+                    doc.TryGetProperty("periodoAcademico", out var periodo) ? periodo.GetString() ?? "" : "",
+                    doc.TryGetProperty("puntajePorcentual", out var calificacion) ? calificacion.GetDecimal().ToString("F1") : "",
+                    doc.TryGetProperty("fechaEvaluacion", out var fechaEval) ? fechaEval.GetDateTime().ToString("yyyy-MM-dd") : ""
+                },
+                "cursos" => new List<string>
+                {
+                    doc.TryGetProperty("nombre", out var nombreCurso) ? nombreCurso.GetString() ?? "" : "",
+                    doc.TryGetProperty("tipoCurso", out var tipoCurso) ? tipoCurso.GetString() ?? "" : "",
+                    doc.TryGetProperty("numeroHoras", out var horas) ? horas.GetInt32().ToString() : "",
+                    doc.TryGetProperty("fechaFinalizacion", out var fechaCurso) ? fechaCurso.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("nombreOrganizacion", out var organizacion) ? organizacion.GetString() ?? "" : ""
+                },
+                "tesis" => new List<string>
+                {
+                    doc.TryGetProperty("tituloTesis", out var tituloTesis) ? tituloTesis.GetString() ?? "" : "",
+                    doc.TryGetProperty("nivelAcademico", out var nivel) ? nivel.GetString() ?? "" : "",
+                    doc.TryGetProperty("estado", out var estado) ? estado.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicioTesis) ? fechaInicioTesis.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("institucion", out var institucionTesis) ? institucionTesis.GetString() ?? "" : 
+                        (doc.TryGetProperty("nombreInstitucion", out var inst2) ? inst2.GetString() ?? "" : "")
+                },
+                _ => new List<string> { "Información no disponible" }
+            };
+        }
+        catch (Exception)
+        {
+            return new List<string> { "Error al cargar datos" };
+        }
+    }
+
+    private string ObtenerAniosExperiencia(JsonElement doc)
+    {
+        try
+        {
+            // Si el API ya proporciona el valor calculado, usamos ese
+            if (doc.TryGetProperty("aniosExperiencia", out var aniosElement) && 
+                aniosElement.ValueKind != JsonValueKind.Null)
+            {
+                return aniosElement.GetDecimal().ToString("F1");
+            }
+
+            // Sino, calculamos basados en las fechas
+            if (doc.TryGetProperty("fechaInicio", out var fechaInicioElement) && 
+                fechaInicioElement.ValueKind != JsonValueKind.Null)
+            {
+                var fechaInicio = fechaInicioElement.GetDateTime();
+                var fechaFin = DateTime.Now; // Por defecto es hasta ahora
+                
+                if (doc.TryGetProperty("fechaFin", out var fechaFinElement) && 
+                    fechaFinElement.ValueKind != JsonValueKind.Null)
+                {
+                    fechaFin = fechaFinElement.GetDateTime();
+                }
+                
+                var diferencia = fechaFin - fechaInicio;
+                var anios = diferencia.TotalDays / 365.25; // Considera años bisiestos
+                
+                return anios.ToString("F1");
+            }
+            
+            return "N/A"; // Si no hay suficiente información para calcular
+        }
+        catch
+        {
+            return "N/A";
+        }
+    }
+}
