@@ -4,12 +4,14 @@ namespace SIGAD.BlazorApp.Models
     {
         public Guid Id { get; set; }
         public string DocenteNombreCompleto { get; set; } = "";
+        public string DocenteCedula { get; set; } = "";
         public string RangoSolicitadoNombre { get; set; } = "";
         public DateTime FechaCreacion { get; set; }
         public string Estado { get; set; } = "";
 
         // Información de apelación
         public bool TieneApelacion { get; set; }
+        public int? ApelacionId { get; set; } // Nuevo: ID de la apelación activa (si existe)
         public DateTime? FechaApelacion { get; set; }
         public DateTime? FechaLimiteApelacion { get; set; }
         public bool ApelacionVencida { get; set; }

@@ -8,6 +8,7 @@ namespace SIGAD.Application.DTOs
         public int Id { get; set; }
         public Guid SolicitudId { get; set; }
         public string DocenteNombre { get; set; } = "";
+        public string DocenteCedula { get; set; } = "";
         public string DocenteEmail { get; set; } = "";
         public string Justificacion { get; set; } = "";
         public List<string> DocumentosAdjuntos { get; set; } = new();

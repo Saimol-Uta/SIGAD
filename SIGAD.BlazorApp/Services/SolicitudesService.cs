@@ -37,6 +37,13 @@ namespace SIGAD.BlazorApp.Services
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
 
+
+        public async Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId)
+        {
+            await EnsureAuthenticationHeaderAsync();
+            return await _httpClient.GetFromJsonAsync<ApelacionDetalleDto>($"api/apelaciones/detalle/{solicitudId}");
+        }
+
         public SolicitudesService(HttpClient httpClient, ILocalStorageService localStorage)
         {
             _httpClient = httpClient;
@@ -441,17 +448,17 @@ namespace SIGAD.BlazorApp.Services
             }
         }
 
-        public async Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId)
+        public async Task<ApelacionDetalleDto?> GetApelacionDetalleByApelacionIdAsync(int apelacionId)
         {
             try
             {
                 await EnsureAuthenticationHeaderAsync();
-                var response = await _httpClient.GetFromJsonAsync<ApelacionDetalleDto>($"api/apelaciones/detalle/{solicitudId}");
+                var response = await _httpClient.GetFromJsonAsync<ApelacionDetalleDto>($"api/apelaciones/detalle-simple/{apelacionId}");
                 return response;
             }
             catch (HttpRequestException ex)
             {
-                Console.WriteLine($"Error al obtener detalle de apelación para solicitud {solicitudId}: {ex.Message}");
+                Console.WriteLine($"Error al obtener detalle de apelación por apelacionId {apelacionId}: {ex.Message}");
                 return null;
             }
             catch (Exception ex)

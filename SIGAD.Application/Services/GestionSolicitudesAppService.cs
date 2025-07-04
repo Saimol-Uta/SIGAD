@@ -13,22 +13,34 @@ namespace SIGAD.Application.Services
 {
     public class GestionSolicitudesAppService
     {
-        private readonly ISolicitudAscensoRepository _solicitudRepository;
-        private readonly IDocenteRepository _docenteRepository;
-        private readonly IApelacionRepository _apelacionRepository;
-        private readonly IUnitOfWork _unitOfWork;
+    private readonly ISolicitudAscensoRepository _solicitudRepository;
+    private readonly IDocenteRepository _docenteRepository;
+    private readonly IApelacionRepository _apelacionRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-        public GestionSolicitudesAppService(
-            ISolicitudAscensoRepository solicitudRepository,
-            IDocenteRepository docenteRepository,
-            IApelacionRepository apelacionRepository,
-            IUnitOfWork unitOfWork)
+    public GestionSolicitudesAppService(
+        ISolicitudAscensoRepository solicitudRepository,
+        IDocenteRepository docenteRepository,
+        IApelacionRepository apelacionRepository,
+        IUnitOfWork unitOfWork)
+    {
+        _solicitudRepository = solicitudRepository;
+        _docenteRepository = docenteRepository;
+        _apelacionRepository = apelacionRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+
+        /// <summary>
+        /// Obtiene una apelación por su ID (incluyendo la solicitud y docente relacionados).
+        /// </summary>
+        public async Task<Apelacion?> GetApelacionByIdAsync(int apelacionId)
         {
-            _solicitudRepository = solicitudRepository;
-            _docenteRepository = docenteRepository;
-            _apelacionRepository = apelacionRepository;
-            _unitOfWork = unitOfWork;
+            // Incluye la solicitud y el docente relacionados
+            var apelacion = await _apelacionRepository.GetByIdAsync(apelacionId);
+            return apelacion;
         }
+
 
         public async Task<Guid> EnviarSolicitudConEvidenciaAsync(EnviarSolicitudDto dto, string docenteCedula)
         {
@@ -588,7 +600,7 @@ namespace SIGAD.Application.Services
 
                 var resultado = new List<SolicitudConApelacionDto>();
 
-                foreach (var solicitud in solicitudes)
+                foreach (var solicitud in solicitudes ?? Enumerable.Empty<SolicitudAscenso>())
                 {
                     // Refrescar el estado de la solicitud desde la base de datos para evitar datos cacheados
                     var solicitudActualizada = await _solicitudRepository.GetByIdWithDetailsAsync(solicitud.Id);
@@ -612,11 +624,13 @@ namespace SIGAD.Application.Services
                     {
                         Id = solicitudActualizada.Id,
                         DocenteNombreCompleto = $"{solicitudActualizada.Docente?.Nombre1} {solicitudActualizada.Docente?.Apellido1}".Trim(),
+                        DocenteCedula = solicitudActualizada.DocenteCedula,
                         RangoSolicitadoNombre = solicitudActualizada.RangoSolicitado?.Nombre ?? "",
                         FechaCreacion = solicitudActualizada.FechaCreacion,
                         Estado = solicitudActualizada.Estado.ToString(),
                         TieneApelacion = tieneApelacionPendiente || apelacionResuelta,
-                        EstadoApelacion = estadoApelacion // <-- Nuevo campo opcional para mostrar el estado real
+                        ApelacionId = ultimaApelacion.Id, // Nuevo: ID de la apelación activa o última apelación
+                        EstadoApelacion = estadoApelacion
                     };
 
                     // Corrección: siempre asignar fechas y días restantes, incluso si la apelación está resuelta
@@ -655,6 +669,7 @@ namespace SIGAD.Application.Services
                     Id = apelacionActiva.Id, // <-- CORRECTO: el ID de la apelación (int)
                     SolicitudId = solicitudId,
                     DocenteNombre = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim(),
+                    DocenteCedula = solicitud.DocenteCedula,
                     DocenteEmail = "", // No hay email en la entidad Docente, dejar vacío o buscar en otro lado
                     Justificacion = apelacionActiva.Motivo,
                     DocumentosAdjuntos = string.IsNullOrEmpty(apelacionActiva.DocumentosRespaldo) ? new List<string>() : new List<string> { apelacionActiva.DocumentosRespaldo },
@@ -717,7 +732,7 @@ namespace SIGAD.Application.Services
                 // Actualizar el estado de la solicitud
                 if (dto.Aceptada)
                 {
-                    solicitud.Estado = EstadoSolicitud.AprobadaPorApelacion;
+                    solicitud.Estado = EstadoSolicitud.Aprobada;
                     // ASCENSO AUTOMÁTICO
                     await AscenderDocenteAutomaticamenteAsync(solicitud);
                 }
