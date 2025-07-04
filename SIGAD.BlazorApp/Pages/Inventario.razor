@@ -1,0 +1,738 @@
+@page "/inventario"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.Net.Http.Json
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Components
+@using System.Text.Json
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Mi Portafolio Académico - SIGAD</PageTitle>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #0a1d44;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    .branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header img.logo {
+        height: 80px;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #444;
+    }
+
+    .user-profile img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0a1d44;
+        object-fit: cover;
+    }
+
+    .back-btn,
+    .logout-btn {
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: 15px;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .back-btn {
+        background-color: #6c757d;
+    }
+
+    .back-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .logout-btn:hover {
+        background-color: #09203f;
+    }
+
+    .main-content {
+        padding: 2rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        z-index: 2;
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 500;
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header .subtitle {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .documents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .document-card {
+        background: white;
+        border: 1px solid #0a1d44;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index: 2;
+    }
+
+    .document-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .document-card h3 {
+        color: #0a1d44;
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .document-card .icon {
+        font-size: 1.5rem;
+    }
+
+    .document-card .description {
+        color: #666;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.4;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+        background-color: #218838;
+    }
+
+    /* --- Estilos para el botón de información --- */
+    .btn-info {
+        background-color: #09203f;
+        /* Un azul más vibrante (puedes cambiarlo) */
+        color: white;
+        border-color: #0d6efd;
+    }
+
+    .btn-info:hover {
+        background-color: #508D9A;
+        /* Un azul un poco más oscuro para el hover */
+        border-color: #09203f;
+        color: white;
+    }
+
+    .btn-import {
+        background-color: #165125;
+        color: white;
+    }
+
+    .btn-import:hover {
+        background-color: rgba(23, 68, 35, 0.4);
+    }
+
+    .btn-export {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .btn-export:hover {
+        background-color: #0e2c6c;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .status-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        z-index: 2;
+    }
+
+    .status-info h3 {
+        color: #0a1d44;
+        margin-bottom: 0.5rem;
+    }
+
+    .status-info p {
+        color: #666;
+        margin: 0;
+    }
+
+    .document-count {
+        background-color: #0a1d44;
+        color: white;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        margin-left: auto;
+    }
+
+    .triangle-bg {
+        position: fixed;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+        z-index: 2;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+    @@media (max-width: 1199px) and (min-width: 769px) {
+
+        /* 1. Aseguramos que el layout principal sea horizontal */
+        .main-content {
+            flex-direction: row;
+            align-items: center;
+            /* Centra los elementos verticalmente */
+            justify-content: space-between;
+            /* Mantiene el espacio entre ellos */
+            padding: 2rem;
+            /* Un padding adecuado para este tamaño */
+        }
+
+        /* 2. Reducimos el tamaño del título para que ocupe menos espacio */
+        .left h1 {
+            font-size: 4.5rem;
+        }
+
+        /* 3. Nos aseguramos que la tarjeta no tenga márgenes extraños */
+        .promotion-card {
+            margin-right: 0;
+            /* Quitamos cualquier margen grande */
+            flex-shrink: 0;
+            /* Evita que la tarjeta se encoja y se deforme */
+            width: 45%;
+            /* Le damos un ancho fijo o porcentual */
+            max-width: 450px;
+        }
+
+        /* 4. La clave: Ocultamos los triángulos en este tamaño */
+        .triangle-bg {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            padding: 1rem;
+        }
+
+        .documents-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .triangle-bg {
+            display: none;
+        }
+    }
+</style>
+
+<body>
+    <div class="header">
+        <div class="branding">
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
+        </div>
+        <div class="user-profile">
+            <a href="/Dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
+            <span>@nombreCompleto</span>
+            <img src="@urlFotoPerfil" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout"><i class="fas fa-sign-out-alt"></i> Salir</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="page-header">
+            <h1>Mi Portafolio Académico</h1>
+            <p class="subtitle">Administre aquí todas sus evidencias académicas. Puede visualizar, editar y eliminar sus
+                documentos.</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading">
+                <p>Cargando información de documentos...</p>
+            </div>
+        }
+        else
+        {
+            <div class="status-info">
+                <h3>📋 Estado de sus Documentos</h3>
+                <p>Docente: <strong>@nombreCompleto</strong> | Cédula: <strong>@cedula</strong></p>
+                <div style="margin-top: 1rem;">
+                    <span style="color: #17a2b8; font-weight: bold;">💼 Modo Inventario - Gestión Personal de
+                        Documentos</span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensajeOperacion))
+            {
+                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
+                    @mensajeOperacion
+                </div>
+            }
+
+            <div class="documents-grid">
+                <!-- Investigaciones -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-microscope text-primary"></i></span>
+                        Investigaciones
+                        <span class="document-count">@conteoInvestigaciones</span>
+                    </h3>
+                    <p class="description">
+                        Gestione sus proyectos de investigación, publicaciones científicas y trabajos de investigación
+                        realizados.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerInvestigaciones" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Artículos -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-newspaper text-info"></i></span>
+                        Artículos
+                        <span class="document-count">@conteoArticulos</span>
+                    </h3>
+                    <p class="description">
+                        Administre sus publicaciones científicas, artículos en revistas indexadas y ponencias en congresos.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerArticulos" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Experiencia Laboral -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-briefcase text-success"></i></span>
+                        Experiencia Laboral
+                        <span class="document-count">@conteoExperiencias</span>
+                    </h3>
+                    <p class="description">
+                        Administre su historial profesional, experiencia docente y trayectoria laboral relevante.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerExperiencias" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Evaluaciones -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-chart-line text-warning"></i></span>
+                        Evaluaciones
+                        <span class="document-count">@conteoEvaluaciones</span>
+                    </h3>
+                    <p class="description">
+                        Revise sus evaluaciones de desempeño docente, calificaciones estudiantiles y retroalimentación
+                        institucional.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerEvaluaciones" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cursos -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-graduation-cap text-secondary"></i></span>
+                        Cursos
+                        <span class="document-count">@conteoCursos</span>
+                    </h3>
+                    <p class="description">
+                        Gestione los cursos de capacitación, seminarios y programas de formación continua completados.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerCursos" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tesis Asignadas -->
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-book text-danger"></i></span>
+                        Tesis Asignadas
+                        <span class="document-count">@conteoTesis</span>
+                    </h3>
+                    <p class="description">
+                        Administre las tesis de grado y postgrado que ha dirigido como tutor o director académico.
+                    </p>
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="VerTesis" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver Documentos
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mostrar tabla cuando se selecciona un tipo -->
+            @if (!string.IsNullOrEmpty(tablaVisible))
+            {
+                <div style="margin-top: 3rem;">
+                    @switch (tablaVisible)
+                    {
+                        case "investigaciones":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="investigaciones" ModoInventario="true" />
+                            break;
+                        case "articulos":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="articulos" ModoInventario="true" />
+                            break;
+                        case "cursos":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="cursos" ModoInventario="true" />
+                            break;
+                        case "experiencias":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="experiencias" ModoInventario="true" />
+                            break;
+                        case "evaluaciones":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="evaluaciones" ModoInventario="true" />
+                            break;
+                        case "tesis":
+                            <GestionEvidencias Cedula="@cedula" TipoDocumento="tesis" ModoInventario="true" />
+                            break;
+                    }
+                    <div class="text-center mt-3">
+                        <button class="btn btn-secondary" @onclick="CerrarTabla">Cerrar</button>
+                    </div>
+                </div>
+            }
+
+            @if (operacionEnProceso)
+            {
+                <div class="alert alert-info">
+                    <strong>Procesando...</strong> @mensajeProceso
+                </div>
+            }
+        }
+    </div>
+
+    <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
+</body>
+
+@code {
+    // Variables para información del usuario
+    private string nombreUsuario = "";
+    private string nombreCompleto = "";
+    private string cedula = "";
+    private string urlFotoPerfil = "/images/IconoUser.png";
+    private string? tablaVisible = null;
+
+    // Variables de conteo de documentos
+    private int conteoInvestigaciones = 0;
+    private int conteoArticulos = 0;
+    private int conteoExperiencias = 0;
+    private int conteoEvaluaciones = 0;
+    private int conteoCursos = 0;
+    private int conteoTesis = 0;
+
+    // Variables de estado
+    private bool isLoading = true;
+    private bool operacionEnProceso = false;
+    private bool operacionExitosa = false;
+    private string? mensajeOperacion;
+    private string mensajeProceso = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInformacionUsuario();
+        await CargarConteoDocumentos();
+        isLoading = false;
+    }
+
+    private async Task CargarInformacionUsuario()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                nombreUsuario = user.FindFirst(ClaimTypes.Name)?.Value ?? "";
+                cedula = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+                nombreCompleto = user.FindFirst("NombreCompleto")?.Value ?? nombreUsuario;
+
+                // Intentar obtener la foto de perfil
+                var fotoUrl = user.FindFirst("FotoPerfil")?.Value;
+                if (!string.IsNullOrEmpty(fotoUrl))
+                {
+                    urlFotoPerfil = fotoUrl;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar información del usuario: {ex.Message}");
+            mensajeOperacion = "Error al cargar la información del usuario";
+            operacionExitosa = false;
+        }
+    }
+
+    private async Task CargarConteoDocumentos()
+    {
+        if (string.IsNullOrEmpty(cedula)) return;
+
+        try
+        {
+            await Task.WhenAll(
+            CargarConteoInvestigaciones(),
+            CargarConteoArticulos(),
+            CargarConteoExperiencias(),
+            CargarConteoEvaluaciones(),
+            CargarConteoCursos(),
+            CargarConteoTesis()
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar conteos: {ex.Message}");
+        }
+    }
+
+    private async Task CargarConteoInvestigaciones()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/investigaciones/docente/{cedula}");
+            conteoInvestigaciones = response?.Data?.Count ?? 0;
+        }
+        catch { conteoInvestigaciones = 0; }
+    }
+
+    private async Task CargarConteoArticulos()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/articulos/docente/{cedula}");
+            conteoArticulos = response?.Data?.Count ?? 0;
+        }
+        catch { conteoArticulos = 0; }
+    }
+
+    private async Task CargarConteoExperiencias()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/experiencias/docente/{cedula}");
+            conteoExperiencias = response?.Data?.Count ?? 0;
+        }
+        catch { conteoExperiencias = 0; }
+    }
+
+    private async Task CargarConteoEvaluaciones()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/evaluaciones/docente/{cedula}");
+            conteoEvaluaciones = response?.Data?.Count ?? 0;
+        }
+        catch { conteoEvaluaciones = 0; }
+    }
+
+    private async Task CargarConteoCursos()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/cursos/docente/{cedula}");
+            conteoCursos = response?.Data?.Count ?? 0;
+        }
+        catch { conteoCursos = 0; }
+    }
+
+    private async Task CargarConteoTesis()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<dynamic>>>($"api/tesis/docente/{cedula}");
+            conteoTesis = response?.Data?.Count ?? 0;
+        }
+        catch { conteoTesis = 0; }
+    }
+
+    private async Task Logout()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cerrar sesión: {ex.Message}");
+        }
+    }
+
+    private void CerrarTabla()
+    {
+        tablaVisible = null;
+        StateHasChanged();
+    }
+
+    // Métodos específicos para cada tipo de documento - Ver
+    private void VerInvestigaciones() => tablaVisible = "investigaciones";
+    private void VerArticulos() => tablaVisible = "articulos";
+    private void VerCursos() => tablaVisible = "cursos";
+    private void VerExperiencias() => tablaVisible = "experiencias";
+    private void VerEvaluaciones() => tablaVisible = "evaluaciones";
+    private void VerTesis() => tablaVisible = "tesis";
+
+    // Modelos para las respuestas de API
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public T? Data { get; set; }
+    }
+}
