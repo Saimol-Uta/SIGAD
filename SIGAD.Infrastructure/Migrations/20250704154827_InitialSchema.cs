@@ -328,7 +328,7 @@ namespace SIGAD.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SolicitudesAscenso", x => x.Id);
-                    table.CheckConstraint("CK_SolicitudesAscenso_Estado", "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
+                    table.CheckConstraint("CK_SolicitudesAscenso_Estado", "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada', 'En Apelacion', 'Rechazada Definitiva', 'Aprobada Por Apelacion', 'Cerrada Sin Respuesta')");
                     table.ForeignKey(
                         name: "FK_SolicitudesAscenso_Docentes_DocenteCedula",
                         column: x => x.DocenteCedula,

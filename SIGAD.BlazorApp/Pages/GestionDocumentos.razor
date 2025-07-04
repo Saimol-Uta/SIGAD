@@ -1996,6 +1996,19 @@
         
         [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
+        
+        // Campos adicionales del reglamento UTA
+        [JsonPropertyName("horasCapacitacionPedagogica")]
+        public int HorasCapacitacionPedagogica { get; set; }
+        
+        [JsonPropertyName("horasCapacitacionImpartida")]
+        public int HorasCapacitacionImpartida { get; set; }
+        
+        [JsonPropertyName("publicacionesIdiomaExtranjero")]
+        public int PublicacionesIdiomaExtranjero { get; set; }
+        
+        [JsonPropertyName("proyectosInternacionales")]
+        public int ProyectosInternacionales { get; set; }
     }
 
     public class ValoresRequeridos
@@ -2020,6 +2033,25 @@
         
         [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
+        
+        // Campos adicionales del reglamento UTA
+        [JsonPropertyName("horasCapacitacionPedagogica")]
+        public int HorasCapacitacionPedagogica { get; set; }
+        
+        [JsonPropertyName("horasCapacitacionImpartida")]
+        public int HorasCapacitacionImpartida { get; set; }
+        
+        [JsonPropertyName("publicacionesIdiomaExtranjero")]
+        public int PublicacionesIdiomaExtranjero { get; set; }
+        
+        [JsonPropertyName("proyectosInternacionales")]
+        public int ProyectosInternacionales { get; set; }
+        
+        [JsonPropertyName("requiereArticuloEnGradoActual")]
+        public bool RequiereArticuloEnGradoActual { get; set; }
+        
+        [JsonPropertyName("permiteCoordinacionProyectos")]
+        public bool PermiteCoordinacionProyectos { get; set; }
     }
 
     private bool RangoRequiereTesis()

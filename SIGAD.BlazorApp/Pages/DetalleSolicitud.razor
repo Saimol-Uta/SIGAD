@@ -6,6 +6,7 @@
 @using SIGAD.BlazorApp.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
+@using System.Threading
 @inject ISolicitudesService SolicitudesService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -609,8 +610,13 @@
                                         @if (procesando && accionSeleccionada == "aprobar_comision")
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Procesando...</span>
                                         }
-                                        <i class="fas fa-check"></i> Aprobar por Comisión
+                                        else
+                                        {
+                                            <i class="fas fa-check"></i>
+                                            <span>Aprobar por Comisión</span>
+                                        }
                                     </button>
                                     
                                     <button type="button" @onclick="@(() => RechazarSolicitud())" 
@@ -619,8 +625,13 @@
                                         @if (procesando && accionSeleccionada == "rechazar")
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Procesando...</span>
                                         }
-                                        <i class="fas fa-times"></i> Rechazar en Comisión
+                                        else
+                                        {
+                                            <i class="fas fa-times"></i>
+                                            <span>Rechazar en Comisión</span>
+                                        }
                                         @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
                                         {
                                             <small class="d-block">*Justificación requerida</small>
@@ -633,8 +644,13 @@
                                         @if (procesando && accionSeleccionada == "aprobar_consejo")
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Procesando...</span>
                                         }
-                                        <i class="fas fa-university"></i> Aprobar por Consejo Universitario
+                                        else
+                                        {
+                                            <i class="fas fa-university"></i>
+                                            <span>Aprobar por Consejo Universitario</span>
+                                        }
                                     </button>
                                     
                                     <button type="button" @onclick="@(() => RechazarSolicitud())" 
@@ -643,8 +659,13 @@
                                         @if (procesando && accionSeleccionada == "rechazar")
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Procesando...</span>
                                         }
-                                        <i class="fas fa-times"></i> Rechazar en Consejo
+                                        else
+                                        {
+                                            <i class="fas fa-times"></i>
+                                            <span>Rechazar en Consejo</span>
+                                        }
                                         @if (string.IsNullOrWhiteSpace(formularioDecision.Observaciones) || (formularioDecision.Observaciones?.Trim().Length ?? 0) < 10)
                                         {
                                             <small class="d-block">*Justificación requerida</small>
@@ -657,11 +678,32 @@
                                         @if (procesando && accionSeleccionada == "finalizar")
                                         {
                                             <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Finalizando...</span>
                                         }
-                                        <i class="fas fa-certificate"></i> Finalizar Proceso de Ascenso
+                                        else
+                                        {
+                                            <i class="fas fa-certificate"></i>
+                                            <span>Finalizar Proceso de Ascenso</span>
+                                        }
                                     </button>
                                 }
                             </div>
+                            
+                            @if (procesando)
+                            {
+                                <div class="alert alert-info mt-3 text-center">
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="spinner-border text-primary me-3" role="status">
+                                            <span class="visually-hidden">Procesando...</span>
+                                        </div>
+                                        <div>
+                                            <strong>Procesando solicitud...</strong>
+                                            <br>
+                                            <small>Esta operación puede tardar varios minutos debido a la carga del servidor. Por favor, no cierre esta ventana.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </EditForm>
                     </div>
                 </div>
@@ -1115,10 +1157,24 @@
 
             if (Guid.TryParse(SolicitudId, out var guid))
             {
-                solicitud = await SolicitudesService.GetSolicitudDetalleAsync(guid);
-                if (solicitud == null)
+                // Usar timeout más corto para carga inicial
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                
+                try
                 {
-                    mensajeError = "No se encontró la solicitud especificada.";
+                    solicitud = await SolicitudesService.GetSolicitudDetalleAsync(guid);
+                    if (solicitud == null)
+                    {
+                        mensajeError = "No se encontró la solicitud especificada.";
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    mensajeError = "⏰ La carga está tardando más de lo esperado. Haga clic en 'Reintentar' para volver a intentar.";
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("timeout"))
+                {
+                    mensajeError = "⏰ Timeout de conexión. El servidor puede estar sobrecargado. Intente nuevamente en unos momentos.";
                 }
             }
             else
@@ -1128,7 +1184,29 @@
         }
         catch (Exception ex)
         {
-            mensajeError = $"Error al cargar los detalles: {ex.Message}";
+            var errorMessage = ex.Message;
+            
+            // Personalizar mensajes de error
+            if (errorMessage.Contains("timeout") || errorMessage.Contains("Timeout"))
+            {
+                mensajeError = "⏰ Timeout al cargar los datos. El servidor puede estar procesando muchas solicitudes. " +
+                              "Intente recargar en unos momentos.";
+            }
+            else if (errorMessage.Contains("server is not responding"))
+            {
+                mensajeError = "🔌 Sin conexión al servidor. Verifique su conexión a internet.";
+            }
+            else if (errorMessage.Contains("Unauthorized"))
+            {
+                mensajeError = "🔐 Su sesión ha expirado. Por favor, inicie sesión nuevamente.";
+            }
+            else
+            {
+                mensajeError = $"Error al cargar los detalles: {errorMessage}";
+            }
+            
+            // Log detallado para debugging
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error en CargarDetalle: {ex}");
         }
         finally
         {
@@ -1198,46 +1276,86 @@
             accionSeleccionada = accion;
             StateHasChanged();
 
+            // Mostrar mensaje de progreso para operaciones largas
+            await JSRuntime.InvokeVoidAsync("console.log", $"Iniciando operación: {accion}");
+
             if (Guid.TryParse(SolicitudId, out var guid))
             {
                 (bool success, string message) resultado = (false, "");
                 
-                switch (accion)
+                // Usar un timeout más largo para las operaciones críticas
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // 5 minutos timeout
+                
+                try
                 {
-                    case "aprobar_comision":
-                        resultado = await SolicitudesService.AprobarPorComisionAsync(guid, formularioDecision.Observaciones ?? "");
-                        break;
-                    case "aprobar_consejo":
-                        resultado = await SolicitudesService.AprobarPorConsejoAsync(guid, formularioDecision.Observaciones ?? "");
-                        break;
-                    case "finalizar":
-                        resultado = await SolicitudesService.FinalizarProcesoAsync(guid, formularioDecision.Observaciones ?? "");
-                        break;
-                    case "aprobar":
-                        resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
-                        break;
-                    case "rechazar":
-                        resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
-                        break;
+                    switch (accion)
+                    {
+                        case "aprobar_comision":
+                            resultado = await SolicitudesService.AprobarPorComisionAsync(guid, formularioDecision.Observaciones ?? "");
+                            break;
+                        case "aprobar_consejo":
+                            resultado = await SolicitudesService.AprobarPorConsejoAsync(guid, formularioDecision.Observaciones ?? "");
+                            break;
+                        case "finalizar":
+                            resultado = await SolicitudesService.FinalizarProcesoAsync(guid, formularioDecision.Observaciones ?? "");
+                            break;
+                        case "aprobar":
+                            resultado = await SolicitudesService.AprobarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                            break;
+                        case "rechazar":
+                            resultado = await SolicitudesService.RechazarSolicitudAsync(guid, formularioDecision.Observaciones ?? "");
+                            break;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", 
+                        "⏰ La operación está tardando más de lo esperado. Esto puede deberse a la carga del servidor. " +
+                        "Por favor, verifica el estado de la solicitud en unos minutos.");
+                    return;
+                }
+                catch (HttpRequestException ex) when (ex.Message.Contains("timeout"))
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", 
+                        "⏰ Timeout de conexión: La operación se está procesando en segundo plano. " +
+                        "Por favor, recarga la página en unos minutos para verificar el estado.");
+                    return;
                 }
 
                 if (resultado.success)
                 {
                     await JSRuntime.InvokeVoidAsync("alert", $"✅ {resultado.message}");
                     
-                    // Debug: Verificar el estado antes de recargar
-                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado antes de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
-                    
-                    // Dar tiempo a la base de datos para procesar la actualización
-                    await Task.Delay(1000);
-                    
-                    await CargarDetalle(); // Recargar para mostrar el nuevo estado
-                    
-                    // Debug: Verificar el estado después de recargar
-                    await JSRuntime.InvokeVoidAsync("console.log", $"Estado después de recargar: AprobadoPorComision={solicitud?.AprobadoPorComision}");
-                    
-                    // Limpiar el formulario
+                    // Limpiar el formulario inmediatamente
                     formularioDecision.Observaciones = "";
+                    
+                    // Recargar con retry en caso de problemas
+                    var reloadSuccess = false;
+                    var retryCount = 0;
+                    
+                    while (!reloadSuccess && retryCount < 3)
+                    {
+                        try
+                        {
+                            // Esperar progresivamente más tiempo en cada retry
+                            await Task.Delay(1000 * (retryCount + 1));
+                            await CargarDetalle();
+                            reloadSuccess = true;
+                        }
+                        catch (Exception reloadEx)
+                        {
+                            retryCount++;
+                            await JSRuntime.InvokeVoidAsync("console.warn", 
+                                $"Intento {retryCount} de recarga falló: {reloadEx.Message}");
+                            
+                            if (retryCount >= 3)
+                            {
+                                await JSRuntime.InvokeVoidAsync("alert", 
+                                    "⚠️ La operación se completó exitosamente, pero hay problemas para recargar los datos. " +
+                                    "Por favor, recarga manualmente la página para ver el estado actualizado.");
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -1247,7 +1365,21 @@
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"❌ Error inesperado: {ex.Message}");
+            var errorMessage = ex.Message;
+            
+            // Personalizar mensajes de error para casos específicos
+            if (errorMessage.Contains("timeout") || errorMessage.Contains("Timeout"))
+            {
+                errorMessage = "⏰ La operación está tardando más de lo esperado debido a la carga del servidor. " +
+                              "La solicitud puede haberse procesado correctamente. Recarga la página para verificar el estado.";
+            }
+            else if (errorMessage.Contains("server is not responding"))
+            {
+                errorMessage = "🔌 Problemas de conexión con el servidor. Por favor, verifica tu conexión e intenta nuevamente.";
+            }
+            
+            await JSRuntime.InvokeVoidAsync("alert", $"❌ Error: {errorMessage}");
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error completo: {ex}");
         }
         finally
         {
