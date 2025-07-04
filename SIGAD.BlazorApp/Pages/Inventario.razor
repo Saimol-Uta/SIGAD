@@ -611,20 +611,45 @@
     {
         try
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            if (user.Identity?.IsAuthenticated == true)
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (!string.IsNullOrEmpty(token))
             {
-                nombreUsuario = user.FindFirst(ClaimTypes.Name)?.Value ?? "";
-                cedula = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
-                nombreCompleto = user.FindFirst("NombreCompleto")?.Value ?? nombreUsuario;
-
-                // Intentar obtener la foto de perfil
-                var fotoUrl = user.FindFirst("FotoPerfil")?.Value;
-                if (!string.IsNullOrEmpty(fotoUrl))
+                var response = await Http.GetAsync("api/auth/verify");
+                if (response.IsSuccessStatusCode)
                 {
-                    urlFotoPerfil = fotoUrl;
+                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
+                    if (result?.Success == true && result.Data != null)
+                    {
+                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
+                        nombreCompleto = result.Data.NombreCompleto ?? "";
+                        cedula = result.Data.Cedula ?? "";
+                        
+                        Console.WriteLine($"[DEBUG Inventario] CargarInformacionUsuario usando API - nombreUsuario: '{nombreUsuario}', cedula: '{cedula}', nombreCompleto: '{nombreCompleto}'");
+                    }
+                }
+            }
+            
+            // Fallback: intentar usar el AuthenticationStateProvider si la API falla
+            if (string.IsNullOrEmpty(cedula))
+            {
+                Console.WriteLine("[DEBUG Inventario] API falló, intentando con AuthenticationStateProvider...");
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+
+                if (user.Identity?.IsAuthenticated == true)
+                {
+                    nombreUsuario = user.FindFirst(ClaimTypes.Name)?.Value ?? "";
+                    cedula = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+                    nombreCompleto = user.FindFirst("NombreCompleto")?.Value ?? nombreUsuario;
+
+                    Console.WriteLine($"[DEBUG Inventario] CargarInformacionUsuario con AuthStateProvider - nombreUsuario: '{nombreUsuario}', cedula: '{cedula}', nombreCompleto: '{nombreCompleto}'");
+
+                    // Intentar obtener la foto de perfil
+                    var fotoUrl = user.FindFirst("FotoPerfil")?.Value;
+                    if (!string.IsNullOrEmpty(fotoUrl))
+                    {
+                        urlFotoPerfil = fotoUrl;
+                    }
                 }
             }
         }
@@ -759,17 +784,53 @@
 
     private void CerrarTabla()
     {
+        Console.WriteLine($"[DEBUG Inventario] CerrarTabla - tablaVisible era: '{tablaVisible}'");
         tablaVisible = null;
         StateHasChanged();
     }
 
     // Métodos específicos para cada tipo de documento - Ver
-    private void VerInvestigaciones() => tablaVisible = "investigaciones";
-    private void VerArticulos() => tablaVisible = "articulos";
-    private void VerCursos() => tablaVisible = "cursos";
-    private void VerExperiencias() => tablaVisible = "experiencias";
-    private void VerEvaluaciones() => tablaVisible = "evaluaciones";
-    private void VerTesis() => tablaVisible = "tesis";
+    private void VerInvestigaciones()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerInvestigaciones - cedula: '{cedula}'");
+        tablaVisible = "investigaciones";
+        StateHasChanged();
+    }
+
+    private void VerArticulos()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerArticulos - cedula: '{cedula}'");
+        tablaVisible = "articulos";
+        StateHasChanged();
+    }
+
+    private void VerCursos()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerCursos - cedula: '{cedula}'");
+        tablaVisible = "cursos";
+        StateHasChanged();
+    }
+
+    private void VerExperiencias()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerExperiencias - cedula: '{cedula}'");
+        tablaVisible = "experiencias";
+        StateHasChanged();
+    }
+
+    private void VerEvaluaciones()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerEvaluaciones - cedula: '{cedula}'");
+        tablaVisible = "evaluaciones";
+        StateHasChanged();
+    }
+
+    private void VerTesis()
+    {
+        Console.WriteLine($"[DEBUG Inventario] VerTesis - cedula: '{cedula}'");
+        tablaVisible = "tesis";
+        StateHasChanged();
+    }
 
     // Modelos para las respuestas de API
     public class ApiResponse<T>
@@ -778,4 +839,23 @@
         public string? Message { get; set; }
         public T? Data { get; set; }
     }
+    
+    public class VerifyTokenResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public UserData? Data { get; set; }
+    }
+
+    public class UserData
+    {
+        public string? Correo { get; set; }
+        public string? Cedula { get; set; }
+        public string? NombreCompleto { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Apellido1 { get; set; }
+        public string? RangoId { get; set; }
+        public string? RangoNombre { get; set; }
+    }
 }
+    

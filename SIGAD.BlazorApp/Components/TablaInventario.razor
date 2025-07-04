@@ -372,16 +372,28 @@
     .ToList();
     private int totalPaginas => (int)Math.Ceiling((double)documentos.Count / porPagina);
 
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"[DEBUG TablaInventario] OnParametersSet - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
+        base.OnParametersSet();
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine($"[DEBUG TablaInventario] OnInitializedAsync - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
         config = ObtenerConfiguracion(TipoDocumento);
+        Console.WriteLine($"[DEBUG TablaInventario] Configuración obtenida: {config.Titulo}");
         await CargarDocumentos();
+        Console.WriteLine($"[DEBUG TablaInventario] OnInitializedAsync completado");
     }
 
     private async Task CargarDocumentos()
     {
         if (string.IsNullOrEmpty(Cedula) || string.IsNullOrEmpty(TipoDocumento))
+        {
+            Console.WriteLine($"[DEBUG TablaInventario] Cedula o TipoDocumento vacío - Cedula: '{Cedula}', TipoDocumento: '{TipoDocumento}'");
             return;
+        }
 
         try
         {
@@ -402,12 +414,20 @@
                 _ => ""
             };
 
+            Console.WriteLine($"[DEBUG TablaInventario] Cargando {TipoDocumento} para cedula {Cedula}");
+            Console.WriteLine($"[DEBUG TablaInventario] Endpoint: {endpoint}");
+
             if (!string.IsNullOrEmpty(endpoint))
             {
+                Console.WriteLine($"[DEBUG TablaInventario] Haciendo llamada HTTP GET a: {endpoint}");
                 var response = await Http.GetAsync(endpoint);
+                Console.WriteLine($"[DEBUG TablaInventario] Respuesta HTTP: {response.StatusCode}");
+                
                 if (response.IsSuccessStatusCode)
                 {
                     var jsonString = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[DEBUG TablaInventario] JSON recibido: {jsonString.Substring(0, Math.Min(200, jsonString.Length))}...");
+                    
                     var jsonDoc = JsonDocument.Parse(jsonString);
 
                     List<JsonElement> todosLosDocumentos = new();
@@ -416,31 +436,47 @@
                     if (jsonDoc.RootElement.ValueKind == JsonValueKind.Array)
                     {
                         todosLosDocumentos = jsonDoc.RootElement.EnumerateArray().ToList();
+                        Console.WriteLine($"[DEBUG TablaInventario] Respuesta directa - Array con {todosLosDocumentos.Count} elementos");
                     }
                     else if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
                     dataElement.ValueKind == JsonValueKind.Array)
                     {
                         todosLosDocumentos = dataElement.EnumerateArray().ToList();
+                        Console.WriteLine($"[DEBUG TablaInventario] Respuesta con wrapper 'data' - Array con {todosLosDocumentos.Count} elementos");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG TablaInventario] Formato de respuesta no reconocido. ValueKind: {jsonDoc.RootElement.ValueKind}");
                     }
 
                     // En modo inventario, mostramos todos los documentos
                     documentos = todosLosDocumentos;
+                    Console.WriteLine($"[DEBUG TablaInventario] Documentos cargados: {documentos.Count}");
                 }
                 else
                 {
                     mensajeError = $"Error al cargar {TipoDocumento}: {response.StatusCode}";
                     documentos = new();
+                    Console.WriteLine($"[DEBUG TablaInventario] Error HTTP: {response.StatusCode} - {mensajeError}");
                 }
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG TablaInventario] Endpoint vacío para tipo: {TipoDocumento}");
+                mensajeError = $"Tipo de documento no soportado: {TipoDocumento}";
             }
         }
         catch (Exception ex)
         {
             mensajeError = $"Error al cargar documentos: {ex.Message}";
             documentos = new();
+            Console.WriteLine($"[DEBUG TablaInventario] Excepción: {ex.Message}");
+            Console.WriteLine($"[DEBUG TablaInventario] StackTrace: {ex.StackTrace}");
         }
         finally
         {
             cargando = false;
+            Console.WriteLine($"[DEBUG TablaInventario] Finalizando carga - cargando: {cargando}, documentos: {documentos.Count}, mensajeError: {mensajeError}");
             StateHasChanged();
         }
     }
