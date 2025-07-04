@@ -16,5 +16,7 @@ namespace SIGAD.Application.Services
         Task<bool> DesasociarEvaluacionDeSolicitudAsync(Guid solicitudId, int evaluacionId);
         Task<byte[]?> GetArchivoEvaluacionAsync(int id);
         Task<string?> GetNombreArchivoAsync(int id);
+        Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesDisponiblesAsync(string docenteCedula, Guid? solicitudActualId = null);
+        Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesUsadasAsync(string docenteCedula);
     }
-} 
+}

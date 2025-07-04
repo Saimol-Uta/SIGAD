@@ -1,8 +1,11 @@
+﻿@using System.Text.Json.Serialization;
 @page "/gestion-documentos"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Components
+@using System.Text.Json
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -62,7 +65,7 @@
     }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -84,8 +87,22 @@
     }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
+
     }
+
+    /* --- Estilos para el botón de información --- */
+.btn-info {
+    background-color: #09203f; /* Un azul más vibrante (puedes cambiarlo) */
+    color: white;
+    border-color: #0d6efd;
+}
+
+.btn-info:hover {
+    background-color: #508D9A; /* Un azul un poco más oscuro para el hover */
+    border-color: #09203f;
+    color:white;
+}
 
     .main-content {
         padding: 2rem;
@@ -95,6 +112,7 @@
     .page-header {
         text-align: center;
         margin-bottom: 3rem;
+        z-index:2;
     }
 
     .page-header h1 {
@@ -124,6 +142,7 @@
         padding: 2rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index:2;
     }
 
     .document-card:hover {
@@ -172,21 +191,33 @@
     }
 
     .btn-import {
-        background-color: #28a745;
+        background-color: #165125;
         color: white;
     }
 
     .btn-import:hover {
-        background-color: #218838;
+        background-color: rgba(23, 68, 35, 0.4);
     }
 
     .btn-export {
-        background-color: #007bff;
+        background-color: #0a1d44;
         color: white;
     }
 
     .btn-export:hover {
+        background-color: #0e2c6c;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+        border: none;
+    }
+
+    .btn-primary:hover:not(:disabled) {
         background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     }
 
     .btn:disabled {
@@ -201,6 +232,7 @@
         padding: 1rem;
         margin-bottom: 2rem;
         text-align: center;
+        z-index:2;
     }
 
     .status-info h3 {
@@ -307,15 +339,21 @@
     }
 
     .btn-success {
-        background-color: #28a745;
+        background-color: #165125;
         color: white;
         border: none;
+        border-radius: 0.2rem;
+                font-size: 0.9rem;
+                        font-weight: 500;
+
+
     }
 
     .btn-success:hover:not(:disabled) {
-        background-color: #218838;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        background-color: rgba(23, 68, 35, 0.4);
+        color: #165125;
+                font-size: 0.9rem;
+                        font-weight: 500;
     }
 
     .help-text {
@@ -340,6 +378,7 @@
         padding: 1rem;
         border-radius: 6px;
         margin: 1rem 0;
+        z-index:2;
     }
 
     .alert-success {
@@ -400,6 +439,7 @@
         border-radius: 6px;
         background-color: white;
         border: 1px solid #dee2e6;
+        z-index:2;
     }
 
     .requirement-item .label {
@@ -447,6 +487,278 @@
     .missing-requirements li {
         margin-bottom: 0.3rem;
     }
+        /* --- Media Query para el tamaño intermedio (Tablets) --- */
+   @@media (max-width: 1199px) and (min-width: 769px) {
+    
+    /* 1. Aseguramos que el layout principal sea horizontal */
+    .main-content {
+        flex-direction: row;
+        align-items: center; /* Centra los elementos verticalmente */
+        justify-content: space-between; /* Mantiene el espacio entre ellos */
+        padding: 2rem; /* Un padding adecuado para este tamaño */
+    }
+
+    /* 2. Reducimos el tamaño del título para que ocupe menos espacio */
+    .left h1 {
+        font-size: 4.5rem; 
+    }
+
+    /* 3. Nos aseguramos que la tarjeta no tenga márgenes extraños */
+    .promotion-card {
+        margin-right: 0; /* Quitamos cualquier margen grande */
+        flex-shrink: 0;  /* Evita que la tarjeta se encoja y se deforme */
+        width: 45%;      /* Le damos un ancho fijo o porcentual */
+        max-width: 450px;
+    }
+
+    /* 4. La clave: Ocultamos los triángulos en este tamaño */
+    .triangle-bg {
+        display: none;
+    }
+}
+
+    @@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+    }
+
+    .left {
+        padding-left: 1rem;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    .promotion-card {
+        margin-right: 0 !important;
+        margin-top: 20px;
+        width: 100%;
+        max-width: none;
+    }
+
+    .triangle-bg {
+        display: none;
+    }
+}
+
+    /* Nuevo layout de dos columnas */
+    .content-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .documents-section {
+        min-height: 600px;
+    }
+
+    .status-sidebar {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        padding: 1.5rem;
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .status-sidebar h3 {
+        color: #0a1d44;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+        text-align: center;
+    }
+
+    .solicitud-status {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #28a745;
+    }
+
+    .solicitud-status.inactive {
+        border-left-color: #dc3545;
+    }
+
+    .solicitud-status.draft {
+        border-left-color: #ffc107;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #28a745;
+    }
+
+    .status-dot.inactive {
+        background-color: #dc3545;
+    }
+
+    .status-dot.draft {
+        background-color: #ffc107;
+    }
+
+    .requirements-preview {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .requirements-preview h5 {
+        margin-bottom: 0.8rem;
+        color: #0a1d44;
+    }
+
+    .requirement-mini {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+    }
+
+    .requirement-mini:last-child {
+        border-bottom: none;
+    }
+
+    .progress-indicator {
+        font-weight: bold;
+    }
+
+    .progress-indicator.success {
+        color: #28a745;
+    }
+
+    .progress-indicator.warning {
+        color: #ffc107;
+    }
+
+    .progress-indicator.danger {
+        color: #dc3545;
+    }
+
+    /* Indicadores para documentos utilizados */
+    .document-card.has-used-docs {
+        position: relative;
+        background: linear-gradient(135deg, #fff 95%, #ffebee 95%);
+    }
+
+    .used-indicator {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: #ff9800;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+    }
+
+    .document-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .status-badge {
+        padding: 0.2rem 0.5rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .status-badge.available {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.partial {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-badge.used {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* Estilos para documentos utilizados en tablas */
+    .document-row-used {
+        background: linear-gradient(90deg, #fff3cd 0%, #fff 15%);
+        border-left: 4px solid #ffc107;
+        position: relative;
+    }
+
+    .document-row-used::before {
+        content: "­ƒöÆ USADO";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #ffc107;
+        color: #856404;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        z-index: 2;
+    }
+
+    .document-row-used .document-title {
+        opacity: 0.8;
+        text-decoration: line-through;
+    }
+
+    .document-card.has-documents-used {
+        border-left: 4px solid #ffc107;
+        background: linear-gradient(135deg, #fff 85%, #fff3cd 85%);
+    }
+
+    .documents-used-indicator {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+        color: #856404;
+    }
+
+    .documents-used-indicator strong {
+        color: #856404;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .content-container {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .status-sidebar {
+            position: static;
+            order: -1;
+        }
+    }
+
+    // ...existing code...
 </style>
 
 <body>
@@ -456,10 +768,10 @@
             <h1>SIGAD</h1>
         </div>
         <div class="user-profile">
-            <a href="/Dashboard" class="back-btn">← Volver al Dashboard</a>
+            <a href="/Dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
             <span>@nombreUsuario</span>
             <img src="@urlFotoPerfil" alt="Usuario" />
-            <button class="logout-btn" @onclick="Logout">Salir</button>
+            <button class="logout-btn" @onclick="Logout"><i class="fas fa-sign-out-alt"></i> Salir</button>
         </div>
     </div>
 
@@ -480,12 +792,29 @@
             <div class="status-info">
                 <h3>📋 Estado de sus Documentos</h3>
                 <p>Docente: <strong>@nombreCompleto</strong> | Cédula: <strong>@cedula</strong></p>
+                @if (!string.IsNullOrEmpty(solicitudId))
+                {
+                    <div style="margin-top: 1rem;">
+                        <span style="color: #28a745; font-weight: bold;">🟢 Sesión Activa - Gestión de Documentos Habilitada</span>
+                    </div>
+                }
+                else
+                {
+                    <div style="margin-top: 1rem;">
+                        <span style="color: #dc3545; font-weight: bold;">🔴 Sesión Inactiva - No hay solicitud de ascenso activa</span>
+                    </div>
+                }
             </div>
 
-            @if (!string.IsNullOrEmpty(mensajeOperacion))
+            <!-- Guáas de Requisitos por Tipo de Documento -->
+            @if (!string.IsNullOrEmpty(tipoDocumentoSeleccionado) && !string.IsNullOrEmpty(rangoSolicitado))
             {
-                <div class="alert @(operacionExitosa ? "alert-success" : "alert-danger")">
-                    @mensajeOperacion
+                <div style="margin: 2rem 0;">
+                    @* <RequirementsGuideSimple RangoSolicitadoNombre="@rangoSolicitado" TipoDocumento="@tipoDocumentoSeleccionado" /> *@
+                    <div class="alert alert-info">
+                        <strong>Guía de Requisitos para @rangoSolicitado</strong>
+                        <p>Tipo de documento: @tipoDocumentoSeleccionado</p>
+                    </div>
                 </div>
             }
 
@@ -493,19 +822,20 @@
                 <!-- Investigaciones -->
                 <div class="document-card">
                     <h3>
-                        <span class="icon">🔬</span>
+                        <span class="icon"><i class="fas fa-microscope text-primary"></i></span>
                         Investigaciones
                         <span class="document-count">@conteoInvestigaciones</span>
                     </h3>
                     <p class="description">
                         Gestione sus proyectos de investigación, informes y documentos relacionados con actividades investigativas.
                     </p>
+
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("investigaciones"))" disabled="@operacionEnProceso">
-                            📥 Importar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("investigaciones"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
                         </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-investigacion"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Refrescar conteo">
+                            <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                 </div>
@@ -513,19 +843,17 @@
                 <!-- Artículos -->
                 <div class="document-card">
                     <h3>
-                        <span class="icon">📄</span>
+                        <span class="icon"><i class="fas fa-newspaper text-info"></i></span>
                         Artículos
                         <span class="document-count">@conteoArticulos</span>
                     </h3>
                     <p class="description">
                         Administre sus publicaciones científicas, artículos de revista y documentos académicos publicados.
                     </p>
+
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("articulos"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-articulo"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("articulos"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
                 </div>
@@ -533,19 +861,17 @@
                 <!-- Experiencia Laboral -->
                 <div class="document-card">
                     <h3>
-                        <span class="icon">💼</span>
+                        <span class="icon"><i class="fas fa-briefcase text-success"></i></span>
                         Experiencia Laboral
                         <span class="document-count">@conteoExperiencias</span>
                     </h3>
                     <p class="description">
                         Gestione su historial profesional, certificados laborales y documentos de experiencia docente.
                     </p>
+
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("experiencias"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-experiencia-laboral"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("experiencias"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
                 </div>
@@ -553,19 +879,17 @@
                 <!-- Evaluaciones -->
                 <div class="document-card">
                     <h3>
-                        <span class="icon">📊</span>
+                        <span class="icon"><i class="fas fa-chart-line text-warning"></i></span>
                         Evaluaciones
                         <span class="document-count">@conteoEvaluaciones</span>
                     </h3>
                     <p class="description">
                         Administre sus evaluaciones docentes, reportes de desempeño y documentos de evaluación académica.
                     </p>
+
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("evaluaciones"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-evaluacion"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("evaluaciones"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
                 </div>
@@ -573,43 +897,56 @@
                 <!-- Cursos -->
                 <div class="document-card">
                     <h3>
-                        <span class="icon">🎓</span>
+                        <span class="icon"><i class="fas fa-graduation-cap text-secondary"></i></span>
                         Cursos
                         <span class="document-count">@conteoCursos</span>
                     </h3>
                     <p class="description">
                         Gestione sus cursos impartidos, certificados de capacitación y documentos de formación académica.
                     </p>
+
                     <div class="document-actions">
-                        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("cursos"))" disabled="@operacionEnProceso">
-                            📥 Importar
-                        </button>
-                        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-curso"))" disabled="@operacionEnProceso">
-                            📤 Agregar
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("cursos"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver documentos
                         </button>
                     </div>
                 </div>
-                <!-- Tesis Asignadas -->
-<div class="document-card">
-    <h3>
-        <span class="icon">📘</span>
-        Tesis Asignadas
-        <span class="document-count">@conteoTesis</span>
-    </h3>
-    <p class="description">
-        Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas oficialmente.
-    </p>
-    <div class="document-actions">
-        <button class="btn btn-import" @onclick="@(() => ImportarDocumentos("tesis"))" disabled="@operacionEnProceso">
-            📥 Importar
-        </button>
-        <button class="btn btn-export" @onclick="@(() => Navigation.NavigateTo("/agregar-tesis"))" disabled="@operacionEnProceso">
-            📤 Agregar
-        </button>
-    </div>
-</div>
 
+                <!-- Tesis Asignadas -->
+                 @if (RangoRequiereTesis())
+                                            {
+                <div class="document-card">
+                    <h3>
+                        <span class="icon"><i class="fas fa-book text-danger"></i></span>
+                        Tesis Asignadas
+                        <span class="document-count">@conteoTesis</span>
+                    </h3>
+                    <p class="description">
+                        Gestione sus trabajos de titulación, tesis dirigidas o co-dirigidas asignadas oficialmente.
+                    </p>
+
+                    <div class="document-actions">
+                        <button class="btn btn-import" @onclick="@(() => VerTabla("tesis"))" disabled="@operacionEnProceso">
+                            <i class="fas fa-search"></i> Ver Documentos
+                        </button>
+                    </div>
+                </div>
+       }
+               
             </div>
+
+            <!-- Mostrar tabla cuando se selecciona un tipo -->
+            @if (!string.IsNullOrEmpty(tablaVisible))
+            {
+                <div style="margin-top: 3rem;">
+                    <Tabla TipoDocumento="@tablaVisible" 
+                           Cedula="@cedula" 
+                           OnImportar="ImportarDocumentos" 
+                           OnAgregar="AgregarDocumento"
+                           OnCerrar="CerrarTabla"
+                           OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
+                </div>
+            }
 
             @if (operacionEnProceso)
             {
@@ -618,12 +955,12 @@
                 </div>
             }
 
-            <!-- Sección de Envío de Solicitud -->
+            <!-- Sección de Enváo de Solicitud -->
             @if (!string.IsNullOrEmpty(solicitudId))
             {
                 <div class="submission-section">
                     <div class="submission-card">
-                        <h2>📤 Enviar Solicitud de Ascenso</h2>
+                        <h2>­Enviar Solicitud de Ascenso</h2>
                         <p class="submission-description">
                             Una vez que haya agregado todos sus documentos, puede enviar su solicitud de ascenso para revisión.
                         </p>
@@ -631,15 +968,26 @@
                         @if (tieneDocumentosCompletos)
                         {
                             <div class="alert alert-success">
-                                ✅ Su solicitud tiene documentos en todas las categorías requeridas.
+                                ✅ Su solicitud tiene documentos en todas las categoráas requeridas.
                             </div>
 
-                            <!-- Verificar requisitos antes de mostrar el botón -->
-                            <div class="requirements-verification">
-                                <button class="btn btn-info" @onclick="VerificarRequisitos" disabled="@enviandoSolicitud">
-                                    🔍 Verificar Requisitos del Rango
-                                </button>
-                            </div>
+                            <!-- Botón para verificar requisitos del rango -->
+                            @if (!mostrarDetallesRequisitos)
+                            {
+                                <div class="verification-actions" style="margin: 1.5rem 0;">
+                                    <button class="btn btn-primary btn-large" @onclick="VerificarRequisitos" disabled="@operacionEnProceso">
+                                        @if (operacionEnProceso)
+                                        {
+                                            <span><i class="fas fa-spinner fa-spin"></i> Verificando requisitos...</span>
+                                        }
+                                        else
+                                        {
+                                            <span><i class="fas fa-check-circle"></i> Verificar Requisitos del Rango</span>
+                                        }
+                                    </button>
+                                    <p class="help-text">Verifique si cumple con todos los requisitos para su rango antes de enviar la solicitud</p>
+                                </div>
+                            }
 
                             @if (mostrarDetallesRequisitos && requisitosInfo != null)
                             {
@@ -649,45 +997,63 @@
                                     @if (requisitosInfo.CumpleRequisitos)
                                     {
                                         <div class="alert alert-success">
-                                            ✅ <strong>¡Cumple todos los requisitos!</strong> Su solicitud está lista para envío.
+                                            ✅ <strong>Cumple todos los requisitos!</strong> Su solicitud está lista para envío.
                                         </div>
                                         
                                         <div class="requirements-summary">
                                             <div class="requirement-item">
-                                                <span class="label">📄 Artículos:</span>
+                                                <span class="label">­Artículos:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales!.Articulos / @requisitosInfo.ValoresRequeridos!.Articulos ✅</span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">👨‍💼 Experiencia:</span>
+                                                <span class="label">­Experiencia:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.AniosExperiencia años / @requisitosInfo.ValoresRequeridos.AniosExperiencia años ✅</span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">🎓 Cursos:</span>
+                                                <span class="label">­Cursos:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.HorasCursos h / @requisitosInfo.ValoresRequeridos.HorasCursos h ✅</span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">🔬 Investigación:</span>
+                                                <span class="label">­Investigación:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.MesesInvestigacion meses / @requisitosInfo.ValoresRequeridos.MesesInvestigacion meses ✅</span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">📊 Evaluaciones:</span>
+                                                <span class="label">­Evaluaciones:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% ✅</span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">📘 Tesis Dirigidas:</span>
-                                                <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
+                                                </div>
+                                            }
                                         </div>
 
+                                        @if (solicitudEnviada)
+                                        {
+                                            <div class="alert alert-info" style="margin-bottom: 15px;">
+                                                <i class="fas fa-info-circle"></i> 
+                                                <strong>Solicitud enviada:</strong> Esta solicitud ya ha sido enviada para aprobación. Recibirá una notificación por correo electrónico cuando sea procesada.
+                                            </div>
+                                        }
+
                                         <div class="submission-actions">
-                                            <button class="btn btn-success btn-large" @onclick="EnviarSolicitud" disabled="@enviandoSolicitud">
+                                            <button class="btn btn-success btn-large" 
+                                                    @onclick="EnviarSolicitud" 
+                                                    disabled="@(enviandoSolicitud || solicitudEnviada)"
+                                                    title="@(solicitudEnviada ? "Esta solicitud ya ha sido enviada" : "Enviar su solicitud de ascenso")">
                                                 @if (enviandoSolicitud)
                                                 {
-                                                    <span>🔄 Enviando solicitud...</span>
+                                                    <span><i class="fas fa-spinner fa-spin"></i> Enviando solicitud...</span>
+                                                }
+                                                else if (solicitudEnviada)
+                                                {
+                                                    <span><i class="fas fa-check-circle"></i> Solicitud Enviada</span>
                                                 }
                                                 else
                                                 {
-                                                    <span>📨 Enviar Solicitud de Ascenso</span>
+                                                    <span><i class="fas fa-paper-plane"></i> Enviar Solicitud de Ascenso</span>
                                                 }
                                             </button>
                                         </div>
@@ -695,52 +1061,55 @@
                                     else
                                     {
                                         <div class="alert alert-danger">
-                                            ❌ <strong>No cumple los requisitos mínimos</strong> para el rango solicitado.
+                                            ❌ <strong>No cumple los requisitos mánimos</strong> para el rango solicitado.
                                         </div>
                                         
                                         <div class="requirements-summary">
                                             <div class="requirement-item">
-                                                <span class="label">📄 Artículos:</span>
+                                                <span class="label">­Artículos:</span>
                                                 <span class="value @(requisitosInfo.ValoresActuales!.Articulos >= requisitosInfo.ValoresRequeridos!.Articulos ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.Articulos / @requisitosInfo.ValoresRequeridos.Articulos 
                                                     @(requisitosInfo.ValoresActuales.Articulos >= requisitosInfo.ValoresRequeridos.Articulos ? "✅" : "❌")
                                                 </span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">👨‍💼 Experiencia:</span>
-                                                <span class="value @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "success" : "error")">
+                                                <span class="label">­Experiencia:</span>
+                                                <span class="value @((requisitosInfo.ValoresActuales.AniosExperiencia >= (requisitosInfo.ValoresRequeridos.AniosExperiencia - 0.1m)) ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.AniosExperiencia años / @requisitosInfo.ValoresRequeridos.AniosExperiencia años 
-                                                    @(requisitosInfo.ValoresActuales.AniosExperiencia >= requisitosInfo.ValoresRequeridos.AniosExperiencia ? "✅" : "❌")
+                                                    @((requisitosInfo.ValoresActuales.AniosExperiencia >= (requisitosInfo.ValoresRequeridos.AniosExperiencia - 0.1m)) ? "✅" : "❌")
                                                 </span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">🎓 Cursos:</span>
+                                                <span class="label">­Cursos:</span>
                                                 <span class="value @(requisitosInfo.ValoresActuales.HorasCursos >= requisitosInfo.ValoresRequeridos.HorasCursos ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.HorasCursos h / @requisitosInfo.ValoresRequeridos.HorasCursos h 
                                                     @(requisitosInfo.ValoresActuales.HorasCursos >= requisitosInfo.ValoresRequeridos.HorasCursos ? "✅" : "❌")
                                                 </span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">🔬 Investigación:</span>
+                                                <span class="label">­Investigación:</span>
                                                 <span class="value @(requisitosInfo.ValoresActuales.MesesInvestigacion >= requisitosInfo.ValoresRequeridos.MesesInvestigacion ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.MesesInvestigacion meses / @requisitosInfo.ValoresRequeridos.MesesInvestigacion meses 
                                                     @(requisitosInfo.ValoresActuales.MesesInvestigacion >= requisitosInfo.ValoresRequeridos.MesesInvestigacion ? "✅" : "❌")
                                                 </span>
                                             </div>
                                             <div class="requirement-item">
-                                                <span class="label">📊 Evaluaciones:</span>
+                                                <span class="label">­Evaluaciones:</span>
                                                 <span class="value @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "success" : "error")">
                                                     @requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% 
                                                     @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "✅" : "❌")
                                                 </span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">📘 Tesis Dirigidas:</span>
-                                                <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
-                                                    @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
-                                                    @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
-                                                </span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
+                                                        @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
+                                                        @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
+                                                    </span>
+                                                </div>
+                                            }
                                         </div>
 
                                         <div class="missing-requirements">
@@ -755,7 +1124,7 @@
 
                                         <div class="submission-actions">
                                             <button class="btn btn-secondary btn-large" disabled>
-                                                📨 No se puede enviar (Requisitos faltantes)
+                                                ­No se puede enviar (Requisitos faltantes)
                                             </button>
                                         </div>
                                     }
@@ -765,19 +1134,19 @@
                         else
                         {
                             <div class="alert alert-warning">
-                                ⚠️ Su solicitud aún no está completa. Necesita agregar documentos en las siguientes categorías:
+                                Su solicitud aún no está completa. Necesita agregar documentos en las siguientes categorías:
                                 <ul class="missing-docs-list">
                                     @if (conteoInvestigaciones == 0) { <li>Investigaciones</li> }
                                     @if (conteoArticulos == 0) { <li>Artículos</li> }
                                     @if (conteoExperiencias == 0) { <li>Experiencia Laboral</li> }
                                     @if (conteoEvaluaciones == 0) { <li>Evaluaciones</li> }
                                     @if (conteoCursos == 0) { <li>Cursos</li> }
-                                    @if (conteoTesis == 0) { <li>Tesis Dirigidas</li> }
+                                    @if (conteoTesis == 0 && RangoRequiereTesis()) { <li>Tesis Dirigidas</li> }
                                 </ul>
                             </div>
                             <div class="submission-actions">
                                 <button class="btn btn-secondary btn-large" disabled>
-                                    📨 Enviar Solicitud de Ascenso
+                                    ­Enviar Solicitud de Ascenso
                                 </button>
                                 <p class="help-text">Complete todos los documentos requeridos para habilitar el envío</p>
                             </div>
@@ -797,6 +1166,7 @@
     private string nombreCompleto = "";
     private string cedula = "";
     private string urlFotoPerfil = "/images/IconoUser.png";
+    private string? tablaVisible = null;
 
     // Variables de conteo de documentos
     private int conteoInvestigaciones = 0;
@@ -812,15 +1182,21 @@
     private string? mensajeOperacion;
     private string mensajeProceso = "";
 
-    // Variables para envío de solicitud
+    // Variables para enváo de solicitud
     private string? solicitudId;
     private bool tieneDocumentosCompletos = false;
     private bool enviandoSolicitud = false;
+    private bool solicitudEnviada = false;
     private int conteoTesis = 0;
     
     // Variables para verificación de requisitos
     private bool mostrarDetallesRequisitos = false;
     private VerificacionRequisitosResponse? requisitosInfo;
+    private string? tipoDocumentoSeleccionado;
+    private string? rangoSolicitado;
+
+    // Variable para detectar cuando el usuario regresa a la p├ígina
+    private bool hasCargadoContadores = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -828,6 +1204,24 @@
         await VerificarSolicitudActiva();
         await CargarConteoDocumentos();
         isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        // Si no es el primer render y aún no se han cargado los contadores,
+        // significa que el usuario regresó a la p├ígina
+        if (!firstRender && !hasCargadoContadores)
+        {
+            await CargarConteoDocumentos();
+            hasCargadoContadores = true;
+            StateHasChanged();
+        }
+        else if (firstRender)
+        {
+            hasCargadoContadores = true;
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -838,8 +1232,13 @@
             if (string.IsNullOrEmpty(solicitudId))
             {
                 // No hay solicitud activa, mostrar mensaje informativo
-                mensajeOperacion = "⚠️ No hay una solicitud de ascenso activa. Inicie un proceso de ascenso para gestionar documentos.";
+                mensajeOperacion = "ÔÜá´©Å No hay una solicitud de ascenso activa. Inicie un proceso de ascenso para gestionar documentos.";
                 operacionExitosa = false;
+            }
+            else
+            {
+                // Obtener información adicional de la solicitud incluyendo el rango solicitado
+                await ObtenerInformacionSolicitud();
             }
         }
         catch (Exception)
@@ -848,14 +1247,46 @@
         }
     }
 
+    private async Task ObtenerInformacionSolicitud()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/auth/solicitud-info/{solicitudId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonString = await response.Content.ReadAsStringAsync();
+                var solicitudInfo = JsonSerializer.Deserialize<JsonElement>(jsonString);
+                
+                if (solicitudInfo.TryGetProperty("rangoSolicitado", out var rangoElement))
+                {
+                    rangoSolicitado = rangoElement.GetString();
+                }
+                
+                // Verificar estado de la solicitud
+                if (solicitudInfo.TryGetProperty("estado", out var estadoElement))
+                {
+                    string? estado = estadoElement.GetString();
+                    solicitudEnviada = estado == "Enviada" || estado == "En_Revision" || estado == "Aprobada" || estado == "Rechazada";
+                    Console.WriteLine($"Debug - Estado de solicitud: {estado}, Enviada: {solicitudEnviada}");
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Silenciar errores - no es crático
+        }
+    }
+
     private void VerificarDocumentosCompletos()
     {
+        bool requiereTesis = RangoRequiereTesis();
+        
         tieneDocumentosCompletos = conteoInvestigaciones > 0 && 
                                  conteoArticulos > 0 && 
                                  conteoExperiencias > 0 && 
                                  conteoEvaluaciones > 0 && 
                                  conteoCursos > 0 &&
-                                 conteoTesis > 0;
+                                 (requiereTesis ? conteoTesis > 0 : true);
     }
 
     private async Task VerificarRequisitos()
@@ -865,17 +1296,28 @@
 
         try
         {
+            operacionEnProceso = true;
+            mensajeProceso = "Verificando requisitos del rango...";
+            StateHasChanged();
+
             var response = await Http.GetAsync($"api/auth/verificar-requisitos/{solicitudId}");
             
             if (response.IsSuccessStatusCode)
             {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - JSON respuesta verificar requisitos: {jsonContent}");
+                
                 var result = await response.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
                 
                 if (result?.Success == true)
                 {
+                    Console.WriteLine($"Debug - Valores requeridos: MesesInvestigacion={result.ValoresRequeridos?.MesesInvestigacion}");
+                    Console.WriteLine($"Debug - Valores actuales: MesesInvestigacion={result.ValoresActuales?.MesesInvestigacion}");
+                    
                     requisitosInfo = result;
                     mostrarDetallesRequisitos = true;
-                    StateHasChanged();
+                    mensajeOperacion = "✅ Verificación de requisitos completada";
+                    operacionExitosa = true;
                 }
                 else
                 {
@@ -893,6 +1335,18 @@
         {
             mensajeOperacion = $"❌ Error al verificar requisitos: {ex.Message}";
             operacionExitosa = false;
+        }
+        finally
+        {
+            operacionEnProceso = false;
+            StateHasChanged();
+            
+            // Limpiar mensaje después de 3 segundos
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                mensajeOperacion = null;
+                InvokeAsync(StateHasChanged);
+            });
         }
     }
 
@@ -942,7 +1396,7 @@
                 return;
             }
 
-            // PASO 2: Si cumple los requisitos, proceder con el envío
+            // PASO 2: Si cumple los requisitos, proceder con el enváo
             var response = await Http.PostAsync($"api/auth/enviar-solicitud/{solicitudId}", null);
 
             if (response.IsSuccessStatusCode)
@@ -957,8 +1411,17 @@
                     // Limpiar la solicitud actual del servicio
                     await SolicitudService.ClearSolicitudActualAsync();
                     
-                    // Redirigir al dashboard después de 3 segundos
-                    await Task.Delay(3000);
+                    // Mostrar SweetAlert de confirmación
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", 
+                        new {
+                            title = "¡Solicitud Enviada!",
+                            text = "Su solicitud fue enviada con éxito. Le llegará la notificación de la aprobación de su ascenso por correo electrónico.",
+                            icon = "success",
+                            confirmButtonText = "Aceptar",
+                            confirmButtonColor = "#0a1d44"
+                        });
+                    
+                    // Redirigir al dashboard
                     Navigation.NavigateTo("/dashboard");
                 }
                 else
@@ -1041,7 +1504,7 @@
                 CargarConteoTesis()
             );
 
-            // Verificar si todos los documentos están completos
+            // Verificar si todos los documentos est├ín completos
             VerificarDocumentosCompletos();
         }
         catch (Exception ex)
@@ -1058,12 +1521,32 @@
             var response = await Http.GetAsync($"api/investigaciones/docente/{cedula}");
             if (response.IsSuccessStatusCode)
             {
-                var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
-                conteoInvestigaciones = investigaciones?.Count ?? 0;
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - Respuesta API Investigaciones: {content}");
+                
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                if (result?.Success == true && result.Data != null)
+                {
+                    conteoInvestigaciones = result.Data.Count;
+                }
+                else
+                {
+                    // Intentar deserializar directamente como lista
+                    var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
+                    conteoInvestigaciones = investigaciones?.Count ?? 0;
+                }
+                
+                Console.WriteLine($"Debug - Conteo investigaciones: {conteoInvestigaciones}");
+            }
+            else
+            {
+                Console.WriteLine($"Debug - Error API Investigaciones: {response.StatusCode}");
+                conteoInvestigaciones = 0;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"Debug - Exception investigaciones: {ex.Message}");
             conteoInvestigaciones = 0;
         }
     }
@@ -1101,15 +1584,15 @@
             conteoExperiencias = 0;
         }
     }
-    private async Task CargarConteoTesis()
+  private async Task CargarConteoTesis()
 {
     try
     {
         var response = await Http.GetAsync($"api/TesisDirigidas/docente/{cedula}");
         if (response.IsSuccessStatusCode)
         {
-            var tesis = await response.Content.ReadFromJsonAsync<List<object>>();
-            conteoTesis = tesis?.Count ?? 0;
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+            conteoTesis = result?.Data?.Count ?? 0;
         }
     }
     catch
@@ -1117,8 +1600,7 @@
         conteoTesis = 0;
     }
 }
-
-
+  
     private async Task CargarConteoEvaluaciones()
     {
         try
@@ -1167,7 +1649,7 @@
 {
     "investigaciones" => $"api/investigaciones/externa/importar/{cedula}",
     "articulos" => $"api/articulos/externos/importar/{cedula}",
-    "experiencias" => $"api/experiencia/externa/importar/{cedula}",
+    "experiencias" => $"api/experiencias/externas/importar/{cedula}",
     "evaluaciones" => $"api/evaluaciones/externas/importar/{cedula}",
     "cursos" => $"api/cursos/externos/importar/{cedula}",
     "tesis" => $"api/tesis/externas/importar/{cedula}",
@@ -1189,8 +1671,8 @@
             mensajeOperacion = $"✅ Importación exitosa: {resultado}";
             operacionExitosa = true;
 
-            // Actualizar los conteos
-            await CargarConteoDocumentos();
+            // Actualizar el contador especáfico de manera eficiente
+            await ActualizarContadorEspecifico(tipoDocumento);
         }
         else
         {
@@ -1210,7 +1692,6 @@
         mensajeProceso = "";
     }
 }
-
     private async Task ExportarDocumentos(string tipoDocumento)
     {
         if (operacionEnProceso) return;
@@ -1271,7 +1752,6 @@
             });
         }
     }
-
     private async Task Logout()
     {
         try
@@ -1286,6 +1766,166 @@
             Navigation.NavigateTo("/login", true);
         }
     }
+    private async void VerTabla(string tipoDocumento)
+    {
+        // Actualizar conteos antes de mostrar la tabla
+        await CargarConteoDocumentos();
+        
+        tablaVisible = tipoDocumento;
+        tipoDocumentoSeleccionado = tipoDocumento; // Establecer el tipo seleccionado para mostrar la guáa
+        StateHasChanged();
+    }
+
+    private async void CerrarTabla()
+    {
+        tablaVisible = null;
+        tipoDocumentoSeleccionado = null; // Limpiar la selección de tipo de documento
+        
+        // Actualizar contadores dinámicamente cuando se cierra la tabla
+        await CargarConteoDocumentos();
+        StateHasChanged();
+    }
+
+    private void AgregarDocumento(string tipoDocumento)
+    {
+        string ruta = tipoDocumento switch
+        {
+            "investigaciones" => "/agregar-investigacion",
+            "articulos" => "/agregar-articulo",
+            "experiencias" => "/agregar-experiencia-laboral",
+            "evaluaciones" => "/agregar-evaluacion",
+            "cursos" => "/agregar-curso",
+            "tesis" => "/agregar-tesis",
+            _ => "/gestion-documentos"
+        };
+        Navigation.NavigateTo(ruta);
+    }
+
+    // Métodos para actualizar contadores específicos (más eficiente)
+    private async Task ActualizarContadorEspecifico(string tipoDocumento)
+    {
+        if (string.IsNullOrEmpty(cedula)) return;
+
+        try
+        {
+            switch (tipoDocumento.ToLower())
+            {
+                case "investigaciones":
+                    await CargarConteoInvestigaciones();
+                    break;
+                case "articulos":
+                    await CargarConteoArticulos();
+                    break;
+                case "experiencias":
+                    await CargarConteoExperiencias();
+                    break;
+                case "evaluaciones":
+                    await CargarConteoEvaluaciones();
+                    break;
+                case "cursos":
+                    await CargarConteoCursos();
+                    break;
+                case "tesis":
+                    await CargarConteoTesis();
+                    break;
+            }
+            
+            // Verificar documentos completos después de actualizar
+            VerificarDocumentosCompletos();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Log del error pero no mostrar al usuario para no interrumpir la experiencia
+            Console.WriteLine($"Error actualizando contador de {tipoDocumento}: {ex.Message}");
+        }
+    }
+
+    // Método para actualizar automáticamente los requisitos cuando cambian los documentos
+    private async Task ActualizarRequisitosAutomaticamente()
+    {
+        try
+        {
+            Console.WriteLine("Debug - Actualizando conteos automáticamente...");
+            
+            // Actualizar conteo de documentos primero
+            await CargarConteoDocumentos();
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
+            
+            // Verificar si hay requisitos para verificar
+            if (!string.IsNullOrEmpty(solicitudId) && tieneDocumentosCompletos)
+            {
+                // Verificar los requisitos automáticamente
+                await VerificarRequisitos();
+            }
+            
+            Console.WriteLine($"Debug - Conteos actualizados: Inv={conteoInvestigaciones}, Art={conteoArticulos}, Exp={conteoExperiencias}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar requisitos automáticamente: {ex.Message}");
+        }
+    }
+
+    // Método para actualizar conteo manual de un tipo específico de documento
+    private async Task ActualizarConteoManual(string tipoDocumento)
+    {
+        try
+        {
+            Console.WriteLine($"Debug - Actualizando conteo manual para: {tipoDocumento}");
+            
+            switch (tipoDocumento)
+            {
+                case "investigaciones":
+                    await CargarConteoInvestigaciones();
+                    break;
+                case "articulos":
+                    await CargarConteoArticulos();
+                    break;
+                case "experiencias":
+                    await CargarConteoExperiencias();
+                    break;
+                case "evaluaciones":
+                    await CargarConteoEvaluaciones();
+                    break;
+                case "cursos":
+                    await CargarConteoCursos();
+                    break;
+                case "tesis":
+                    await CargarConteoTesis();
+                    break;
+                default:
+                    // Actualizar todos
+                    await CargarConteoDocumentos();
+                    break;
+            }
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Conteo actualizado: {tipoDocumento} = {GetConteoByTipo(tipoDocumento)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar conteo manual: {ex.Message}");
+        }
+    }
+    
+    private int GetConteoByTipo(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => conteoInvestigaciones,
+            "articulos" => conteoArticulos,
+            "experiencias" => conteoExperiencias,
+            "evaluaciones" => conteoEvaluaciones,
+            "cursos" => conteoCursos,
+            "tesis" => conteoTesis,
+            _ => 0
+        };
+    }
 
     // Modelos para las respuestas de API
     public class VerifyTokenResponse
@@ -1298,13 +1938,10 @@
     public class UserData
     {
         public string? Correo { get; set; }
-        public string? Rol { get; set; }
         public string? Cedula { get; set; }
-        public string? Nombre1 { get; set; }
-        public string? Nombre2 { get; set; }
-        public string? Apellido1 { get; set; }
-        public string? Apellido2 { get; set; }
         public string? NombreCompleto { get; set; }
+        public string? Nombre1 { get; set; }
+        public string? Apellido1 { get; set; }
         public string? RangoId { get; set; }
         public string? RangoNombre { get; set; }
     }
@@ -1336,24 +1973,89 @@
 
     public class ValoresActuales
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public decimal AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public decimal MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("totalEvaluaciones")]
         public int TotalEvaluaciones { get; set; }
+        
+        [JsonPropertyName("evaluacionesCumplen")]
         public int EvaluacionesCumplen { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
+        
+        // Campos adicionales del reglamento UTA
+        [JsonPropertyName("horasCapacitacionPedagogica")]
+        public int HorasCapacitacionPedagogica { get; set; }
+        
+        [JsonPropertyName("horasCapacitacionImpartida")]
+        public int HorasCapacitacionImpartida { get; set; }
+        
+        [JsonPropertyName("publicacionesIdiomaExtranjero")]
+        public int PublicacionesIdiomaExtranjero { get; set; }
+        
+        [JsonPropertyName("proyectosInternacionales")]
+        public int ProyectosInternacionales { get; set; }
     }
 
     public class ValoresRequeridos
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public int AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public int MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("rangoNombre")]
         public string? RangoNombre { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
+        
+        // Campos adicionales del reglamento UTA
+        [JsonPropertyName("horasCapacitacionPedagogica")]
+        public int HorasCapacitacionPedagogica { get; set; }
+        
+        [JsonPropertyName("horasCapacitacionImpartida")]
+        public int HorasCapacitacionImpartida { get; set; }
+        
+        [JsonPropertyName("publicacionesIdiomaExtranjero")]
+        public int PublicacionesIdiomaExtranjero { get; set; }
+        
+        [JsonPropertyName("proyectosInternacionales")]
+        public int ProyectosInternacionales { get; set; }
+        
+        [JsonPropertyName("requiereArticuloEnGradoActual")]
+        public bool RequiereArticuloEnGradoActual { get; set; }
+        
+        [JsonPropertyName("permiteCoordinacionProyectos")]
+        public bool PermiteCoordinacionProyectos { get; set; }
     }
-} 
+
+    private bool RangoRequiereTesis()
+    {
+        return requisitosInfo?.ValoresRequeridos?.TesisDirigidas > 0;
+    }
+}

@@ -6,6 +6,7 @@ namespace SIGAD.Domain.Interfaces
     public interface ISolicitudAscensoRepository
     {
         Task<SolicitudAscenso?> GetByIdAsync(Guid id);
+        Task<SolicitudAscenso?> GetTrackedByIdWithDetailsAsync(Guid id);
         Task<IEnumerable<SolicitudAscenso>> GetAllWithDetailsAsync();
         Task<SolicitudAscenso?> GetByIdWithDetailsAsync(Guid id);
         Task AddAsync(SolicitudAscenso solicitud);
@@ -26,6 +27,12 @@ namespace SIGAD.Domain.Interfaces
         Task EnviarSolicitudAsync(Guid solicitudId);
         Task AprobarSolicitudAsync(Guid solicitudId, string? observaciones = null);
         Task RechazarSolicitudAsync(Guid solicitudId, string observaciones);
+        
+        // Métodos específicos para el proceso de dos etapas según Reglamento UTA
+        Task AprobarPorComisionAsync(Guid solicitudId, string? observaciones = null);
+        Task AprobarPorConsejoAsync(Guid solicitudId, string? observaciones = null);
+        Task FinalizarProcesoAsync(Guid solicitudId, string? observaciones = null);
+        
         Task<IEnumerable<SolicitudAscenso>> GetHistorialByDocenteAsync(string docenteCedula);
 
         // Métodos para reportes y estadísticas

@@ -47,7 +47,8 @@ namespace SIGAD.Application.Services
                 AnioPublicacion = articuloDto.AnioPublicacion,
                 Revista = articuloDto.Revista,
                 ContenidoHash = articuloDto.ContenidoHash,
-                DocenteCedula = docenteCedula
+                DocenteCedula = docenteCedula,
+                IdiomaPublicacion = articuloDto.IdiomaPublicacion // Nuevo campo mapeado
             };
 
             await _articuloRepository.AddAsync(nuevoArticulo);

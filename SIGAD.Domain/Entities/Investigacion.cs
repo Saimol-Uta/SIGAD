@@ -16,6 +16,7 @@ namespace SIGAD.Domain.Entities
         public string RolEnInvestigacion { get; set; } = string.Empty;
         public int MesesDeInvestigacion { get; set; }
         public string InformeRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 
@@ -23,6 +24,31 @@ namespace SIGAD.Domain.Entities
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
 
+
+        public bool EsInternacional { get; set; } = false;
+
         public virtual Docente Docente { get; set; } = default!;
+
+        // Propiedad de navegación hacia las solicitudes que incluyen esta investigación
+        public virtual ICollection<InvestigacionesPorSolicitud>? InvestigacionesPorSolicitud { get; set; }
+
+
+        public decimal CalcularMesesEquivalentes()
+        {
+            return RolEnInvestigacion.ToLower() switch
+            {
+                var rol when rol.Contains("coordinador principal") || rol.Contains("director") => MesesDeInvestigacion * 2.0m,
+                var rol when rol.Contains("coordinador subrogante") || rol.Contains("subdirector") => MesesDeInvestigacion * 1.5m,
+                _ => MesesDeInvestigacion
+            };
+        }
+
+        /// <summary>
+        /// Verifica si cumple requisitos para rangos principales (debe ser internacional)
+        /// </summary>
+        public bool CumpleRequisitoRangoPrincipal()
+        {
+            return EsInternacional && !string.IsNullOrEmpty(UnidadVerificadora);
+        }
     }
 }

@@ -21,7 +21,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM Articulos WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM Articulos WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -33,6 +33,9 @@ namespace SIGAD.Infrastructure.ExternalServices
                     Titulo = reader["Titulo"].ToString()!,
                     Revista = reader["Revista"].ToString()!,
                     AnioPublicacion = (int)reader["AnioPublicacion"],
+                    IdiomaPublicacion = reader["IdiomaPublicacion"] != DBNull.Value
+                        ? reader["IdiomaPublicacion"].ToString()!
+                        : "No especificado",
                     ArchivoRuta = reader["ArchivoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
                     DocenteCedula = reader["DocenteCedula"].ToString()!,
@@ -44,7 +47,10 @@ namespace SIGAD.Infrastructure.ExternalServices
          : false,
                     FechaVerificacion = reader["FechaVerificacion"] != DBNull.Value
          ? (DateTime?)reader["FechaVerificacion"]
-         : null
+         : null,
+
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
 
             }
@@ -59,7 +65,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM Cursos WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM Cursos WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -76,7 +82,10 @@ namespace SIGAD.Infrastructure.ExternalServices
                     DocenteCedula = reader["DocenteCedula"].ToString()!,
                     TipoCurso = reader["TipoCurso"].ToString()!,
                     ImpartidoPorDocente = (bool)reader["ImpartidoPorDocente"],
-
+                    HorasImpartidas = reader["HorasImpartidas"] != DBNull.Value
+                    ? (int?)reader["HorasImpartidas"] : null,
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
             }
 
@@ -90,7 +99,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM Evaluaciones WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM Evaluaciones WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -103,7 +112,9 @@ namespace SIGAD.Infrastructure.ExternalServices
                     PuntajePorcentual = (decimal)reader["PuntajePorcentual"],
                     InformeRuta = reader["InformeRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
-                    DocenteCedula = reader["DocenteCedula"].ToString()!
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
             }
 
@@ -117,7 +128,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM Investigaciones WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM Investigaciones WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -145,7 +156,10 @@ namespace SIGAD.Infrastructure.ExternalServices
 
                     UnidadVerificadora = reader["UnidadVerificadora"] != DBNull.Value
         ? reader["UnidadVerificadora"].ToString()!
-        : string.Empty
+        : string.Empty,
+
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
 
             }
@@ -160,7 +174,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM Experiencias WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM Experiencias WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -174,7 +188,10 @@ namespace SIGAD.Infrastructure.ExternalServices
                     FechaFin = (DateTime)reader["FechaFin"],
                     CertificadoRuta = reader["CertificadoRuta"].ToString()!,
                     ContenidoHash = reader["ContenidoHash"].ToString()!,
-                    DocenteCedula = reader["DocenteCedula"].ToString()!
+                    DocenteCedula = reader["DocenteCedula"].ToString()!,
+
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
             }
 
@@ -187,7 +204,7 @@ namespace SIGAD.Infrastructure.ExternalServices
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var cmd = new SqlCommand("SELECT * FROM TesisDirigidas WHERE DocenteCedula = @Cedula", conn);
+            var cmd = new SqlCommand("SELECT *, PdfDocumento FROM TesisDirigidas WHERE DocenteCedula = @Cedula", conn);
             cmd.Parameters.AddWithValue("@Cedula", cedula);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -203,7 +220,9 @@ namespace SIGAD.Infrastructure.ExternalServices
                     FechaFin = reader["FechaFin"] as DateTime?,
                     Institucion = reader["Institucion"].ToString()!,
                     CertificacionRuta = reader["CertificacionRuta"].ToString()!,
-                    ContenidoHash = reader["ContenidoHash"].ToString()!
+                    ContenidoHash = reader["ContenidoHash"].ToString()!,
+                    // Leer el PDF binario desde la BD externa
+                    PdfDocumento = reader["PdfDocumento"] as byte[]
                 });
             }
 

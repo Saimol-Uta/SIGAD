@@ -116,9 +116,24 @@ namespace SIGAD.Infrastructure.Repositories
             var rango = await _context.Rangos.FindAsync(rangoSolicitadoId);
             if (rango == null) return false;
 
-            var totalHoras = await _context.Cursos
-                .Where(c => c.DocenteCedula == docenteCedula)
-                .SumAsync(c => c.NumeroHoras);
+            int totalHoras = 0;
+            
+            // Para rangos 4 y superiores (ID >= 5): usar horas impartidas cuando es impartido por docente
+            if (rango.Id >= 5)
+            {
+                totalHoras = await _context.Cursos
+                    .Where(c => c.DocenteCedula == docenteCedula && 
+                               c.ImpartidoPorDocente && 
+                               c.HorasImpartidas.HasValue)
+                    .SumAsync(c => c.HorasImpartidas ?? 0);
+            }
+            else
+            {
+                // Para rangos 1, 2, 3: usar horas de capacitación recibida (NumeroHoras)
+                totalHoras = await _context.Cursos
+                    .Where(c => c.DocenteCedula == docenteCedula)
+                    .SumAsync(c => c.NumeroHoras);
+            }
 
             return totalHoras >= rango.HorasCursoRequeridas;
         }

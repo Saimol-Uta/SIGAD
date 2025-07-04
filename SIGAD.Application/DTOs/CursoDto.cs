@@ -31,6 +31,9 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Certificado")]
         public string CertificadoRuta { get; set; } = string.Empty;
 
+        [Display(Name = "URL de Cloudinary")]
+        public string? UrlCloudinary { get; set; }
+
         [Display(Name = "Hash del Contenido")]
         public string ContenidoHash { get; set; } = string.Empty;
 
@@ -39,6 +42,10 @@ namespace SIGAD.Application.DTOs
 
         public string TipoCurso { get; set; } = string.Empty;
         public bool ImpartidoPorDocente { get; set; }
-
+        public int? HorasImpartidas { get; set; }
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
     }
-} 
+}

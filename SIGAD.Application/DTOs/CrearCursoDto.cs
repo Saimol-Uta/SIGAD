@@ -9,15 +9,13 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Nombre del Curso")]
         public string Nombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La organización es requerida")]
-        [StringLength(100, ErrorMessage = "El nombre de la organización no puede exceder los 100 caracteres")]
-        [Display(Name = "Nombre de la Organización")]
+        
         public string OrganizacionNombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El número de horas es requerido")]
-        [Range(1, 1000, ErrorMessage = "El número de horas debe estar entre 1 y 1000")]
-        [Display(Name = "Número de Horas")]
-        public int NumeroHoras { get; set; }
+        [Required(ErrorMessage = "La fecha de inicio es requerida")]
+        [DataType(DataType.Date)]
+        [Display(Name = "Fecha de Inicio")]
+        public DateTime FechaInicio { get; set; }
 
         [Required(ErrorMessage = "La fecha de finalización es requerida")]
         [DataType(DataType.Date)]
@@ -29,8 +27,31 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Cédula del Docente")]
         public string DocenteCedula { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El ID de la solicitud es requerido")]
+        // SolicitudId es opcional - si no se proporciona, el curso se crea sin asociar
         [Display(Name = "ID de la Solicitud")]
-        public Guid SolicitudId { get; set; }
+        public Guid? SolicitudId { get; set; }
+
+        [Required(ErrorMessage = "El tipo de curso es requerido")]
+        [Display(Name = "Tipo de Curso")]
+                    
+        public string TipoCurso { get; set; } = string.Empty;
+       
+        [Display(Name = "Impartido por el Docente")]            
+        public bool ImpartidoPorDocente { get; set; } = false;
+
+        [Required(ErrorMessage = "El número de horas es requerido")]
+        [Range(0, 1000, ErrorMessage = "El número de horas debe estar entre 0 y 1000")]
+        [Display(Name = "Número de Horas")]
+        public int NumeroHoras { get; set; }
+
+        [Range(0, 1000, ErrorMessage = "Las horas impartidas deben estar entre 0 y 1000")]
+        [Display(Name = "Horas impartidas")]
+        public int? HorasImpartidas { get; set; }
+                                                            
+
+                
+                
+        
+        // Nuevo campo para horas impartidas
     }
-} 
+}

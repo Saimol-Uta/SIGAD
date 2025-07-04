@@ -22,6 +22,8 @@ namespace SIGAD.Infrastructure.Repositories
             TesisDirigidas = new EfTesisDirigidaRepository(context);
             SolicitudesAscenso = new EfSolicitudAscensoRepository(context);
             Rangos = new EfRangoRepository(context);
+            Apelaciones = new EfApelacionRepository(context);
+            Notificaciones = new EfNotificacionRepository(context);
 
             // TODO: Implementar AccionesDePersonalRepository y PromocionService
             // AccionesDePersonal = new EfAccionesDePersonalRepository(context);
@@ -74,7 +76,9 @@ namespace SIGAD.Infrastructure.Repositories
         public ITesisDirigidaRepository TesisDirigidas { get; }
         public ISolicitudAscensoRepository SolicitudesAscenso { get; }
         public IRangoRepository Rangos { get; }
+        public IApelacionRepository Apelaciones { get; }
 
+        public INotificacionRepository Notificaciones { get; }
         // TODO: Implementar estos repositorios/servicios
         public IAccionesDePersonalRepository AccionesDePersonal => throw new NotImplementedException("AccionesDePersonalRepository no implementado aún");
         public IPromocionService PromocionService => throw new NotImplementedException("PromocionService no implementado aún");

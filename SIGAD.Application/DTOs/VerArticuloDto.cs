@@ -14,5 +14,6 @@ namespace SIGAD.Application.DTOs
         public int AnioPublicacion { get; set; }
         public string DocenteCedula { get; set; } = string.Empty;
         public string DocenteNombreCompleto { get; set; } = string.Empty;
+        public string ArchivoRuta { get; set; } = string.Empty;
     }
 }

@@ -1,5 +1,7 @@
 @page "/agregar-investigacion"
+@page "/editar-investigacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
@@ -9,7 +11,7 @@
 @inject HttpClient Http
 @inject ISolicitudService SolicitudService
 
-<PageTitle>Agregar Investigación - SIGAD</PageTitle>
+<PageTitle>@(Id.HasValue ? "Editar Investigación - SIGAD" : "Agregar Investigación - SIGAD")</PageTitle>
 
 <style>
     * {
@@ -53,16 +55,16 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #0a1d44;
-        object-fit: cover;
-    }
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #0a1d44;
+            object-fit: cover;
+        }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -79,12 +81,12 @@
         background-color: #6c757d;
     }
 
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -103,35 +105,25 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-top: 1rem;
+        z-index:2;
     }
 
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
+        .form-container h1 {
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: #0a1d44;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
 
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
+        .form-container .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
     .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
         margin-bottom: 1.5rem;
     }
 
@@ -152,19 +144,16 @@
         transition: border-color 0.3s ease;
     }
 
-    .form-control:focus {
-        outline: none;
-        border-color: #0a1d44;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
+        .form-control:focus {
+            outline: none;
+            border-color: #0a1d44;
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
 
-    .form-control[type="file"] {
-        padding: 0.5rem;
-    }
-
-    textarea.form-control {
-        min-height: 100px;
-        resize: vertical;
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
     }
 
     .btn {
@@ -184,18 +173,18 @@
         color: white;
     }
 
-    .btn-primary:hover {
-        background-color: #09203f;
-    }
+        .btn-primary:hover {
+            background-color: #081527;
+        }
 
     .btn-secondary {
         background-color: #6c757d;
         color: white;
     }
 
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
 
     .btn:disabled {
         opacity: 0.6;
@@ -210,144 +199,182 @@
     }
 
     .alert {
-        padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
+        padding: 1rem;
         border-radius: 4px;
+        margin-bottom: 1rem;
     }
 
     .alert-danger {
-        color: #721c24;
         background-color: #f8d7da;
-        border-color: #f5c6cb;
+        border: 1px solid #f1aeb5;
+        color: #721c24;
     }
 
     .alert-success {
-        color: #155724;
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-    }
-
-    .alert-info {
-        color: #0c5460;
-        background-color: #d1ecf1;
-        border-color: #bee5eb;
-    }
-
-    .file-info {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #666;
+        background-color: #d1e7dd;
+        border: 1px solid #a3cfbb;
+        color: #0f5132;
     }
 
     .triangle-bg {
         position: fixed;
-        top: 115px;
-        right: -75px;
-        height: auto;
-        max-height: 90vh;
-        max-width: 40vw;
-        z-index: 0;
-        object-fit: contain;
-        pointer-events: none;
-        opacity: 0.3;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 2rem;
-        color: #666;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.1;
     }
 
     .required {
         color: #dc3545;
     }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+    @@media (max-width: 1199px) and (min-width: 769px) {
+        /* 1. Aseguramos que el layout principal sea horizontal */
+        .main-content {
+            flex-direction: row;
+            align-items: center; /* Centra los elementos verticalmente */
+            justify-content: center; /* Mantiene el espacio entre ellos */
+            padding: 2rem; /* Un padding adecuado para este tamaño */
+        }
+        /* 4. La clave: Ocultamos los triángulos en este tamaño */
+        .triangle-bg {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+        }
+
+        .triangle-bg {
+            display: none;
+        }
+    }
 </style>
 
 <body>
-    <div class="header">
+    <header class="header">
         <div class="branding">
-            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
-            <h1>SIGAD</h1>
+            <img src="/images/logoSIGAD.png" alt="SIGAD Logo" class="logo" />
         </div>
         <div class="user-profile">
-            <a href="/gestion-documentos" class="back-btn">← Volver a Gestión</a>
+            <img src="/images/IconoUser.png" alt="User Avatar" />
             <span>@nombreUsuario</span>
-            <img src="/images/IconoUser.png" alt="Usuario" />
-            <button class="logout-btn" @onclick="Logout">Salir</button>
+            <button class="back-btn" @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
+                Volver
+            </button>
+            <button class="logout-btn" @onclick="Logout">
+                Cerrar Sesión
+            </button>
         </div>
-    </div>
+    </header>
 
     <div class="main-content">
         <div class="form-container">
-            <h1>🔬 Agregar Investigación</h1>
-            <p class="subtitle">Complete los datos de su investigación para asociarla a su solicitud de ascenso</p>
+            <h1>@(Id.HasValue ? "✏️ Editar Investigación" : "🔬 Agregar Investigación")</h1>
+            <p class="subtitle">
+                @(Id.HasValue
+                                ? "Modifique los datos de la investigación"
+                                : "Complete los datos de su investigación para registrarla en el sistema")
+            </p>
 
-            @if (isLoading)
-            {
-                <div class="loading">
-                    <p>Cargando formulario...</p>
-                </div>
-            }
-            else if (!string.IsNullOrEmpty(errorMessage))
+            @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="alert alert-danger">
                     @errorMessage
                 </div>
             }
+
+            @if (investigacionCreada)
+            {
+                <div class="alert alert-success">
+                    ✅ @(Id.HasValue 
+                        ? "Investigación editada exitosamente. Redirigiendo..." 
+                        : "Investigación agregada exitosamente. La encontrará disponible para asociar en la pantalla de gestión de documentos. Redirigiendo...")
+                </div>
+            }
             else
             {
-                <EditForm Model="@investigacionModel" OnValidSubmit="@HandleSubmit" enctype="multipart/form-data">
+                <EditForm Model="@investigacionModel" OnValidSubmit="@HandleSubmit">
                     <DataAnnotationsValidator />
 
-                    <!-- Información básica -->
                     <div class="form-group">
-                        <label class="form-label">Título de la Investigación *</label>
-                        <input type="text" class="form-control" @bind="investigacionModel.Titulo" required />
+                        <label class="form-label">
+                            Título de la Investigación <span class="required">*</span>
+                        </label>
+                        <InputText @bind-Value="investigacionModel.Titulo" class="form-control" />
+                        <ValidationMessage For="@(() => investigacionModel.Titulo)" />
                     </div>
 
-                    <!-- Fechas -->
-                    <div class="form-group-row">
+                    <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Fecha de Inicio *</label>
-                            <input type="date" class="form-control" @bind="investigacionModel.FechaInicio" required />
+                            <label class="form-label">
+                                Fecha de Inicio <span class="required">*</span>
+                            </label>
+                            <InputDate @bind-Value="investigacionModel.FechaInicio" class="form-control" />
+                            <ValidationMessage For="@(() => investigacionModel.FechaInicio)" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Fecha de Finalización *</label>
-                            <input type="date" class="form-control" @bind="investigacionModel.FechaFinalizacion" required />
-                        </div>
-                    </div>
-
-                    <!-- Rol y Meses -->
-                    <div class="form-group-row">
-                        <div class="form-group">
-                            <label class="form-label">Rol en la Investigación *</label>
-                            <select class="form-control" @bind="investigacionModel.RolEnInvestigacion" required>
-                                <option value="">-- Seleccione su rol --</option>
-                                <option value="Investigador Principal">Investigador Principal</option>
-                                <option value="Co-Investigador">Co-Investigador</option>
-                                <option value="Asistente de Investigación">Asistente de Investigación</option>
-                                <option value="Consultor">Consultor</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Meses de Investigación *</label>
-                            <input type="number" min="1" max="120" class="form-control" @bind="investigacionModel.MesesDeInvestigacion" required />
+                            <label class="form-label">
+                                Fecha de Finalización <span class="required">*</span>
+                            </label>
+                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" class="form-control" />
+                            <ValidationMessage For="@(() => investigacionModel.FechaFinalizacion)" />
                         </div>
                     </div>
 
-                    <!-- Archivo del informe -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Rol en la Investigación <span class="required">*</span>
+                            </label>
+                            <InputSelect @bind-Value="investigacionModel.RolEnInvestigacion" class="form-control">
+                                <option value="">-- Seleccione un rol --</option>
+                                <option value="Autor principal">Autor principal</option>
+                                <option value="Coautor">Coautor</option>
+                                <option value="Colaborador">Colaborador</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => investigacionModel.RolEnInvestigacion)" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                Meses de Investigación <span class="required">*</span>
+                            </label>
+                            <InputNumber @bind-Value="investigacionModel.MesesDeInvestigacion" class="form-control" min="1" max="120" />
+                            <ValidationMessage For="@(() => investigacionModel.MesesDeInvestigacion)" />
+                        </div>
+                    </div>
                     <div class="form-group">
-                        <label class="form-label">Informe de Investigación *</label>
-                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx" />
+                        <label class="form-label">Informe de Investigación <span class="required">*</span></label>
+                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
                         @if (!string.IsNullOrEmpty(archivoSeleccionado))
                         {
                             <p>Archivo: @archivoSeleccionado</p>
                         }
+                        @if (!string.IsNullOrEmpty(archivoActualRuta) && string.IsNullOrEmpty(archivoSeleccionado))
+                        {
+                            <p>
+                                Archivo actual:
+                                <a href="@($"https://localhost:7072/uploads/{archivoActualRuta}")" target="_blank" rel="noopener">
+                                    @archivoActualNombre
+                                </a>
+                            </p>
+                        }
+                    </div>
+
+                    <!-- Investigación Internacional -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" @bind="investigacionModel.EsInternacional" />
+                            Investigación Internacional
+                        </label>
                     </div>
 
                     @if (enviandoFormulario)
@@ -365,17 +392,18 @@
                     }
 
                     <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))" disabled="@enviandoFormulario">
+                        <button type="button" class="btn btn-secondary"
+                                @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (!Id.HasValue && archivoFormulario == null))">
                             @if (enviandoFormulario)
                             {
-                                <span>Guardando...</span>
+                                <span>Guardando investigación...</span>
                             }
                             else
                             {
-                                <span>Guardar Investigación</span>
+                                <span>@(Id.HasValue ? "Guardar Cambios" : "Guardar Investigación")</span>
                             }
                         </button>
                     </div>
@@ -388,25 +416,65 @@
 </body>
 
 @code {
-    // Variables del usuario
-    private string nombreUsuario = "";
+    [Parameter] public int? Id { get; set; }
 
-    // Variables del formulario
+    private string nombreUsuario = "";
     private InvestigacionModel investigacionModel = new();
     private IBrowserFile? archivoFormulario;
     private string archivoSeleccionado = "";
+    private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
-    // Variables de estado
-    private bool isLoading = true;
+    // Para edición
+    private string? archivoActualRuta;
+    private string? archivoActualNombre;
+
+    // Estado
     private bool enviandoFormulario = false;
     private bool investigacionCreada = false;
     private string? errorMessage;
 
+    private string GetReturnUrl()
+    {
+        return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        // Obtener parámetro returnTo de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        returnTo = query["returnTo"] ?? "gestion-documentos";
+
         await CargarInformacionUsuario();
-        await VerificarSolicitudActiva();
-        isLoading = false;
+
+        if (Id.HasValue)
+        {
+            // Cargar datos de la investigación para edición
+            var response = await Http.GetAsync($"api/investigaciones/{Id.Value}");
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<InvestigacionDto>>();
+                if (apiResponse != null && apiResponse.Data != null)
+                {
+                    var inv = apiResponse.Data;
+                    investigacionModel.Titulo = inv.Titulo;
+                    investigacionModel.FechaInicio = inv.FechaInicio;
+                    investigacionModel.FechaFinalizacion = inv.FechaFinalizacion;
+                    investigacionModel.RolEnInvestigacion = inv.RolEnInvestigacion;
+                    investigacionModel.MesesDeInvestigacion = inv.MesesDeInvestigacion;
+                    archivoActualRuta = inv.InformeRuta;
+                    archivoActualNombre = Path.GetFileName(inv.InformeRuta);
+                }
+            }
+            else
+            {
+                errorMessage = "No se pudo cargar la investigación para editar.";
+            }
+        }
+        else
+        {
+            await VerificarSolicitudActiva();
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -414,7 +482,6 @@
         var solicitudId = await SolicitudService.GetSolicitudActualAsync();
         if (string.IsNullOrEmpty(solicitudId))
         {
-            // No hay solicitud activa, redirigir al usuario a iniciar una nueva solicitud
             errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
             await Task.Delay(3000);
             Navigation.NavigateTo("/iniciar-solicitud-ascenso");
@@ -449,7 +516,7 @@
     {
         archivoFormulario = e.File;
         archivoSeleccionado = e.File.Name;
-        
+
         // Validar tamaño del archivo (25MB)
         if (archivoFormulario.Size > 25 * 1024 * 1024)
         {
@@ -462,7 +529,7 @@
         // Validar extensión
         var extension = Path.GetExtension(archivoFormulario.Name).ToLower();
         var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx" };
-        
+
         if (!extensionesPermitidas.Contains(extension))
         {
             errorMessage = "Formato de archivo no permitido. Use: PDF, DOC o DOCX";
@@ -477,14 +544,20 @@
 
     private async Task HandleSubmit()
     {
-        if (enviandoFormulario || archivoFormulario == null) return;
+        if (enviandoFormulario) return;
+
+        // Al agregar, el archivo es obligatorio. Al editar, solo si se selecciona uno nuevo.
+        if (!Id.HasValue && archivoFormulario == null)
+        {
+            errorMessage = "Debe adjuntar el informe de investigación.";
+            return;
+        }
 
         enviandoFormulario = true;
         errorMessage = null;
 
         try
         {
-            // Obtener cédula del usuario actual
             var cedula = await ObtenerCedulaUsuario();
             if (string.IsNullOrEmpty(cedula))
             {
@@ -492,48 +565,91 @@
                 return;
             }
 
-            // Obtener el ID real de la solicitud activa
-            var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-            if (string.IsNullOrEmpty(solicitudIdString))
+            if (Id.HasValue)
             {
-                errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                return;
-            }
+                // EDITAR INVESTIGACIÓN
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
+                content.Add(new StringContent(investigacionModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(investigacionModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+                content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
+                content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(Id.Value.ToString()), "Id");
 
-            // Crear el formulario multipart
-            using var content = new MultipartFormDataContent();
-            
-            // Campos requeridos por CrearInvestigacionDto
-            content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
-            content.Add(new StringContent(investigacionModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
-            content.Add(new StringContent(investigacionModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
-            content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
-            content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
-            content.Add(new StringContent(cedula), "DocenteCedula");
-            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // Adjuntar archivo solo si el usuario seleccionó uno nuevo
+                if (archivoFormulario != null)
+                {
+                    var fileContent = new StreamContent(archivoFormulario.OpenReadStream(25 * 1024 * 1024));
+                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
+                    content.Add(fileContent, "informe", archivoFormulario.Name);
+                }
 
-            // Agregar el archivo
-            var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
-            content.Add(fileContent, "informe", archivoFormulario.Name);
+                var response = await Http.PutAsync($"api/investigaciones/{Id.Value}", content);
 
-            // Enviar la solicitud
-            var response = await Http.PostAsync("api/investigaciones", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                investigacionCreada = true;
-                
-                // Redirigir después de 3 segundos
-                await Task.Delay(3000);
-                Navigation.NavigateTo("/gestion-documentos");
+                if (response.IsSuccessStatusCode)
+                {
+                    investigacionCreada = true;
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo(GetReturnUrl());
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al actualizar la investigación: {errorContent}";
+                }
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error al guardar la investigación: {errorContent}";
+                // AGREGAR INVESTIGACIÓN
+                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
+                if (string.IsNullOrEmpty(solicitudIdString))
+                {
+                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+                    return;
+                }
+
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
+                content.Add(new StringContent(investigacionModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(investigacionModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+                content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
+                content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional"); // Nuevo campo
+
+
+                var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
+                content.Add(fileContent, "informe", archivoFormulario.Name);
+
+                var response = await Http.PostAsync("api/investigaciones", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Mostrar SweetAlert con cierre automático
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                    {
+                        position = "center",
+                        icon = "success",
+                        title = Id != null ? "¡Investigación actualizada!" : "¡Investigación guardada!",
+                        text = "La información se ha guardado correctamente",
+                        showConfirmButton = false,
+                        timer = 2000
+                    });
+                    
+                    investigacionCreada = true;
+                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                    Navigation.NavigateTo(GetReturnUrl());
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al guardar la investigación: {errorContent}";
+                }
             }
         }
         catch (Exception ex)
@@ -591,6 +707,18 @@
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
         public string RolEnInvestigacion { get; set; } = "";
         public int MesesDeInvestigacion { get; set; } = 1;
+        public bool EsInternacional { get; set; } = false; // Nuevo campo
+    }
+
+    public class InvestigacionDto
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+        public DateTime FechaInicio { get; set; }
+        public DateTime FechaFinalizacion { get; set; }
+        public string RolEnInvestigacion { get; set; } = "";
+        public int MesesDeInvestigacion { get; set; }
+        public string InformeRuta { get; set; } = "";
     }
 
     public class VerifyTokenResponse
@@ -605,4 +733,10 @@
         public string? Apellido1 { get; set; }
         public string? Cedula { get; set; }
     }
-} 
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public T? Data { get; set; }
+    }
+}

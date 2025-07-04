@@ -9,10 +9,11 @@ namespace SIGAD.Domain.Entities
     public class EvaluacionDocente
     {
         public int Id { get; set; }
-        public string PeriodoAcademico { get; set; } = string.Empty;
+        public string PeriodoAcademico { get; set; } =  string.Empty;
         public DateTime FechaEvaluacion { get; set; }
         public decimal PuntajePorcentual { get; set; }
         public string InformeRuta { get; set; } = string.Empty;
+        public string? UrlCloudinary { get; set; }
         public string ContenidoHash { get; set; } = string.Empty;
         public string DocenteCedula { get; set; } = string.Empty;
 

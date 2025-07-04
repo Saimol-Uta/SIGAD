@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
+using System;
 using System.Security.Cryptography;
 using System.Text;
-
 
 namespace SIGAD.Application.Services
 {
@@ -15,26 +16,19 @@ namespace SIGAD.Application.Services
         private readonly IDocenteRepository _docenteRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly string _uploadsPath;
+        private readonly IFileStorageService _fileStorageService;
 
         public ArticuloService(
             IArticuloRepository articuloRepository,
             IDocenteRepository docenteRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _articuloRepository = articuloRepository;
-            _docenteRepository = docenteRepository;
-            _solicitudRepository = solicitudRepository;
+            _docenteRepository = docenteRepository; _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
-            _uploadsPath = configuration["FileStorage:ArticulosPath"] ?? "uploads/articulos";
-            
-            // Crear directorio si no existe
-            if (!Directory.Exists(_uploadsPath))
-            {
-                Directory.CreateDirectory(_uploadsPath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<ArticuloDto>> GetAllArticulosAsync()
@@ -45,7 +39,9 @@ namespace SIGAD.Application.Services
 
         public async Task<ArticuloDto?> GetArticuloByIdAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             return articulo != null ? MapToDto(articulo) : null;
         }
 
@@ -79,12 +75,19 @@ namespace SIGAD.Application.Services
 
             // Procesar archivo si se proporciona
             string archivoRuta = string.Empty;
+            string urlCloudinary = string.Empty;
             string contenidoHash = string.Empty;
 
             if (archivo != null && archivo.Length > 0)
             {
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                archivoRuta = ruta;
+                var (localPath, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(
+                    archivo,
+                    "articulos",
+                    new[] { ".pdf" },
+                    10 * 1024 * 1024 // 10MB
+                );
+                archivoRuta = localPath;
+                urlCloudinary = cloudinaryUrl;
                 contenidoHash = hash;
             }
 
@@ -94,13 +97,15 @@ namespace SIGAD.Application.Services
                 Titulo = createDto.Titulo,
                 Revista = createDto.Revista,
                 AnioPublicacion = createDto.AnioPublicacion,
+                IdiomaPublicacion = createDto.IdiomaPublicacion,
                 DocenteCedula = createDto.DocenteCedula,
                 ArchivoRuta = archivoRuta,
+                UrlCloudinary = urlCloudinary,
                 ContenidoHash = contenidoHash
             };
 
             await _articuloRepository.AddAsync(articulo);
-            
+
             // Guardar cambios
             await _unitOfWork.SaveChangesAsync();
 
@@ -127,7 +132,9 @@ namespace SIGAD.Application.Services
 
         public async Task<ArticuloDto> UpdateArticuloAsync(string doi, ActualizarArticuloDto updateDto, IFormFile? archivo)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null)
             {
                 throw new ArgumentException("El artículo no existe");
@@ -137,18 +144,24 @@ namespace SIGAD.Application.Services
             articulo.Titulo = updateDto.Titulo;
             articulo.Revista = updateDto.Revista;
             articulo.AnioPublicacion = updateDto.AnioPublicacion;
+            articulo.IdiomaPublicacion = updateDto.IdiomaPublicacion;
 
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
-                // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(articulo.ArchivoRuta) && File.Exists(articulo.ArchivoRuta))
-                {
-                    File.Delete(articulo.ArchivoRuta);
-                }
+                // Eliminar archivos anteriores
+                await _fileStorageService.EliminarArchivoDualAsync(articulo.ArchivoRuta, articulo.UrlCloudinary);
 
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                articulo.ArchivoRuta = ruta;
+                // Subir nuevo archivo
+                var (localPath, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(
+                    archivo,
+                    "articulos",
+                    new[] { ".pdf" },
+                    10 * 1024 * 1024 // 10MB
+                );
+
+                articulo.ArchivoRuta = localPath;
+                articulo.UrlCloudinary = cloudinaryUrl;
                 articulo.ContenidoHash = hash;
             }
 
@@ -160,32 +173,38 @@ namespace SIGAD.Application.Services
 
         public async Task<bool> DeleteArticuloAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null)
             {
                 return false;
             }
 
-            // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(articulo.ArchivoRuta) && File.Exists(articulo.ArchivoRuta))
-            {
-                File.Delete(articulo.ArchivoRuta);
-            }
+            // Eliminar archivos duales
+            await _fileStorageService.EliminarArchivoDualAsync(articulo.ArchivoRuta, articulo.UrlCloudinary);
 
-            await _articuloRepository.DeleteAsync(doi);
+            await _articuloRepository.DeleteAsync(decodedDoi);
             await _unitOfWork.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> AsociarArticuloASolicitudAsync(AsociarArticuloSolicitudDto asociarDto)
         {
+            // Log temporal
+            Console.WriteLine($"[SERVICE] Asociando artículo - DOI: '{asociarDto.ArticuloDOI}', SolicitudId: {asociarDto.SolicitudId}");
+
             var articuloExists = await _articuloRepository.ExistsAsync(asociarDto.ArticuloDOI);
+            Console.WriteLine($"[SERVICE] Artículo existe: {articuloExists}");
+
             if (!articuloExists)
             {
                 return false;
             }
 
             var solicitud = await _solicitudRepository.GetByIdAsync(asociarDto.SolicitudId);
+            Console.WriteLine($"[SERVICE] Solicitud existe: {solicitud != null}");
+
             if (solicitud == null)
             {
                 return false;
@@ -193,68 +212,56 @@ namespace SIGAD.Application.Services
 
             await _articuloRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.ArticuloDOI);
             await _unitOfWork.SaveChangesAsync();
+            Console.WriteLine($"[SERVICE] Asociación completada");
             return true;
         }
 
         public async Task<bool> DesasociarArticuloDeSolicitudAsync(Guid solicitudId, string articuloDoi)
         {
             await _articuloRepository.RemoveFromSolicitudAsync(solicitudId, articuloDoi);
-            await _unitOfWork.SaveChangesAsync();
             return true;
         }
 
         public async Task<byte[]?> GetArchivoArticuloAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null || string.IsNullOrEmpty(articulo.ArchivoRuta))
             {
                 return null;
             }
 
-            if (!File.Exists(articulo.ArchivoRuta))
+            // Obtener la mejor URL disponible y descargar
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(articulo.ArchivoRuta, articulo.UrlCloudinary);
+
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(articulo.UrlCloudinary) && mejorUrl == articulo.UrlCloudinary)
             {
-                return null;
+                using var httpClient = new HttpClient();
+                return await httpClient.GetByteArrayAsync(mejorUrl);
             }
 
-            return await File.ReadAllBytesAsync(articulo.ArchivoRuta);
+            // Si no, intentar desde archivo local
+            if (File.Exists(articulo.ArchivoRuta))
+            {
+                return await File.ReadAllBytesAsync(articulo.ArchivoRuta);
+            }
+
+            return null;
         }
 
         public async Task<string?> GetNombreArchivoAsync(string doi)
         {
-            var articulo = await _articuloRepository.GetByIdAsync(doi);
+            // Decodificar el DOI en caso de que venga codificado desde la URL
+            var decodedDoi = Uri.UnescapeDataString(doi);
+            var articulo = await _articuloRepository.GetByIdAsync(decodedDoi);
             if (articulo == null || string.IsNullOrEmpty(articulo.ArchivoRuta))
             {
                 return null;
             }
 
             return Path.GetFileName(articulo.ArchivoRuta);
-        }
-
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
-        {
-            // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-
-            // Guardar archivo
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
-            {
-                await archivo.CopyToAsync(stream);
-            }
-
-            // Calcular hash del archivo
-            var hash = await CalcularHashArchivoAsync(rutaCompleta);
-
-            return (rutaCompleta, hash);
-        }
-
-        private async Task<string> CalcularHashArchivoAsync(string rutaArchivo)
-        {
-            using var sha256 = SHA256.Create();
-            await using var stream = File.OpenRead(rutaArchivo);
-            var hash = await sha256.ComputeHashAsync(stream);
-            return Convert.ToHexString(hash);
         }
 
         private static ArticuloDto MapToDto(Articulo articulo)
@@ -265,12 +272,26 @@ namespace SIGAD.Application.Services
                 Titulo = articulo.Titulo,
                 Revista = articulo.Revista,
                 AnioPublicacion = articulo.AnioPublicacion,
+                IdiomaPublicacion = articulo.IdiomaPublicacion ?? string.Empty,
                 ArchivoRuta = articulo.ArchivoRuta,
+                UrlCloudinary = articulo.UrlCloudinary,
+                ContenidoHash = articulo.ContenidoHash,
                 DocenteCedula = articulo.DocenteCedula,
-                DocenteNombreCompleto = articulo.Docente != null 
+                DocenteNombreCompleto = articulo.Docente != null
                     ? $"{articulo.Docente.Nombre1} {articulo.Docente.Nombre2 ?? ""} {articulo.Docente.Apellido1} {articulo.Docente.Apellido2}".Trim()
-                    : string.Empty
+                    : string.Empty,
+                UnidadVerificadora = articulo.UnidadVerificadora,
+                Verificado = articulo.Verificado,
+                FechaVerificacion = articulo.FechaVerificacion,
+
+                // Mapeo de solicitudes asociadas
+                SolicitudId = articulo.ArticulosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = articulo.ArticulosPorSolicitud?.Select(es => new SolicitudBasicaDto
+                {
+                    SolicitudId = es.SolicitudId.ToString(),
+                    Estado = es.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
     }
-} 
+}

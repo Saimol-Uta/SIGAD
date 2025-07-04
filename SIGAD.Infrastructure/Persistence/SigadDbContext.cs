@@ -29,8 +29,9 @@ namespace SIGAD.Infrastructure.Persistence
         public DbSet<TesisPorSolicitud> TesisPorSolicitud { get; set; } = default!;
         public DbSet<AccionesDePersonal> AccionesDePersonal { get; set; } = default!;
         public DbSet<AccionesDePersonalPorSolicitud> AccionesDePersonalPorSolicitud { get; set; } = default!;
+        public DbSet<Apelacion> Apelaciones { get; set; } = default!;
 
-
+        public DbSet<Notificacion> Notificaciones { get; set; } = default!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -120,8 +121,11 @@ namespace SIGAD.Infrastructure.Persistence
                     .HasForeignKey(e => e.RangoSolicitadoId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasCheckConstraint("CK_SolicitudesAscenso_Estado",
-                    "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada')");
+                entity.ToTable("SolicitudesAscenso", t =>
+                {
+                    t.HasCheckConstraint("CK_SolicitudesAscenso_Estado",
+                        "Estado IN ('Borrador', 'Enviada', 'En Revision', 'Aprobada', 'Rechazada', 'En Apelacion', 'Rechazada Definitiva', 'Aprobada Por Apelacion', 'Cerrada Sin Respuesta')");
+                });
             });
 
             // Configuración de la tabla intermedia EvaluacionesPorSolicitud
@@ -171,10 +175,10 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ObservacionesVerificacion).HasMaxLength(500);
                 entity.Property(e => e.EsIndexado);
                 entity.Property(e => e.FechaCreacion);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.IdiomaPublicacion).HasMaxLength(50).IsRequired(false);
                 // Propiedad de compatibilidad (no mapear directamente)
                 entity.Ignore(e => e.Verificado);
-
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Articulos)
                     .HasForeignKey(e => e.DocenteCedula)
@@ -200,12 +204,12 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.ContenidoHash).HasMaxLength(64).IsRequired(); entity.Property(e => e.DocenteCedula).HasMaxLength(10).IsRequired();
                 entity.Property(e => e.TipoCurso).HasConversion<int>();
                 entity.Property(e => e.ImpartidoPorDocente);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.HorasImpartidas).IsRequired(false);
                 entity.HasOne(e => e.Organizacion)
                     .WithMany(o => o.Cursos)
                     .HasForeignKey(e => e.OrganizacionId)
                     .OnDelete(DeleteBehavior.Restrict);
-
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Cursos)
                     .HasForeignKey(e => e.DocenteCedula)
@@ -248,7 +252,8 @@ namespace SIGAD.Infrastructure.Persistence
                 entity.Property(e => e.TipoProyecto).HasConversion<int>();
                 entity.Property(e => e.MesesDeParticipacion);
                 entity.Property(e => e.UnidadVerificadora).HasMaxLength(100);
-
+                // Nuevo campo para migración
+                entity.Property(e => e.EsInternacional).HasDefaultValue(false);
                 entity.HasOne(e => e.Docente)
                     .WithMany(d => d.Investigaciones)
                     .HasForeignKey(e => e.DocenteCedula)
@@ -266,7 +271,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Articulo)
-                    .WithMany()
+                    .WithMany(a => a.ArticulosPorSolicitud)
                     .HasForeignKey(e => e.ArticuloDOI)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -281,7 +286,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Curso)
-                    .WithMany()
+                    .WithMany(c => c.CursosPorSolicitud)
                     .HasForeignKey(e => e.CursoId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -296,7 +301,7 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.ExperienciaLaboral)
-                    .WithMany()
+                    .WithMany(e => e.ExperienciasPorSolicitud)
                     .HasForeignKey(e => e.ExperienciaId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
@@ -311,21 +316,21 @@ namespace SIGAD.Infrastructure.Persistence
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Investigacion)
-                    .WithMany()
+                    .WithMany(i => i.InvestigacionesPorSolicitud)
                     .HasForeignKey(e => e.InvestigacionId)
                     .OnDelete(DeleteBehavior.Cascade);
             }); modelBuilder.Entity<TesisPorSolicitud>(entity =>
             {
-                entity.HasKey(e => new { e.SolicitudId, e.TesisDirigidaId });
+                entity.HasKey(e => new { e.SolicitudId, e.TesisId });
 
-                entity.HasOne(e => e.Solicitud)
+                entity.HasOne(e => e.SolicitudAscenso)
                     .WithMany(s => s.TesisPorSolicitud)
                     .HasForeignKey(e => e.SolicitudId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.TesisDirigida)
                     .WithMany(t => t.TesisPorSolicitud)
-                    .HasForeignKey(e => e.TesisDirigidaId)
+                    .HasForeignKey(e => e.TesisId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -383,6 +388,55 @@ namespace SIGAD.Infrastructure.Persistence
                     .WithMany(d => d.TesisDirigidas)
                     .HasForeignKey(e => e.DocenteCedula)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configuración de la entidad Apelacion
+            modelBuilder.Entity<Apelacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.SolicitudAscensoId).IsRequired();
+                entity.Property(e => e.Motivo).HasMaxLength(1000).IsRequired();
+                entity.Property(e => e.DocumentosRespaldo).HasMaxLength(500);
+                entity.Property(e => e.Estado).HasConversion<int>().IsRequired();
+                entity.Property(e => e.FechaPresentacion).IsRequired();
+                entity.Property(e => e.FechaLimiteRespuesta).IsRequired();
+                entity.Property(e => e.FechaResolucion);
+                entity.Property(e => e.ObservacionesComision).HasMaxLength(1000);
+                entity.Property(e => e.CreadoPor).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.ModificadoPor).HasMaxLength(100);
+                entity.Property(e => e.FechaCreacion).IsRequired();
+                entity.Property(e => e.FechaModificacion);
+                entity.Property(e => e.Aceptada).IsRequired();
+
+                // Relación con SolicitudAscenso
+                entity.HasOne(e => e.SolicitudAscenso)
+                    .WithMany(s => s.Apelaciones)
+                    .HasForeignKey(e => e.SolicitudAscensoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Notificacion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Mensaje)
+                    .IsRequired()
+                    .HasMaxLength(1000); // Un tamaño razonable para el mensaje
+
+                entity.Property(e => e.UrlRedireccion)
+                    .HasMaxLength(500); // Un tamaño razonable para la URL
+
+                entity.Property(e => e.DocenteCedula)
+                    .IsRequired()
+                    .HasMaxLength(10);
+
+                // Configuración de la relación con Docente
+                entity.HasOne(n => n.Docente)
+                    .WithMany(d => d.Notificaciones) // Asume que agregaremos una colección `Notificaciones` a la entidad Docente
+                    .HasForeignKey(n => n.DocenteCedula)
+                    .OnDelete(DeleteBehavior.Cascade); // Si se borra un docente, se borran sus notificaciones
             });
         }
     }

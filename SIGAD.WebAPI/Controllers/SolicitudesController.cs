@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
 
@@ -45,7 +46,27 @@ namespace SIGAD.WebAPI.Controllers
         {
             try
             {
-                var solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                SolicitudDetalleDto? solicitud = null;
+
+                if (userRole == "ADMINISTRADOR")
+                {
+                    solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+                }
+                else if (userRole == "DOCENTE")
+                {
+                    var docenteCedula = User.FindFirst("cedula")?.Value;
+                    if (string.IsNullOrEmpty(docenteCedula))
+                    {
+                        return Unauthorized("La cédula del docente no se encontró en el token.");
+                    }
+                    solicitud = await _solicitudesService.GetDetalleParaDocenteAsync(id, docenteCedula);
+                }
+                else
+                {
+                    return Forbid("No tiene permisos para acceder a esta información.");
+                }
+
                 return solicitud != null ? Ok(solicitud) : NotFound();
             }
             catch (Exception ex)
@@ -188,6 +209,62 @@ namespace SIGAD.WebAPI.Controllers
             }
         }
 
+        // PUT: api/solicitudes/{id}/aprobar-comision
+        [HttpPut("{id}/aprobar-comision")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> AprobarPorComision(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.AprobarPorComisionAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Solicitud aprobada por Comisión Académica exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al aprobar por Comisión la solicitud {SolicitudId}: {Message}", id, ex.Message);
+                
+                // Obtener detalles del inner exception si existe
+                var innerMessage = ex.InnerException?.Message ?? "Sin detalles adicionales";
+                var fullMessage = $"Error: {ex.Message}. Detalles: {innerMessage}";
+                
+                return BadRequest(new { success = false, message = fullMessage });
+            }
+        }
+
+        // PUT: api/solicitudes/{id}/aprobar-consejo
+        [HttpPut("{id}/aprobar-consejo")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> AprobarPorConsejo(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.AprobarPorConsejoAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Solicitud aprobada por Consejo Universitario exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al aprobar por Consejo la solicitud {SolicitudId}", id);
+                return BadRequest(new { success = false, message = $"Error interno del servidor: {ex.Message}" });
+            }
+        }
+
+        // PUT: api/solicitudes/{id}/finalizar
+        [HttpPut("{id}/finalizar")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> FinalizarProceso(Guid id, [FromBody] AprobacionRequest request)
+        {
+            try
+            {
+                await _solicitudesService.FinalizarProcesoAsync(id, request.Observaciones);
+                return Ok(new { success = true, message = "Proceso de ascenso finalizado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al finalizar el proceso de la solicitud {SolicitudId}", id);
+                return BadRequest(new { success = false, message = $"Error interno del servidor: {ex.Message}" });
+            }
+        }
+
         // Endpoint de prueba sin autorización
         [HttpGet("test")]
         public IActionResult Test()
@@ -200,15 +277,14 @@ namespace SIGAD.WebAPI.Controllers
         [Authorize]
         public IActionResult TestAuth()
         {
-            var userInfo = new
-            {
-                IsAuthenticated = User.Identity?.IsAuthenticated,
-                Name = User.Identity?.Name,
-                Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
-                Roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
-            };
-
-            return Ok(userInfo);
+            var userClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
+            return Ok(new { 
+                message = "Autenticación exitosa", 
+                user = User.Identity?.Name,
+                roles = User.Claims.Where(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                                  .Select(c => c.Value).ToArray(),
+                allClaims = userClaims
+            });
         }
 
         // GET: api/solicitudes/verif-solicitud-activa
@@ -250,6 +326,87 @@ namespace SIGAD.WebAPI.Controllers
                 _logger.LogError(ex, "Error al verificar solicitud activa para docente {Cedula}", docenteCedula);
                 return StatusCode(500, "Error interno del servidor");
             }
+        }
+
+        // GET: api/solicitudes/historial
+        [HttpGet("historial")]
+        [Authorize]
+        public async Task<IActionResult> GetHistorialDocente()
+        {
+            try
+            {
+                // Debug: Log todos los claims del usuario
+                _logger.LogInformation("Claims del usuario: {Claims}", 
+                    string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                var rolClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+                
+                _logger.LogInformation("Cedula claim: {Cedula}, Rol claim: {Rol}", cedulaClaim, rolClaim);
+                
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    _logger.LogError("No se encontró el claim de cédula");
+                    return BadRequest(new { error = "No se pudo obtener la cédula del usuario" });
+                }
+
+                // Verificar que el usuario sea docente
+                if (rolClaim != "DOCENTE")
+                {
+                    _logger.LogError("Usuario no tiene rol DOCENTE. Rol actual: {Rol}", rolClaim);
+                    return Forbid($"Acceso denegado. Rol requerido: DOCENTE, Rol actual: {rolClaim}");
+                }
+
+                _logger.LogInformation("Obteniendo historial para docente: {Cedula}", cedulaClaim);
+                var solicitudes = await _solicitudesService.GetHistorialDocenteAsync(cedulaClaim);
+                
+                _logger.LogInformation("Se encontraron {Count} solicitudes", solicitudes?.Count() ?? 0);
+
+                if (solicitudes == null)
+                {
+                    return Ok(new List<object>());
+                }
+
+                var historial = solicitudes.Select(s => new
+                {
+                    id = s.Id.ToString(),
+                    rangoActual = s.RangoActual?.Nombre ?? "N/A",
+                    rangoSolicitado = s.RangoSolicitado?.Nombre ?? "N/A",
+                    estado = s.Estado.ToString(),
+                    fechaEnvio = s.FechaEnvio,
+                    fechaResolucion = s.FechaResolucion,
+                    fechaCreacion = s.FechaCreacion
+                }).OrderByDescending(s => s.fechaCreacion);
+
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener historial de solicitudes");
+                return StatusCode(500, new { error = "Error interno del servidor", details = ex.Message });
+            }
+        }
+
+        // GET: api/solicitudes/con-apelaciones
+        [HttpGet("con-apelaciones")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> GetSolicitudesConApelaciones()
+        {
+            try
+            {
+                var solicitudes = await _solicitudesService.GetSolicitudesConApelacionesAsync();
+                return Ok(solicitudes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener solicitudes con apelaciones");
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
+        public class AprobacionRequest
+        {
+            public string Observaciones { get; set; } = string.Empty;
         }
     }
 }

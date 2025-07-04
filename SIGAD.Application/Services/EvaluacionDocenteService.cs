@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
-using System.Security.Cryptography;
-using System.Text;
-
 
 namespace SIGAD.Application.Services
 {
@@ -15,26 +12,20 @@ namespace SIGAD.Application.Services
         private readonly IDocenteRepository _docenteRepository;
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly string _uploadsPath;
+        private readonly IFileStorageService _fileStorageService;
 
         public EvaluacionDocenteService(
             IEvaluacionDocenteRepository evaluacionRepository,
             IDocenteRepository docenteRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _evaluacionRepository = evaluacionRepository;
             _docenteRepository = docenteRepository;
             _solicitudRepository = solicitudRepository;
             _unitOfWork = unitOfWork;
-            _uploadsPath = configuration["FileStorage:EvaluacionesPath"] ?? "uploads/evaluaciones";
-            
-            // Crear directorio si no existe
-            if (!Directory.Exists(_uploadsPath))
-            {
-                Directory.CreateDirectory(_uploadsPath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<EvaluacionDocenteDto>> GetAllEvaluacionesAsync()
@@ -71,13 +62,15 @@ namespace SIGAD.Application.Services
             }
 
             // Procesar archivo si se proporciona
-            string archivoRuta = string.Empty;
+            string? rutaLocal = null;
+            string? urlCloudinary = null;
             string contenidoHash = string.Empty;
 
             if (archivo != null && archivo.Length > 0)
             {
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                archivoRuta = ruta;
+                var (ruta, cloudinaryUrl, hash) = await _fileStorageService.UploadFileAsync(archivo, "evaluaciones");
+                rutaLocal = ruta;
+                urlCloudinary = cloudinaryUrl;
                 contenidoHash = hash;
             }
 
@@ -87,12 +80,13 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = createDto.FechaEvaluacion,
                 PuntajePorcentual = createDto.PuntajePorcentual,
                 DocenteCedula = createDto.DocenteCedula,
-                InformeRuta = archivoRuta,
+                InformeRuta = rutaLocal,
+                UrlCloudinary = urlCloudinary,
                 ContenidoHash = contenidoHash
             };
 
             await _evaluacionRepository.AddAsync(evaluacion);
-            
+
             // Guardar cambios para generar el ID
             await _unitOfWork.SaveChangesAsync();
 
@@ -132,14 +126,13 @@ namespace SIGAD.Application.Services
             // Procesar nuevo archivo si se proporciona
             if (archivo != null && archivo.Length > 0)
             {
-                // Eliminar archivo anterior si existe
-                if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && File.Exists(evaluacion.InformeRuta))
-                {
-                    File.Delete(evaluacion.InformeRuta);
-                }
+                // Eliminar archivos anteriores si existen
+                await _fileStorageService.EliminarArchivoDualAsync(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
 
-                var (ruta, hash) = await GuardarArchivoAsync(archivo);
-                evaluacion.InformeRuta = ruta;
+                // Subir nuevo archivo
+                var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(archivo, "evaluaciones");
+                evaluacion.InformeRuta = rutaLocal;
+                evaluacion.UrlCloudinary = urlCloudinary;
                 evaluacion.ContenidoHash = hash;
             }
 
@@ -157,11 +150,8 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
-            // Eliminar archivo si existe
-            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && File.Exists(evaluacion.InformeRuta))
-            {
-                File.Delete(evaluacion.InformeRuta);
-            }
+            // Eliminar archivos de ambos almacenamientos
+            await _fileStorageService.EliminarArchivoDualAsync(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
 
             await _evaluacionRepository.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
@@ -182,8 +172,18 @@ namespace SIGAD.Application.Services
                 return false;
             }
 
+            // Validar que la evaluación no esté ya usada en otra solicitud aprobada
+            var estaYaUsada = await _evaluacionRepository.EstaEvaluacionYaUsadaAsync(asociarDto.EvaluacionId);
+            if (estaYaUsada)
+            {
+                Console.WriteLine($"Debug - Service - Evaluación {asociarDto.EvaluacionId} ya está usada en otra solicitud");
+                return false;
+            }
+
+            Console.WriteLine($"Debug - Service - Asociando evaluación {asociarDto.EvaluacionId} a solicitud {asociarDto.SolicitudId}");
             await _evaluacionRepository.AddToSolicitudAsync(asociarDto.SolicitudId, asociarDto.EvaluacionId);
             await _unitOfWork.SaveChangesAsync();
+            Console.WriteLine($"Debug - Service - Asociación completada y guardada en BD");
             return true;
         }
 
@@ -197,55 +197,78 @@ namespace SIGAD.Application.Services
         public async Task<byte[]?> GetArchivoEvaluacionAsync(int id)
         {
             var evaluacion = await _evaluacionRepository.GetByIdAsync(id);
-            if (evaluacion == null || string.IsNullOrEmpty(evaluacion.InformeRuta))
+            if (evaluacion == null || (string.IsNullOrEmpty(evaluacion.InformeRuta) && string.IsNullOrEmpty(evaluacion.UrlCloudinary)))
             {
                 return null;
             }
 
-            if (!File.Exists(evaluacion.InformeRuta))
+            // Obtener la mejor URL y usarla para descargar el archivo
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
+            
+            // Si la mejor URL es local, leer el archivo directamente
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && mejorUrl.Contains("localhost"))
             {
-                return null;
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
             }
 
-            return await File.ReadAllBytesAsync(evaluacion.InformeRuta);
+            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
+            // Por ahora, intentamos usar el archivo local como fallback
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
+            {
+                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
+                if (File.Exists(rutaCompleta))
+                {
+                    return await File.ReadAllBytesAsync(rutaCompleta);
+                }
+            }
+
+            return null;
         }
 
         public async Task<string?> GetNombreArchivoAsync(int id)
         {
             var evaluacion = await _evaluacionRepository.GetByIdAsync(id);
-            if (evaluacion == null || string.IsNullOrEmpty(evaluacion.InformeRuta))
-            {
-                return null;
-            }
-
-            return Path.GetFileName(evaluacion.InformeRuta);
+            return evaluacion?.InformeRuta;
         }
 
-        private async Task<(string ruta, string hash)> GuardarArchivoAsync(IFormFile archivo)
+        public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesDisponiblesAsync(string docenteCedula, Guid? solicitudActualId = null)
         {
-            // Generar nombre único para el archivo
-            var extension = Path.GetExtension(archivo.FileName);
-            var nombreArchivo = $"{Guid.NewGuid()}{extension}";
-            var rutaCompleta = Path.Combine(_uploadsPath, nombreArchivo);
-
-            // Guardar archivo
-            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+            var evaluacionesDisponibles = await _evaluacionRepository.GetEvaluacionesDisponiblesParaSolicitudAsync(docenteCedula, solicitudActualId);
+            
+            return evaluacionesDisponibles.Select(e => new EvaluacionDocenteDto
             {
-                await archivo.CopyToAsync(stream);
-            }
-
-            // Calcular hash del contenido
-            var contenidoHash = await CalcularHashArchivoAsync(rutaCompleta);
-
-            return (rutaCompleta, contenidoHash);
+                Id = e.Id,
+                PeriodoAcademico = e.PeriodoAcademico,
+                PuntajePorcentual = e.PuntajePorcentual,
+                FechaEvaluacion = e.FechaEvaluacion,
+                DocenteCedula = e.DocenteCedula,
+                InformeRuta = e.InformeRuta,
+                UrlCloudinary = e.UrlCloudinary,
+                ContenidoHash = e.ContenidoHash,
+                DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
+            });
         }
 
-        private async Task<string> CalcularHashArchivoAsync(string rutaArchivo)
+        public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesUsadasAsync(string docenteCedula)
         {
-            using var sha256 = SHA256.Create();
-            using var stream = File.OpenRead(rutaArchivo);
-            var hashBytes = await Task.Run(() => sha256.ComputeHash(stream));
-            return Convert.ToHexString(hashBytes);
+            var evaluacionesUsadas = await _evaluacionRepository.GetEvaluacionesUsadasEnSolicitudesAsync(docenteCedula);
+            
+            return evaluacionesUsadas.Select(e => new EvaluacionDocenteDto
+            {
+                Id = e.Id,
+                PeriodoAcademico = e.PeriodoAcademico,
+                PuntajePorcentual = e.PuntajePorcentual,
+                FechaEvaluacion = e.FechaEvaluacion,
+                DocenteCedula = e.DocenteCedula,
+                InformeRuta = e.InformeRuta,
+                UrlCloudinary = e.UrlCloudinary,
+                ContenidoHash = e.ContenidoHash,
+                DocenteNombreCompleto = e.Docente?.NombreCompleto ?? ""
+            });
         }
 
         private static EvaluacionDocenteDto MapToDto(EvaluacionDocente evaluacion)
@@ -254,6 +277,54 @@ namespace SIGAD.Application.Services
                 ? $"{evaluacion.Docente.Nombre1} {evaluacion.Docente.Nombre2} {evaluacion.Docente.Apellido1} {evaluacion.Docente.Apellido2}".Trim()
                 : string.Empty;
 
+            // Mapear solicitudes asociadas
+            List<SolicitudBasicaDto>? solicitudes = null;
+            string? solicitudIdPrincipal = null;
+
+            if (evaluacion.EvaluacionesPorSolicitud?.Any() == true)
+            {
+                solicitudes = evaluacion.EvaluacionesPorSolicitud
+                    .Where(eps => eps.Solicitud != null)
+                    .Select(eps => new SolicitudBasicaDto
+                    {
+                        SolicitudId = eps.Solicitud!.Id.ToString(),
+                        Estado = eps.Solicitud.Estado.ToString(),
+                        FechaCreacion = eps.Solicitud.FechaCreacion
+                    }).ToList();
+                
+                // Debug: Log información de solicitudes para esta evaluación
+                Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} tiene {solicitudes.Count} solicitudes asociadas:");
+                foreach (var sol in solicitudes)
+                {
+                    Console.WriteLine($"  - Solicitud ID: {sol.SolicitudId}, Estado: {sol.Estado}, Fecha: {sol.FechaCreacion}");
+                }
+                
+                // Priorizar solicitud en estado Borrador o Enviada para mostrar como principal
+                var solicitudPrincipal = solicitudes
+                    .Where(s => s.Estado == "Borrador" || s.Estado == "Enviada")
+                    .OrderByDescending(s => s.FechaCreacion)
+                    .FirstOrDefault();
+                
+                // Si no hay solicitud en estados activos, buscar EnRevision también
+                if (solicitudPrincipal == null)
+                {
+                    solicitudPrincipal = solicitudes
+                        .Where(s => s.Estado == "EnRevision")
+                        .OrderByDescending(s => s.FechaCreacion)
+                        .FirstOrDefault();
+                }
+                
+                // Si no hay solicitud activa, usar la más reciente
+                solicitudIdPrincipal = solicitudPrincipal?.SolicitudId ?? solicitudes.FirstOrDefault()?.SolicitudId;
+                
+                // Debug: Log resultado del mapeo
+                Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} - Solicitud principal seleccionada: {solicitudIdPrincipal}");
+                if (solicitudPrincipal != null)
+                {
+                    Console.WriteLine($"  - Estado de solicitud principal: {solicitudPrincipal.Estado}");
+                }
+            }
+
             return new EvaluacionDocenteDto
             {
                 Id = evaluacion.Id,
@@ -261,10 +332,13 @@ namespace SIGAD.Application.Services
                 FechaEvaluacion = evaluacion.FechaEvaluacion,
                 PuntajePorcentual = evaluacion.PuntajePorcentual,
                 InformeRuta = evaluacion.InformeRuta,
+                UrlCloudinary = evaluacion.UrlCloudinary,
                 ContenidoHash = evaluacion.ContenidoHash,
                 DocenteCedula = evaluacion.DocenteCedula,
-                DocenteNombreCompleto = nombreCompleto
+                DocenteNombreCompleto = nombreCompleto,
+                SolicitudId = solicitudIdPrincipal,
+                Solicitudes = solicitudes
             };
         }
     }
-} 
+}

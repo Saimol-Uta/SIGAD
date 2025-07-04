@@ -34,8 +34,13 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Cédula del Docente")]
         public string DocenteCedula { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El ID de la solicitud es requerido")]
+        // Solicitud opcional - solo se asociará si se proporciona
         [Display(Name = "ID de la Solicitud")]
         public Guid SolicitudId { get; set; }
+
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
 }

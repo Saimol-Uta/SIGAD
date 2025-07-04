@@ -32,12 +32,23 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "Informe")]
         public string InformeRuta { get; set; } = string.Empty;
 
+        [Display(Name = "URL de Cloudinary")]
+        public string? UrlCloudinary { get; set; }
+
         [Display(Name = "Hash del Contenido")]
         public string ContenidoHash { get; set; } = string.Empty;
 
         public string TipoProyecto { get; set; } = string.Empty;
         public int MesesDeParticipacion { get; set; }
         public string UnidadVerificadora { get; set; } = string.Empty;
+        
+        // Información de asociación con solicitudes
+        public string? SolicitudId { get; set; }
+        public List<SolicitudBasicaDto>? Solicitudes { get; set; }
 
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
-} 
+}

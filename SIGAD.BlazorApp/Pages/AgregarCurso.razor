@@ -1,15 +1,15 @@
 @page "/agregar-curso"
+@page "/editar-curso/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
-@using SIGAD.BlazorApp.Layout
-@using SIGAD.BlazorApp.Services
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject ISolicitudService SolicitudService
 
-<PageTitle>Agregar Curso - SIGAD</PageTitle>
+<PageTitle>@(Id.HasValue ? "Editar Curso - SIGAD" : "Agregar Curso - SIGAD")</PageTitle>
 
 <style>
     * {
@@ -53,16 +53,16 @@
         color: #444;
     }
 
-    .user-profile img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        border: 2px solid #0a1d44;
-        object-fit: cover;
-    }
+        .user-profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #0a1d44;
+            object-fit: cover;
+        }
 
     .back-btn, .logout-btn {
-        background-color: #dc3545;
+        background-color: #0a1d44;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -79,12 +79,12 @@
         background-color: #6c757d;
     }
 
-    .back-btn:hover {
-        background-color: #5a6268;
-    }
+        .back-btn:hover {
+            background-color: #5a6268;
+        }
 
     .logout-btn:hover {
-        background-color: #c82333;
+        background-color: #09203f;
     }
 
     .main-content {
@@ -103,22 +103,23 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-top: 2rem;
+        z-index:2;
     }
 
-    .form-container h1 {
-        font-size: 2.5rem;
-        font-weight: 500;
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
+        .form-container h1 {
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: #0a1d44;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
 
-    .form-container .subtitle {
-        font-size: 1.1rem;
-        color: #666;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
+        .form-container .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
     .form-group {
         margin-bottom: 1.5rem;
@@ -141,34 +142,16 @@
         transition: border-color 0.3s ease;
     }
 
-    .form-control:focus {
-        outline: none;
-        border-color: #0a1d44;
-        box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-    }
+        .form-control:focus {
+            outline: none;
+            border-color: #0a1d44;
+            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
+        }
 
     .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
-    }
-
-    .file-upload {
-        border: 2px dashed #ddd;
-        border-radius: 4px;
-        padding: 2rem;
-        text-align: center;
-        transition: border-color 0.3s ease;
-        cursor: pointer;
-    }
-
-    .file-upload:hover {
-        border-color: #0a1d44;
-    }
-
-    .file-upload.has-file {
-        border-color: #28a745;
-        background-color: #f8fff9;
     }
 
     .btn {
@@ -188,18 +171,18 @@
         color: white;
     }
 
-    .btn-primary:hover {
-        background-color: #081527;
-    }
+        .btn-primary:hover {
+            background-color: #081527;
+        }
 
     .btn-secondary {
         background-color: #6c757d;
         color: white;
     }
 
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
 
     .btn:disabled {
         opacity: 0.6;
@@ -233,41 +216,69 @@
 
     .triangle-bg {
         position: fixed;
-        bottom: 0;
-        right: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: -1;
-        opacity: 0.1;
+        top: 115px;
+        right: -75px;
+        height: auto;
+        max-height: 90vh;
+        max-width: 40vw;
+        z-index: 0;
+        object-fit: contain;
+        pointer-events: none;
+        opacity: 0.3;
     }
 
     .required {
         color: #dc3545;
     }
+
+    /* --- Media Query para el tamaño intermedio (Tablets) --- */
+    @@media (max-width: 1199px) and (min-width: 769px) {
+        /* 1. Aseguramos que el layout principal sea horizontal */
+        .main-content {
+            flex-direction: row;
+            align-items: center; /* Centra los elementos verticalmente */
+            justify-content: center; /* Mantiene el espacio entre ellos */
+            padding: 2rem; /* Un padding adecuado para este tamaño */
+        }
+        /* 4. La clave: Ocultamos los triángulos en este tamaño */
+        .triangle-bg {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+        }
+
+        .triangle-bg {
+            display: none;
+        }
+    }
 </style>
 
 <body>
-    <header class="header">
+    <div class="header">
         <div class="branding">
-            <img src="/images/Sena_Colombia_logo.png" alt="SENA Logo" class="logo" />
+            <img src="/images/logoSIGAD.png" alt="Logo" class="logo" />
+            <h1>SIGAD</h1>
         </div>
         <div class="user-profile">
-            <img src="/images/IconoUser.png" alt="User Avatar" />
+            <a href="/gestion-documentos" class="back-btn">← Volver a Gestión</a>
             <span>@nombreUsuario</span>
-            <button class="back-btn" @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
-                Volver
-            </button>
-            <button class="logout-btn" @onclick="Logout">
-                Cerrar Sesión
-            </button>
+            <img src="/images/IconoUser.png" alt="Usuario" />
+            <button class="logout-btn" @onclick="Logout">Salir</button>
         </div>
-    </header>
+    </div>
 
     <div class="main-content">
         <div class="form-container">
-            <h1>🎓 Agregar Curso</h1>
-            <p class="subtitle">Complete la información del curso para incluirlo en su solicitud de ascenso</p>
+            <h1>@(Id.HasValue ? "✏️ Editar Curso" : "🎓 Agregar Curso")</h1>
+            <p class="subtitle">
+                @(Id.HasValue ? "Modifique los datos del curso" : "Complete la información del curso para incluirlo en su solicitud de ascenso")
+            </p>
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {
@@ -275,11 +286,10 @@
                     @errorMessage
                 </div>
             }
-
-            @if (cursoCreado)
+            @if (cursoGuardado)
             {
                 <div class="alert alert-success">
-                    ✅ Curso agregado exitosamente. Redirigiendo...
+                    ✅ @(Id.HasValue ? "Curso editado exitosamente. Redirigiendo..." : "Curso agregado exitosamente. Redirigiendo...")
                 </div>
             }
             else
@@ -288,11 +298,19 @@
                     <DataAnnotationsValidator />
 
                     <div class="form-group">
+                        <label class="form-label">¿Tipo de curso? <span class="required">*</span></label>
+                        <InputRadioGroup @bind-Value="cursoModel.ImpartidoPorDocente">
+                            <InputRadio Value="false" /> Recibido
+                            <InputRadio Value="true" /> Impartido (dictado por usted)
+                        </InputRadioGroup>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">
                             Nombre del Curso <span class="required">*</span>
                         </label>
-                        <InputText @bind-Value="cursoModel.Nombre" class="form-control" 
-                                 placeholder="Ej: Desarrollo de Software con .NET" />
+                        <InputText @bind-Value="cursoModel.Nombre" class="form-control"
+                                   placeholder="Ej: Desarrollo de Software con .NET" />
                         <ValidationMessage For="@(() => cursoModel.Nombre)" />
                     </div>
 
@@ -316,46 +334,95 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">
-                                Horas Académicas <span class="required">*</span>
+                            <label class="form-label checkbox-label">
+                                <InputCheckbox @bind-Value="cursoModel.ImpartidoPorDocente" 
+                                             class="form-check-input"
+                                             @onchange="OnImpartidoPorDocenteChange" />
+                                ¿Es un curso impartido por usted? 
+                                <small class="text-muted">(Marque si usted dictó este curso)</small>
                             </label>
-                            <InputNumber @bind-Value="cursoModel.HorasAcademicas" class="form-control" 
-                                       placeholder="Ej: 40" min="1" max="1000" />
-                            <ValidationMessage For="@(() => cursoModel.HorasAcademicas)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">
-                                Organización <span class="required">*</span>
-                            </label>
-                            <InputText @bind-Value="cursoModel.OrganizacionNombre" class="form-control" 
-                                     placeholder="Ej: SENA, Universidad Nacional" />
-                            <ValidationMessage For="@(() => cursoModel.OrganizacionNombre)" />
                         </div>
                     </div>
 
-                                        <div class="form-group">
-                        <label class="form-label">Certificado <span class="required">*</span></label>
-                        <InputFile OnChange="@OnFileSelected" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                        @if (!string.IsNullOrEmpty(archivoSeleccionado))
+                    <div class="form-row">
+                        @if (cursoModel.ImpartidoPorDocente)
                         {
-                            <p>Archivo: @archivoSeleccionado</p>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Horas Impartidas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.HorasImpartidas" class="form-control"
+                                             placeholder="Ej: 20" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.HorasImpartidas)" />
+                                <small class="text-muted">Horas que usted impartió como instructor</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Número de Horas <span class="required">*</span>
+                                </label>
+                                <InputNumber @bind-Value="cursoModel.NumeroHoras" class="form-control"
+                                             placeholder="Ej: 40" min="1" max="1000" />
+                                <ValidationMessage For="@(() => cursoModel.NumeroHoras)" />
+                                <small class="text-muted">Horas de capacitación que usted recibió</small>
+                            </div>
+                        }
+                        <div class="form-group">
+                            <label class="form-label">
+                                Tipo de Curso <span class="required">*</span>
+                            </label>
+                            <InputText @bind-Value="cursoModel.TipoCurso" class="form-control"
+                                       placeholder="Ej: Diplomado, Seminario, Taller" />
+                            <ValidationMessage For="@(() => cursoModel.TipoCurso)" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            Organización <span class="required">*</span>
+                        </label>
+                        <InputSelect @bind-Value="cursoModel.OrganizacionId" class="form-control">
+                            <option value="">Seleccione una organización</option>
+                            @foreach (var org in organizaciones)
+                            {
+                                <option value="@org.Id">@org.Nombre</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => cursoModel.OrganizacionId)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Certificado <span class="required">*</span></label>
+                        <InputFile OnChange="@OnCertificadoSelected" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                        @if (!string.IsNullOrEmpty(certificadoSeleccionado))
+                        {
+                            <p>Archivo: @certificadoSeleccionado</p>
+                        }
+                        @if (!string.IsNullOrEmpty(cursoModel.CertificadoRuta) && string.IsNullOrEmpty(certificadoSeleccionado))
+                        {
+                            <p>
+                                Archivo actual:
+                                <a href="@($"https://localhost:7072/uploads/{cursoModel.CertificadoRuta}")" target="_blank">
+                                    @Path.GetFileName(cursoModel.CertificadoRuta)
+                                </a>
+                            </p>
                         }
                     </div>
 
                     <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" 
-                                @onclick="@(() => Navigation.NavigateTo("/gestion-documentos"))">
+                        <button type="button" class="btn btn-secondary"
+                                @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || archivoFormulario == null)">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando curso...</span>
                             }
                             else
                             {
-                                <span>Guardar Curso</span>
+                                <span>@(Id.HasValue ? "Guardar Cambios" : "Guardar Curso")</span>
                             }
                         </button>
                     </div>
@@ -368,23 +435,90 @@
 </body>
 
 @code {
-    // Variables para información del usuario
+    [Parameter] public int? Id { get; set; }
+
     private string nombreUsuario = "";
-
-    // Variables para el formulario
     private CursoModel cursoModel = new();
-    private IBrowserFile? archivoFormulario;
-    private string archivoSeleccionado = "";
-
-    // Variables de estado
     private bool enviandoFormulario = false;
-    private bool cursoCreado = false;
+    private bool cursoGuardado = false;
     private string? errorMessage;
+    private IBrowserFile? certificadoFile;
+    private string certificadoSeleccionado = "";
+    private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
+
+    // Lista de organizaciones de ejemplo
+    private List<OrganizacionModel> organizaciones = new()
+    {
+        new OrganizacionModel { Id = 1, Nombre = "Ministerio de Educación" },
+        new OrganizacionModel { Id = 2, Nombre = "Ministerio de Tecnologías" },
+        new OrganizacionModel { Id = 3, Nombre = "Agencia Nacional de Innovación" },
+        new OrganizacionModel { Id = 4, Nombre = "UNESCO" },
+        new OrganizacionModel { Id = 5, Nombre = "SENA" }
+    };
+
+    private void OnCertificadoSelected(InputFileChangeEventArgs e)
+    {
+        certificadoFile = e.File;
+        certificadoSeleccionado = e.File.Name;
+
+        // Validar tamaño (10MB)
+        if (certificadoFile.Size > 10 * 1024 * 1024)
+        {
+            errorMessage = "El archivo es demasiado grande. Máximo permitido: 10MB";
+            certificadoFile = null;
+            certificadoSeleccionado = "";
+            return;
+        }
+
+        // Validar extensión
+        var extension = Path.GetExtension(certificadoFile.Name).ToLower();
+        var extensionesPermitidas = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+        if (!extensionesPermitidas.Contains(extension))
+        {
+            errorMessage = "Formato de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC o DOCX";
+            certificadoFile = null;
+            certificadoSeleccionado = "";
+            return;
+        }
+
+        errorMessage = null;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer parámetro returnTo de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+        var returnToParam = queryParams["returnTo"];
+        if (!string.IsNullOrEmpty(returnToParam))
+        {
+            returnTo = returnToParam;
+        }
+
         await CargarInformacionUsuario();
-        await VerificarSolicitudActiva();
+
+        if (Id.HasValue)
+        {
+            // Cargar datos del curso para edición
+            var response = await Http.GetAsync($"api/cursos/{Id.Value}");
+            if (response.IsSuccessStatusCode)
+            {
+                var curso = await response.Content.ReadFromJsonAsync<CursoModel>();
+                if (curso != null)
+                {
+                    cursoModel = curso;
+                }
+            }
+            else
+            {
+                errorMessage = "No se pudo cargar el curso para editar.";
+            }
+        }
+        else
+        {
+            await VerificarSolicitudActiva();
+        }
     }
 
     private async Task VerificarSolicitudActiva()
@@ -422,46 +556,31 @@
         }
     }
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
-    {
-        archivoFormulario = e.File;
-        archivoSeleccionado = e.File.Name;
-        
-        // Validar tamaño del archivo (25MB)
-        if (archivoFormulario.Size > 25 * 1024 * 1024)
-        {
-            errorMessage = "El archivo es demasiado grande. Máximo permitido: 25MB";
-            archivoFormulario = null;
-            archivoSeleccionado = "";
-            return;
-        }
-
-        // Validar extensión
-        var extension = Path.GetExtension(archivoFormulario.Name).ToLower();
-        var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
-        
-        if (!extensionesPermitidas.Contains(extension))
-        {
-            errorMessage = "Formato de archivo no permitido. Use: PDF, DOC, DOCX, JPG o PNG";
-            archivoFormulario = null;
-            archivoSeleccionado = "";
-            return;
-        }
-
-        errorMessage = null;
-        StateHasChanged();
-    }
-
     private async Task HandleSubmit()
     {
-        if (enviandoFormulario || archivoFormulario == null) return;
+        if (enviandoFormulario) return;
 
         enviandoFormulario = true;
         errorMessage = null;
 
+        // Validar organización seleccionada
+        if (cursoModel.OrganizacionId == null || cursoModel.OrganizacionId <= 0)
+        {
+            errorMessage = "Debe seleccionar una organización válida.";
+            enviandoFormulario = false;
+            return;
+        }
+
+        // Validar archivo (obligatorio al agregar, opcional al editar)
+        if (!Id.HasValue && certificadoFile == null)
+        {
+            errorMessage = "Debe adjuntar el archivo de certificado.";
+            enviandoFormulario = false;
+            return;
+        }
+
         try
         {
-            // Obtener cédula del usuario actual
             var cedula = await ObtenerCedulaUsuario();
             if (string.IsNullOrEmpty(cedula))
             {
@@ -469,47 +588,100 @@
                 return;
             }
 
-            // Obtener el ID real de la solicitud activa
-            var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-            if (string.IsNullOrEmpty(solicitudIdString))
+            if (Id.HasValue)
             {
-                errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                return;
-            }
+                // EDITAR CURSO
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(cursoModel.Nombre), "Nombre");
+                content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
+                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
+                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
+                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
+                content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+                content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(Id.Value.ToString()), "Id");
 
-            // Crear el formulario multipart
-            using var content = new MultipartFormDataContent();
-            
-            // Campos requeridos por CrearCursoDto
-            content.Add(new StringContent(cursoModel.Nombre), "Nombre");
-            content.Add(new StringContent(cursoModel.OrganizacionNombre), "OrganizacionNombre");
-            content.Add(new StringContent(cursoModel.HorasAcademicas.ToString()), "NumeroHoras");
-            content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
-            content.Add(new StringContent(cedula), "DocenteCedula");
-            content.Add(new StringContent(solicitudIdString), "SolicitudId");
+                // Adjuntar archivo solo si el usuario seleccionó uno nuevo
+                if (certificadoFile != null)
+                {
+                    var stream = certificadoFile.OpenReadStream(10 * 1024 * 1024);
+                    content.Add(new StreamContent(stream), "certificado", certificadoFile.Name);
+                }
 
-            // Agregar el archivo
-            var fileContent = new StreamContent(archivoFormulario.OpenReadStream(maxAllowedSize: 25 * 1024 * 1024));
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);
-            content.Add(fileContent, "certificado", archivoFormulario.Name);
+                var response = await Http.PutAsync($"api/cursos/{Id.Value}", content);
 
-            // Enviar la solicitud
-            var response = await Http.PostAsync("api/cursos", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                cursoCreado = true;
-                
-                // Redirigir después de 3 segundos
-                await Task.Delay(3000);
-                Navigation.NavigateTo("/gestion-documentos");
+                if (response.IsSuccessStatusCode)
+                {
+                    cursoGuardado = true;
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo(GetReturnUrl());
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al actualizar el curso: {errorContent}";
+                }
             }
             else
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Error al guardar el curso: {errorContent}";
+                // AGREGAR CURSO
+                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
+                if (string.IsNullOrEmpty(solicitudIdString))
+                {
+                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
+                    return;
+                }
+
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(cursoModel.Nombre), "Nombre");
+                
+                // Obtener el nombre de la organización a partir del ID seleccionado
+                var organizacionSeleccionada = organizaciones.FirstOrDefault(o => o.Id == cursoModel.OrganizacionId);
+                var organizacionNombre = organizacionSeleccionada?.Nombre ?? "";
+                content.Add(new StringContent(organizacionNombre), "OrganizacionNombre");
+                
+                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
+                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
+                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
+                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
+                content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+                content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                // No incluir SolicitudId para que el curso no se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
+
+                // Adjuntar archivo (obligatorio al agregar)
+                var stream = certificadoFile!.OpenReadStream(10 * 1024 * 1024);
+                content.Add(new StreamContent(stream), "certificado", certificadoFile!.Name);
+
+                var response = await Http.PostAsync("api/cursos", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Mostrar SweetAlert con cierre automático
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                    {
+                        position = "center",
+                        icon = "success",
+                        title = Id != null ? "¡Curso actualizado!" : "¡Curso guardado!",
+                        text = "La información se ha guardado correctamente",
+                        showConfirmButton = false,
+                        timer = 2000
+                    });
+                    
+                    // Esperar y redirigir
+                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                    Navigation.NavigateTo(GetReturnUrl());
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Error al guardar el curso: {errorContent}";
+                }
             }
         }
         catch (Exception ex)
@@ -520,6 +692,11 @@
         {
             enviandoFormulario = false;
         }
+    }
+
+    private string GetReturnUrl()
+    {
+        return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
     }
 
     private async Task<string?> ObtenerCedulaUsuario()
@@ -559,14 +736,42 @@
         }
     }
 
+    private void OnImpartidoPorDocenteChange(ChangeEventArgs e)
+    {
+        cursoModel.ImpartidoPorDocente = (bool)(e.Value ?? false);
+        
+        // Resetear valores cuando cambia el tipo
+        if (cursoModel.ImpartidoPorDocente)
+        {
+            cursoModel.NumeroHoras = 0; // Limpiar horas de capacitación
+        }
+        else
+        {
+            cursoModel.HorasImpartidas = 0; // Limpiar horas impartidas
+        }
+        
+        StateHasChanged(); // Refrescar la UI
+    }
+
     // Modelos
     public class CursoModel
     {
+        public int Id { get; set; }
         public string Nombre { get; set; } = "";
         public DateTime FechaInicio { get; set; } = DateTime.Today;
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddDays(30);
-        public int HorasAcademicas { get; set; } = 1;
-        public string OrganizacionNombre { get; set; } = "";
+        public int NumeroHoras { get; set; } = 0;
+        public int? HorasImpartidas { get; set; } = 0;
+        public bool ImpartidoPorDocente { get; set; } = false;
+        public int? OrganizacionId { get; set; }
+        public string TipoCurso { get; set; } = "";
+        public string? CertificadoRuta { get; set; }
+    }
+
+    public class OrganizacionModel
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
     }
 
     public class VerifyTokenResponse

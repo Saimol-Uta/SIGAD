@@ -4,6 +4,8 @@ namespace SIGAD.Application.DTOs
 {
     public class ActualizarInvestigacionDto
     {
+        public string DocenteCedula { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "El título es requerido")]
         [StringLength(200, ErrorMessage = "El título no puede exceder los 200 caracteres")]
         [Display(Name = "Título de la Investigación")]
@@ -28,5 +30,10 @@ namespace SIGAD.Application.DTOs
         [Range(1, 120, ErrorMessage = "Los meses deben estar entre 1 y 120")]
         [Display(Name = "Meses de Investigación")]
         public int MesesDeInvestigacion { get; set; }
+
+        /// <summary>
+        /// Indica si la investigación es internacional (opcional, para validación de rangos principales)
+        /// </summary>
+        public bool EsInternacional { get; set; } = false;
     }
-} 
+}

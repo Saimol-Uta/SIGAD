@@ -44,6 +44,42 @@ namespace SIGAD.Infrastructure.Repositories
             return await _context.SolicitudesAscenso
                 .AsNoTracking()
                 .Include(s => s.Docente)
+                    .ThenInclude(d => d.Cuenta)
+                .Include(s => s.RangoActual)
+                .Include(s => s.RangoSolicitado)
+                .Include(s => s.ArticulosPorSolicitud)
+                    .ThenInclude(aps => aps.Articulo)
+                        .ThenInclude(a => a.Docente)
+                .Include(s => s.CursosPorSolicitud)
+                    .ThenInclude(cps => cps.Curso)
+                        .ThenInclude(c => c.Organizacion)
+                .Include(s => s.CursosPorSolicitud)
+                    .ThenInclude(cps => cps.Curso)
+                        .ThenInclude(c => c.Docente)
+                .Include(s => s.InvestigacionesPorSolicitud)
+                    .ThenInclude(ips => ips.Investigacion)
+                        .ThenInclude(i => i.Docente)
+                .Include(s => s.ExperienciaPorSolicitud)
+                    .ThenInclude(eps => eps.ExperienciaLaboral)
+                        .ThenInclude(el => el.Organizacion)
+                .Include(s => s.ExperienciaPorSolicitud)
+                    .ThenInclude(eps => eps.ExperienciaLaboral)
+                        .ThenInclude(el => el.Docente)
+                .Include(s => s.EvaluacionesPorSolicitud)
+                    .ThenInclude(evps => evps.Evaluacion)
+
+                 .Include(s => s.TesisPorSolicitud)
+            .ThenInclude(tps => tps.TesisDirigida)
+
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
+        public async Task<SolicitudAscenso?> GetTrackedByIdWithDetailsAsync(Guid id)
+        {
+            return await _context.SolicitudesAscenso
+                // SIN .AsNoTracking()
+                .Include(s => s.Docente)
+                    .ThenInclude(d => d.Cuenta)
                 .Include(s => s.RangoActual)
                 .Include(s => s.RangoSolicitado)
                 .Include(s => s.ArticulosPorSolicitud)
@@ -211,6 +247,37 @@ namespace SIGAD.Infrastructure.Repositories
                 solicitud.Estado = EstadoSolicitud.Rechazada;
                 solicitud.FechaResolucion = DateTime.UtcNow;
                 solicitud.ObservacionesAdmin = observaciones;
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
+        // Métodos específicos para el proceso de dos etapas según Reglamento UTA
+        public async Task AprobarPorComisionAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.AprobarPorComision(observaciones);
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
+        public async Task AprobarPorConsejoAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.AprobarPorConsejo(observaciones);
+                _context.SolicitudesAscenso.Update(solicitud);
+            }
+        }
+
+        public async Task FinalizarProcesoAsync(Guid solicitudId, string? observaciones = null)
+        {
+            var solicitud = await _context.SolicitudesAscenso.FindAsync(solicitudId);
+            if (solicitud != null)
+            {
+                solicitud.FinalizarProceso(observaciones);
                 _context.SolicitudesAscenso.Update(solicitud);
             }
         }

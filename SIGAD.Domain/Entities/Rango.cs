@@ -13,13 +13,21 @@ namespace SIGAD.Domain.Entities
         // Constructor por defecto necesario para serialización/deserialización
         public Rango() { }
         public int Id { get; set; } // Mapea a: Id INT PRIMARY KEY
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
         public int ArticulosRequeridos { get; set; }
         public int AniosExperienciaRequeridos { get; set; }
         public int HorasCursoRequeridas { get; set; }
         public int MesesInvestigacionRequeridos { get; set; }
         public int TesisDirigidasRequeridas { get; set; }
         public decimal PuntajePromedioEvaluacionesRequerido { get; set; } // Mapea a: DECIMAL(5,2)
+
+        // CAMPOS ADICIONALES ESPECÍFICOS DEL REGLAMENTO UTA
+        public int HorasCapacitacionPedagogicaRequeridas { get; set; } = 0; // 25% de HorasCursoRequeridas
+        public int HorasCapacitacionImpartidaRequeridas { get; set; } = 0; // Para rangos principales (Art. tablas)
+        public int PublicacionesIdiomaExtranjeroRequeridas { get; set; } = 0; // Para rangos principales
+        public int ProyectosInternacionalesRequeridos { get; set; } = 0; // Para rangos principales
+        public bool RequiereArticuloEnGradoActual { get; set; } = false; // "durante el ejercicio de sus actividades en el grado"
+        public bool PermiteCoordinacionProyectos { get; set; } = false; // Para multiplcar tiempo por 1.5x o 2x
 
         // Propiedades de navegación
         // Un Rango puede ser el RangoActual en muchas solicitudes

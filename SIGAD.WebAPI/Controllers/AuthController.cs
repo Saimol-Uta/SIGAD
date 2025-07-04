@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SIGAD.Application.DTOs;
-using SIGAD.Application.Services;
-using System.ComponentModel.DataAnnotations;
-using SIGAD.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using SIGAD.Application.DTOs;
+using SIGAD.Application.Interfaces;
+using SIGAD.Application.Services;
+using SIGAD.Domain.Entities;
+using SIGAD.Infrastructure.Persistence;
+using System.ComponentModel.DataAnnotations;
 
 namespace SIGAD.WebAPI.Controllers
 {
@@ -55,12 +57,14 @@ namespace SIGAD.WebAPI.Controllers
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly SigadDbContext _context;
+        private readonly INotificacionService _notificacionService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger, SigadDbContext context)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, SigadDbContext context, INotificacionService notificacionService)
         {
             _authService = authService;
             _logger = logger;
             _context = context;
+            _notificacionService = notificacionService; // <-- Y AQUÍ
         }
 
         /// <summary>
@@ -111,6 +115,63 @@ namespace SIGAD.WebAPI.Controllers
                     success = false,
                     message = "Error al conectar con la base de datos",
                     error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// PRUEBA EL ENVÍO DE CORREO USANDO LA PLANTILLA HTML.
+        /// </summary>
+        [HttpPost("test-html-email")]
+        [AllowAnonymous]
+        public async Task<IActionResult> TestHtmlEmail([FromBody] TestHtmlEmailDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando envío de correo de prueba con plantilla a: {ToEmail}", dto.ToEmail);
+
+                // 1. Creamos un objeto "falso" de SolicitudAscenso con los datos necesarios
+                //    para que el NotificacionService pueda trabajar. No viene de la BD.
+                var dummySolicitud = new SolicitudAscenso
+                {
+                    Docente = new Docente
+                    {
+                        Nombre1 = dto.DocenteNombre,
+                        Apellido1 = "", // No es necesario para la plantilla
+                        Cuenta = new Cuenta { Correo = dto.ToEmail }
+                    },
+                    RangoSolicitado = new Rango { Nombre = dto.RangoNombre },
+                    DocenteCedula = "1234567890" // Valor de relleno
+                };
+
+                // 2. Llamamos al método correspondiente del servicio de notificación
+                if (dto.EsAprobacion)
+                {
+                    await _notificacionService.EnviarNotificacionAprobacionAsync(dummySolicitud, dto.Observaciones);
+                }
+                else
+                {
+                    await _notificacionService.EnviarNotificacionRechazoAsync(dummySolicitud, dto.Observaciones);
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Intento de envío de correo con plantilla a {dto.ToEmail} completado."
+                });
+            }
+            catch (Exception ex)
+            {
+                // Si algo falla, este bloque nos dirá exactamente qué es.
+                _logger.LogError(ex, "FALLO el envío del correo de prueba con plantilla a {ToEmail}", dto.ToEmail);
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Ocurrió un error al procesar la notificación.",
+                    errorType = ex.GetType().Name, // Nos dice si es FileNotFoundException, SmtpException, etc.
+                    errorMessage = ex.Message,
                     innerError = ex.InnerException?.Message
                 });
             }
@@ -317,6 +378,8 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+
+
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             try
@@ -389,12 +452,12 @@ namespace SIGAD.WebAPI.Controllers
             // El middleware de JWT ya validó el token si llegamos aquí
             var correo = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var rol = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            var cedula = User.FindFirst("cedula")?.Value;
+            var cedula = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("cedula")?.Value; // Fallback para compatibilidad
             var nombre1 = User.FindFirst("nombre1")?.Value;
             var nombre2 = User.FindFirst("nombre2")?.Value;
             var apellido1 = User.FindFirst("apellido1")?.Value;
             var apellido2 = User.FindFirst("apellido2")?.Value;
-            var nombreCompleto = User.FindFirst("nombreCompleto")?.Value;
+            var nombreCompleto = User.FindFirst("NombreCompleto")?.Value ?? User.FindFirst("nombreCompleto")?.Value; // Fallback para compatibilidad
             var rangoId = User.FindFirst("rangoId")?.Value;
             var rangoNombre = User.FindFirst("rangoNombre")?.Value;
 
@@ -453,7 +516,7 @@ namespace SIGAD.WebAPI.Controllers
                     _logger.LogInformation("Eliminando {Count} rangos existentes", existingRangos.Count);
                     await _context.SaveChangesAsync();
                 }                // Crear rangos según el Reglamento para la Promoción del Personal Académico Titular de la UTA
-                // Resolución 0677-CU-P-2023
+                // Resolución 0677-CU-P-2023 - CAMPOS COMPLETOS
                 var rangosReglamento = new[]
                 {
                     // TITULAR AUXILIAR 1 - Rango inicial (sin requisitos previos para promoción)
@@ -464,84 +527,140 @@ namespace SIGAD.WebAPI.Controllers
                         HorasCursoRequeridas = 0,
                         MesesInvestigacionRequeridos = 0,
                         TesisDirigidasRequeridas = 0,
-                        PuntajePromedioEvaluacionesRequerido = 0.0m
+                        PuntajePromedioEvaluacionesRequerido = 0.0m,
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 0,
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = false,
+                        PermiteCoordinacionProyectos = false
                     },
                     
-                    // TITULAR AUXILIAR 2 - Anexo 1, Página 7
+                    // TITULAR AUXILIAR 2 - Anexo 1, Promoción de auxiliar 1 a auxiliar 2
                     new {
                         Nombre = "Titular Auxiliar 2",
                         ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
                         AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 1
-                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación total
                         MesesInvestigacionRequeridos = 0,  // No especifica proyectos de investigación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 24,  // 25% de 96h = 24h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,  // "durante el ejercicio de sus actividades en el grado"
+                        PermiteCoordinacionProyectos = false
                     },
                     
-                    // TITULAR AGREGADO 1 - Anexo 1, Página 8  
+                    // TITULAR AGREGADO 1 - Promoción de auxiliar 2 a agregado 1  
                     new {
                         Nombre = "Titular Agregado 1",
                         ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular auxiliar 2
-                        HorasCursoRequeridas = 96,  // 96 horas de capacitación (25% pedagógica = 24h)
+                        HorasCursoRequeridas = 96,  // 96 horas de capacitación total
                         MesesInvestigacionRequeridos = 12,  // 12 meses en proyectos de investigación/vinculación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 24,  // 25% de 96h = 24h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
-                    // TITULAR AGREGADO 2 - Anexo 1, Página 9
+                    // TITULAR AGREGADO 2 - Promoción de agregado 1 a agregado 2
                     new {
                         Nombre = "Titular Agregado 2",
                         ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 1
-                        HorasCursoRequeridas = 128,  // 128 horas de capacitación (25% pedagógica = 32h)
+                        HorasCursoRequeridas = 128,  // 128 horas de capacitación total
                         MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
                         TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 32,  // 25% de 128h = 32h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
-                    // TITULAR AGREGADO 3 - Anexo 1, Página 10
+                    // TITULAR AGREGADO 3 - Promoción de agregado 2 a agregado 3
                     new {
                         Nombre = "Titular Agregado 3",
                         ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
                         AniosExperienciaRequeridos = 4,  // 4 años como titular agregado 2
-                        HorasCursoRequeridas = 160,  // 160 horas de capacitación (25% pedagógica = 40h)
+                        HorasCursoRequeridas = 160,  // 160 horas de capacitación total
                         MesesInvestigacionRequeridos = 24,  // 24 meses en proyectos de investigación/vinculación
-                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        TesisDirigidasRequeridas = 0,  // No requiere dirección de tesis (solo para principales)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos del reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 40,  // 25% de 160h = 40h pedagógicas
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x1.5
                     },
                     
-                    // TITULAR PRINCIPAL 1 - Anexo 1, Página 11
+                    // TITULAR PRINCIPAL 1 - No aparece en el Anexo 1 del reglamento UTA
                     new {
                         Nombre = "Titular Principal 1",
-                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (1 en idioma extranjero)
-                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
-                        HorasCursoRequeridas = 224,  // 224 horas de capacitación (25% pedagógica = 56h) + 40h impartidas
-                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
-                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        ArticulosRequeridos = 0,  // No especificado en el reglamento
+                        AniosExperienciaRequeridos = 0,  // No especificado en el reglamento
+                        HorasCursoRequeridas = 0,  // No especificado en el reglamento
+                        MesesInvestigacionRequeridos = 0,  // No especificado en el reglamento
+                        TesisDirigidasRequeridas = 0,  // No especificado en el reglamento
+                        PuntajePromedioEvaluacionesRequerido = 0.0m,  // No especificado en el reglamento
+                        // Campos adicionales - No especificados en el reglamento
+                        HorasCapacitacionPedagogicaRequeridas = 0,
+                        HorasCapacitacionImpartidaRequeridas = 0,
+                        PublicacionesIdiomaExtranjeroRequeridas = 0,
+                        ProyectosInternacionalesRequeridos = 0,
+                        RequiereArticuloEnGradoActual = false,
+                        PermiteCoordinacionProyectos = false
                     },
                     
-                    // TITULAR PRINCIPAL 2 - Anexo 1, Página 12
+                    // TITULAR PRINCIPAL 2 - Promoción de principal 1 a principal 2
                     new {
                         Nombre = "Titular Principal 2",
-                        ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
-                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 2
-                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (25% pedagógica = 64h) + 80h impartidas
-                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos de investigación
-                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas/codirigidas
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (según reglamento)
+                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
+                        HorasCursoRequeridas = 224,  // 224 horas de capacitación total (según reglamento)
+                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
+                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas (según reglamento)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral
+                        // Campos adicionales específicos para rangos principales
+                        HorasCapacitacionPedagogicaRequeridas = 56,  // 25% de 224h = 56h pedagógicas (según reglamento)
+                        HorasCapacitacionImpartidaRequeridas = 40,  // 40h capacitación impartida (según reglamento)
+                        PublicacionesIdiomaExtranjeroRequeridas = 1,  // 1 publicación en idioma extranjero (según reglamento)
+                        ProyectosInternacionalesRequeridos = 1,  // Al menos 1 proyecto internacional
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x2
                     },
                     
                     // TITULAR PRINCIPAL 3 - Rango máximo (sin promoción posterior)
                     new {
                         Nombre = "Titular Principal 3",
-                        ArticulosRequeridos = 15,  // Estimado para el rango máximo
-                        AniosExperienciaRequeridos = 25,  // Estimado para el rango máximo
-                        HorasCursoRequeridas = 300,  // Estimado para el rango máximo
-                        MesesInvestigacionRequeridos = 48,  // Estimado para el rango máximo
-                        TesisDirigidasRequeridas = 5,  // Estimado para el rango máximo
-                        PuntajePromedioEvaluacionesRequerido = 80.0m  // Estimado para el rango máximo
+                        ArticulosRequeridos = 12,  // 12 obras de relevancia (según reglamento)
+                        AniosExperienciaRequeridos = 3,  // 3 años como principal 2 (según reglamento)
+                        HorasCursoRequeridas = 256,  // 256 horas de capacitación (según reglamento)
+                        MesesInvestigacionRequeridos = 36,  // 36 meses dirigiendo proyectos (según reglamento)
+                        TesisDirigidasRequeridas = 3,  // 3 tesis de doctorado dirigidas (según reglamento)
+                        PuntajePromedioEvaluacionesRequerido = 75.0m,  // 75% en evaluación integral (según reglamento)
+                        // Campos adicionales para el rango máximo
+                        HorasCapacitacionPedagogicaRequeridas = 64,  // 25% de 256h = 64h pedagógicas (según reglamento)
+                        HorasCapacitacionImpartidaRequeridas = 80,  // 80h capacitación impartida (según reglamento)
+                        PublicacionesIdiomaExtranjeroRequeridas = 2,  // 2 publicaciones en idioma extranjero (según reglamento)
+                        ProyectosInternacionalesRequeridos = 2,  // 2 proyectos internacionales (según reglamento)
+                        RequiereArticuloEnGradoActual = true,
+                        PermiteCoordinacionProyectos = true  // Coordinación permite multiplicar tiempo x2
                     }
                 };
 
@@ -558,7 +677,14 @@ namespace SIGAD.WebAPI.Controllers
                         HorasCursoRequeridas = rango.HorasCursoRequeridas,
                         MesesInvestigacionRequeridos = rango.MesesInvestigacionRequeridos,
                         TesisDirigidasRequeridas = rango.TesisDirigidasRequeridas,
-                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido
+                        PuntajePromedioEvaluacionesRequerido = rango.PuntajePromedioEvaluacionesRequerido,
+                        // Campos adicionales del reglamento UTA
+                        HorasCapacitacionPedagogicaRequeridas = rango.HorasCapacitacionPedagogicaRequeridas,
+                        HorasCapacitacionImpartidaRequeridas = rango.HorasCapacitacionImpartidaRequeridas,
+                        PublicacionesIdiomaExtranjeroRequeridas = rango.PublicacionesIdiomaExtranjeroRequeridas,
+                        ProyectosInternacionalesRequeridos = rango.ProyectosInternacionalesRequeridos,
+                        RequiereArticuloEnGradoActual = rango.RequiereArticuloEnGradoActual,
+                        PermiteCoordinacionProyectos = rango.PermiteCoordinacionProyectos
                     };
 
                     _context.Rangos.Add(newRango);
@@ -576,7 +702,14 @@ namespace SIGAD.WebAPI.Controllers
                     horasCurso = r.HorasCursoRequeridas,
                     mesesInvestigacion = r.MesesInvestigacionRequeridos,
                     tesisDirigidas = r.TesisDirigidasRequeridas,
-                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido
+                    puntajePromedio = r.PuntajePromedioEvaluacionesRequerido,
+                    // Campos adicionales del reglamento UTA
+                    horasCapacitacionPedagogica = r.HorasCapacitacionPedagogicaRequeridas,
+                    horasCapacitacionImpartida = r.HorasCapacitacionImpartidaRequeridas,
+                    publicacionesIdiomaExtranjero = r.PublicacionesIdiomaExtranjeroRequeridas,
+                    proyectosInternacionales = r.ProyectosInternacionalesRequeridos,
+                    requiereArticuloEnGradoActual = r.RequiereArticuloEnGradoActual,
+                    permiteCoordinacionProyectos = r.PermiteCoordinacionProyectos
                 }).ToList<object>(); _logger.LogInformation("Rangos académicos UTA creados exitosamente según Resolución 0677-CU-P-2023. Registros guardados: {Count}", savedRecords);
 
                 return Ok(new
@@ -1243,11 +1376,14 @@ namespace SIGAD.WebAPI.Controllers
         /// <returns>Estado de verificación de requisitos</returns>
         private async Task<(bool cumple, List<string> requisitosFaltantes, object valoresActuales, object valoresRequeridos)> VerificarRequisitosRangoAsync(Guid solicitudId, SIGAD.Domain.Entities.Rango rango)
         {
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando verificación de requisitos para solicitud {solicitudId}, rango {rango.Nombre}");
+            Console.WriteLine($"🔍 DEBUG Backend - Requisitos del rango '{rango.Nombre}': Art={rango.ArticulosRequeridos}, Exp={rango.AniosExperienciaRequeridos}, Cur={rango.HorasCursoRequeridas}, Inv={rango.MesesInvestigacionRequeridos}, Eval={rango.PuntajePromedioEvaluacionesRequerido}, Tesis={rango.TesisDirigidasRequeridas}");
             var requisitosFaltantes = new List<string>();
 
             // 1. VERIFICAR ARTÍCULOS
             var articulosCount = await _context.ArticulosPorSolicitud
                 .CountAsync(aps => aps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Artículos encontrados: {articulosCount}, requeridos: {rango.ArticulosRequeridos}");
 
             // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
             var experienciasLaborales = await _context.ExperienciasPorSolicitud
@@ -1257,53 +1393,78 @@ namespace SIGAD.WebAPI.Controllers
                 .ToListAsync();
 
             var totalAniosExperiencia = CalcularTotalAniosExperiencia(experienciasLaborales);
+            Console.WriteLine($"🔍 DEBUG Backend - Años de experiencia calculados: {totalAniosExperiencia}, requeridos: {rango.AniosExperienciaRequeridos}");
 
-            // 3. VERIFICAR HORAS DE CURSOS (suma total)
+            // 3. VERIFICAR HORAS DE CURSOS SEGÚN EL RANGO SOLICITADO
             var cursos = await _context.CursosPorSolicitud
                 .Where(cps => cps.SolicitudId == solicitudId)
                 .Include(cps => cps.Curso)
                 .Select(cps => cps.Curso)
                 .ToListAsync();
 
-            var totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+            int totalHorasCursos = 0;
 
-            // 4. VERIFICAR MESES DE INVESTIGACIÓN (suma total)
+            // Para rangos 4 y superiores (Agregado 3, Principal 1, 2, 3): usar horas impartidas
+            if (rango.Id >= 5) // Asumiendo que rango 5+ son los avanzados
+            {
+                totalHorasCursos = cursos
+                    .Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue)
+                    .Sum(c => c.HorasImpartidas ?? 0);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas impartidas calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
+            }
+            else
+            {
+                // Para rangos 1, 2, 3 (Auxiliar 1, 2 y Agregado 1, 2): usar horas de capacitación recibida
+                totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas de capacitación calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
+            }
+
+            // 4. VERIFICAR MESES DE INVESTIGACIÓN SEGÚN REGLAMENTO UTA (con multiplicadores por rol y proyectos internacionales)
             var investigaciones = await _context.InvestigacionesPorSolicitud
                 .Where(ips => ips.SolicitudId == solicitudId)
                 .Include(ips => ips.Investigacion)
                 .Select(ips => ips.Investigacion)
                 .ToListAsync();
 
-            var totalMesesInvestigacion = CalcularTotalMesesInvestigacion(investigaciones);
+            var resultadoInvestigacion = CalcularMesesInvestigacionConReglamento(investigaciones, rango);
+            var totalMesesInvestigacion = resultadoInvestigacion.mesesTotales;
+            var cumpleRequisitosInternacionales = resultadoInvestigacion.cumpleInternacionales;
+            Console.WriteLine($"🔍 DEBUG Backend - Meses de investigación calculados: {totalMesesInvestigacion}, requeridos: {rango.MesesInvestigacionRequeridos}");
+            Console.WriteLine($"🔍 DEBUG Backend - Cumple requisitos internacionales: {cumpleRequisitosInternacionales}");
 
-            // 5. VERIFICAR PROMEDIO DE EVALUACIONES (todas deben cumplir el mínimo)
+            // 5. VERIFICAR EVALUACIONES DOCENTES (al menos 75% promedio mínimo)
             var evaluaciones = await _context.EvaluacionesPorSolicitud
                 .Where(evps => evps.SolicitudId == solicitudId)
                 .Include(evps => evps.Evaluacion)
                 .Select(evps => evps.Evaluacion)
                 .ToListAsync();
 
-            var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e.PuntajePorcentual) : 0;
-            var todasEvaluacionesCumplen = evaluaciones.All(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido);
+            var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e?.PuntajePorcentual ?? 0) : 0;
+            var todasEvaluacionesCumplen = evaluaciones.All(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido);
+            Console.WriteLine($"🔍 DEBUG Backend - Evaluaciones encontradas: {evaluaciones.Count}, promedio: {promedioEvaluaciones:F1}%, requerido: {rango.PuntajePromedioEvaluacionesRequerido}%");
 
             // 6. VERIFICAR TESIS DIRIGIDAS
             var tesisCount = await _context.TesisPorSolicitud
                 .CountAsync(tps => tps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Tesis dirigidas encontradas: {tesisCount}, requeridas: {rango.TesisDirigidasRequeridas}");
 
             // VALIDAR CADA REQUISITO
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando validación de requisitos...");
             if (articulosCount < rango.ArticulosRequeridos)
             {
                 requisitosFaltantes.Add($"Artículos: Tiene {articulosCount}, requiere {rango.ArticulosRequeridos}");
             }
 
-            if (totalAniosExperiencia < rango.AniosExperienciaRequeridos)
+            // Usar tolerancia para comparación de decimales (0.1 años = aproximadamente 1 mes)
+            if (totalAniosExperiencia < (rango.AniosExperienciaRequeridos - 0.1m))
             {
                 requisitosFaltantes.Add($"Años de experiencia: Tiene {totalAniosExperiencia:F1}, requiere {rango.AniosExperienciaRequeridos}");
             }
 
             if (totalHorasCursos < rango.HorasCursoRequeridas)
             {
-                requisitosFaltantes.Add($"Horas de cursos: Tiene {totalHorasCursos}, requiere {rango.HorasCursoRequeridas}");
+                string tipoHoras = rango.Id >= 5 ? "impartidas" : "de capacitación";
+                requisitosFaltantes.Add($"Horas {tipoHoras} en cursos: Tiene {totalHorasCursos}, requiere {rango.HorasCursoRequeridas}");
             }
 
             if (totalMesesInvestigacion < rango.MesesInvestigacionRequeridos)
@@ -1311,10 +1472,25 @@ namespace SIGAD.WebAPI.Controllers
                 requisitosFaltantes.Add($"Meses de investigación: Tiene {totalMesesInvestigacion:F1}, requiere {rango.MesesInvestigacionRequeridos}");
             }
 
-            if (!todasEvaluacionesCumplen || promedioEvaluaciones < rango.PuntajePromedioEvaluacionesRequerido)
+            // Validar proyectos internacionales para rangos Principal
+            if (!cumpleRequisitosInternacionales)
             {
-                var evaluacionesIncumplidas = evaluaciones.Where(e => e.PuntajePorcentual < rango.PuntajePromedioEvaluacionesRequerido).Count();
-                requisitosFaltantes.Add($"Evaluaciones: Promedio {promedioEvaluaciones:F1}%, requiere {rango.PuntajePromedioEvaluacionesRequerido}%. {evaluacionesIncumplidas} evaluaciones no cumplen el mínimo");
+                if (rango.Id == 7) // Principal 2 (promoción de principal 1 a principal 2)
+                {
+                    requisitosFaltantes.Add("Principal 2: Debe tener al menos 1 proyecto internacional dirigido/codirigido (24 meses mínimo)");
+                }
+                else if (rango.Id == 8) // Principal 3 (promoción de principal 2 a principal 3)
+                {
+                    requisitosFaltantes.Add("Principal 3: Debe tener al menos 2 proyectos internacionales dirigidos/codirigidos (36 meses mínimo)");
+                }
+            }
+
+            // VALIDAR EVALUACIONES DOCENTES - NUEVA LÓGICA ESPECÍFICA
+            var validacionEvaluaciones = ValidarEvaluacionesParaSolicitud(evaluaciones);
+
+            if (!validacionEvaluaciones.esValida)
+            {
+                requisitosFaltantes.AddRange(validacionEvaluaciones.errores);
             }
 
             // VALIDAR TESIS DIRIGIDAS
@@ -1330,10 +1506,17 @@ namespace SIGAD.WebAPI.Controllers
                 aniosExperiencia = Math.Round(totalAniosExperiencia, 1),
                 horasCursos = totalHorasCursos,
                 mesesInvestigacion = Math.Round(totalMesesInvestigacion, 1),
+                proyectosInternacionales = resultadoInvestigacion.proyectosInternacionales,
+                cumpleRequisitosInternacionales = cumpleRequisitosInternacionales,
                 promedioEvaluaciones = Math.Round(promedioEvaluaciones, 1),
                 totalEvaluaciones = evaluaciones.Count,
-                evaluacionesCumplen = evaluaciones.Count(e => e.PuntajePorcentual >= rango.PuntajePromedioEvaluacionesRequerido),
-                tesisDirigidas = tesisCount
+                evaluacionesCumplen = evaluaciones.Count(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido),
+                tesisDirigidas = tesisCount,
+                // Campos adicionales del reglamento UTA (valores actuales - implementación básica)
+                horasCapacitacionPedagogica = CalcularHorasCapacitacionPedagogica(cursos),
+                horasCapacitacionImpartida = CalcularHorasCapacitacionImpartida(cursos),
+                publicacionesIdiomaExtranjero = 0, // TODO: Implementar lógica específica cuando sea necesario
+                proyectosInternacionalesCount = resultadoInvestigacion.proyectosInternacionales
             };
 
             var valoresRequeridos = new
@@ -1342,12 +1525,27 @@ namespace SIGAD.WebAPI.Controllers
                 aniosExperiencia = rango.AniosExperienciaRequeridos,
                 horasCursos = rango.HorasCursoRequeridas,
                 mesesInvestigacion = rango.MesesInvestigacionRequeridos,
+                proyectosInternacionalesRequeridos = GetProyectosInternacionalesRequeridos(rango.Id),
                 promedioEvaluaciones = rango.PuntajePromedioEvaluacionesRequerido,
                 rangoNombre = rango.Nombre,
-                tesisDirigidas = rango.TesisDirigidasRequeridas
+                tesisDirigidas = rango.TesisDirigidasRequeridas,
+                // Campos adicionales del reglamento UTA (valores requeridos)
+                horasCapacitacionPedagogica = rango.HorasCapacitacionPedagogicaRequeridas,
+                horasCapacitacionImpartida = rango.HorasCapacitacionImpartidaRequeridas,
+                publicacionesIdiomaExtranjero = rango.PublicacionesIdiomaExtranjeroRequeridas,
+                proyectosInternacionales = rango.ProyectosInternacionalesRequeridos,
+                requiereArticuloEnGradoActual = rango.RequiereArticuloEnGradoActual,
+                permiteCoordinacionProyectos = rango.PermiteCoordinacionProyectos,
+                notaEvaluaciones = "Pueden incluir las evaluaciones que consideren apropiadas, con promedio mínimo requerido",
+                notaInvestigacion = "Coordinador Principal = 2x tiempo, Coordinador Subrogante = 1.5x tiempo"
             };
 
-            return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
+            bool cumpleRequisitos = requisitosFaltantes.Count == 0;
+            Console.WriteLine($"🔍 DEBUG Backend - Resultado final:");
+            Console.WriteLine($"  - Cumple requisitos: {cumpleRequisitos}");
+            Console.WriteLine($"  - Requisitos faltantes ({requisitosFaltantes.Count}): [{string.Join(", ", requisitosFaltantes)}]");
+
+            return (cumpleRequisitos, requisitosFaltantes, valoresActuales, valoresRequeridos);
         }
 
         /// <summary>
@@ -1382,6 +1580,89 @@ namespace SIGAD.WebAPI.Controllers
             }
 
             return totalMeses;
+        }
+
+        /// <summary>
+        /// Calcula meses de investigación aplicando multiplicadores según el reglamento UTA y valida proyectos internacionales
+        /// </summary>
+        /// <param name="investigaciones">Lista de investigaciones</param>
+        /// <param name="rango">Rango solicitado</param>
+        /// <returns>Tupla con meses totales, cantidad de proyectos internacionales y si cumple requisitos</returns>
+        private (decimal mesesTotales, int proyectosInternacionales, bool cumpleInternacionales) CalcularMesesInvestigacionConReglamento(
+            List<SIGAD.Domain.Entities.Investigacion> investigaciones,
+            SIGAD.Domain.Entities.Rango rango)
+        {
+            decimal totalMeses = 0;
+            int proyectosInternacionales = 0;
+            decimal mesesInternacionales = 0;
+
+            foreach (var inv in investigaciones)
+            {
+                decimal mesesConMultiplicador = inv.MesesDeParticipacion;
+
+                // Aplicar multiplicadores según el rol en investigación
+                switch (inv.RolEnInvestigacion?.ToUpper())
+                {
+                    case "COORDINADOR PRINCIPAL":
+                    case "DIRECTOR":
+                    case "INVESTIGADOR PRINCIPAL":
+                        mesesConMultiplicador *= 2.0m; // Doble tiempo
+                        break;
+                    case "COORDINADOR SUBROGANTE":
+                    case "CODIRECTOR":
+                    case "INVESTIGADOR SUBROGANTE":
+                        mesesConMultiplicador *= 1.5m; // 1.5x tiempo
+                        break;
+                    default:
+                        // Investigador regular: 1x tiempo (sin multiplicador)
+                        break;
+                }
+
+                totalMeses += mesesConMultiplicador;
+
+                // Contar proyectos internacionales
+                if (inv.EsInternacional)
+                {
+                    proyectosInternacionales++;
+                    mesesInternacionales += mesesConMultiplicador;
+                }
+            }
+
+            // Validar requisitos internacionales según el rango
+            bool cumpleInternacionales = true;
+
+            switch (rango.Id)
+            {
+                case 7: // Principal 2 (promoción de principal 1 a principal 2)
+                    // Requiere al menos 1 proyecto internacional con 24+ meses
+                    cumpleInternacionales = proyectosInternacionales >= 1 && mesesInternacionales >= 24;
+                    break;
+                case 8: // Principal 3 (promoción de principal 2 a principal 3)
+                    // Requiere al menos 2 proyectos internacionales con 36+ meses total
+                    cumpleInternacionales = proyectosInternacionales >= 2 && mesesInternacionales >= 36;
+                    break;
+                default:
+                    // Para otros rangos no se requieren proyectos internacionales
+                    cumpleInternacionales = true;
+                    break;
+            }
+
+            return (totalMeses, proyectosInternacionales, cumpleInternacionales);
+        }
+
+        /// <summary>
+        /// Obtiene la cantidad de proyectos internacionales requeridos según el rango
+        /// </summary>
+        /// <param name="rangoId">ID del rango</param>
+        /// <returns>Cantidad de proyectos internacionales requeridos</returns>
+        private int GetProyectosInternacionalesRequeridos(int rangoId)
+        {
+            return rangoId switch
+            {
+                7 => 1, // Principal 2 (con al menos 24 meses)
+                8 => 2, // Principal 3 (con al menos 36 meses total)
+                _ => 0  // Otros rangos no requieren proyectos internacionales
+            };
         }
 
         /// <summary>
@@ -1517,5 +1798,129 @@ namespace SIGAD.WebAPI.Controllers
             return Ok(new { success = true, message = "Usuario temporal creado" });
         }
         */
+
+        /// <summary>
+        /// Valida que las evaluaciones docentes cumplan con los requisitos para una solicitud de ascenso:
+        /// - Exactamente 4 evaluaciones
+        /// - Todas en exactamente 2 años consecutivos (no puede ser un solo año)
+        /// - No permitir años futuros (solo años ≤ año actual)
+        /// - Promedio mínimo de 75%
+        /// </summary>
+        /// <param name="evaluaciones">Lista de evaluaciones asociadas a la solicitud</param>
+        /// <returns>Tupla con el resultado de validación y lista de errores</returns>
+        private (bool esValida, List<string> errores) ValidarEvaluacionesParaSolicitud(List<SIGAD.Domain.Entities.EvaluacionDocente?> evaluaciones)
+        {
+            var errores = new List<string>();
+            int anoActual = DateTime.Now.Year; // 2025
+
+            // Filtrar evaluaciones no nulas
+            var evaluacionesValidas = evaluaciones.Where(e => e != null).Cast<SIGAD.Domain.Entities.EvaluacionDocente>().ToList();
+
+            // 1. Verificar que tenga exactamente 4 evaluaciones
+            if (evaluacionesValidas.Count != 4)
+            {
+                errores.Add($"Evaluaciones: Se requieren exactamente 4 evaluaciones, pero tiene {evaluacionesValidas.Count}");
+                return (false, errores);
+            }
+
+            // 2. Obtener los años únicos de las evaluaciones
+            var anosEvaluaciones = evaluacionesValidas.Select(e => e.FechaEvaluacion.Year).Distinct().OrderBy(y => y).ToList();
+
+            // 3. Verificar que no haya años futuros
+            var anosFuturos = anosEvaluaciones.Where(ano => ano > anoActual).ToList();
+            if (anosFuturos.Any())
+            {
+                errores.Add($"Evaluaciones: No se permiten evaluaciones de años futuros. Años futuros encontrados: {string.Join(", ", anosFuturos)}. Año actual: {anoActual}");
+                return (false, errores);
+            }
+
+            // 4. Validar que sean EXACTAMENTE 2 años consecutivos (no puede ser un solo año)
+            if (anosEvaluaciones.Count == 1)
+            {
+                errores.Add($"Evaluaciones: Todas las evaluaciones son del año {anosEvaluaciones[0]}. Se requieren evaluaciones de exactamente 2 años consecutivos, no un solo año.");
+                return (false, errores);
+            }
+            else if (anosEvaluaciones.Count == 2)
+            {
+                int anoMenor = anosEvaluaciones[0];
+                int anoMayor = anosEvaluaciones[1];
+
+                if (anoMayor - anoMenor != 1)
+                {
+                    errores.Add($"Evaluaciones: Los años {anoMenor} y {anoMayor} no son consecutivos. Se requieren evaluaciones de exactamente 2 años consecutivos.");
+                    return (false, errores);
+                }
+
+                // Si llegamos aquí, tenemos exactamente 2 años consecutivos ✅
+            }
+            else
+            {
+                errores.Add($"Evaluaciones: Las evaluaciones abarcan {anosEvaluaciones.Count} años diferentes ({string.Join(", ", anosEvaluaciones)}). Se requieren evaluaciones de exactamente 2 años consecutivos.");
+                return (false, errores);
+            }
+
+            // 5. Verificar que el promedio sea al menos 75%
+            decimal promedioEvaluaciones = evaluacionesValidas.Average(e => e.PuntajePorcentual);
+
+            if (promedioEvaluaciones < 75.0m)
+            {
+                errores.Add($"Evaluaciones: El promedio es {promedioEvaluaciones:F1}%, pero se requiere un mínimo de 75%");
+            }
+
+            // Información adicional para debugging (solo si todo está bien)
+            if (errores.Count == 0)
+            {
+                string rangoDetectado = $"{anosEvaluaciones[0]}-{anosEvaluaciones[1]}";
+                _logger.LogInformation($"[VALIDACIÓN EVALUACIONES] ✅ Válidas: 4 evaluaciones, periodo: {rangoDetectado}, promedio: {promedioEvaluaciones:F1}%");
+            }
+            else
+            {
+                _logger.LogWarning($"[VALIDACIÓN EVALUACIONES] ❌ Errores: {string.Join(" | ", errores)}");
+            }
+
+            return (errores.Count == 0, errores);
+        }
+
+        /// <summary>
+        /// Calcula las horas de capacitación pedagógica (25% del total de horas de capacitación)
+        /// </summary>
+        private int CalcularHorasCapacitacionPedagogica(List<SIGAD.Domain.Entities.Curso> cursos)
+        {
+            // Filtrar solo cursos de capacitación pedagógica (no impartidos por el docente)
+            var cursosCapacitacion = cursos.Where(c => !c.ImpartidoPorDocente).ToList();
+            int totalHorasCapacitacion = cursosCapacitacion.Sum(c => c.NumeroHoras);
+
+            // Según el reglamento UTA, aproximadamente 25% deberían ser de capacitación pedagógica
+            // Por simplicidad, asumimos que 1/4 de las horas son pedagógicas
+            return (int)Math.Round(totalHorasCapacitacion * 0.25m);
+        }
+
+        /// <summary>
+        /// Calcula las horas de capacitación impartida por el docente
+        /// </summary>
+        private int CalcularHorasCapacitacionImpartida(List<SIGAD.Domain.Entities.Curso> cursos)
+        {
+            // Filtrar solo cursos impartidos por el docente
+            var cursosImpartidos = cursos.Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue).ToList();
+            return cursosImpartidos.Sum(c => c.HorasImpartidas ?? 0);
+        }
+    }
+
+    public class TestHtmlEmailDto
+    {
+        [Required]
+        [EmailAddress]
+        public string ToEmail { get; set; } = "tu.correo@ejemplo.com";
+
+        [Required]
+        public string DocenteNombre { get; set; } = "Juan Pérez";
+
+        [Required]
+        public string RangoNombre { get; set; } = "Titular Agregado 1";
+
+        public string Observaciones { get; set; } = "Prueba de envío con plantilla.";
+
+        // Para probar ambos casos (aprobado o rechazado)
+        public bool EsAprobacion { get; set; } = true;
     }
 }

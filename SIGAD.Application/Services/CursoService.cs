@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Interfaces;
 using SIGAD.Domain.Entities;
+using SIGAD.Domain.Enums;
 using SIGAD.Domain.Interfaces;
 using System.Security.Cryptography;
 
@@ -14,28 +15,20 @@ namespace SIGAD.Application.Services
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IOrganizacionRepository _organizacionRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IConfiguration _configuration;
-        private readonly string _fileStoragePath;
+        private readonly IFileStorageService _fileStorageService;
 
         public CursoService(
             ICursoRepository cursoRepository,
             ISolicitudAscensoRepository solicitudRepository,
             IOrganizacionRepository organizacionRepository,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IFileStorageService fileStorageService)
         {
             _cursoRepository = cursoRepository;
             _solicitudRepository = solicitudRepository;
             _organizacionRepository = organizacionRepository;
             _unitOfWork = unitOfWork;
-            _configuration = configuration;
-            _fileStoragePath = _configuration["FileStorage:CursosPath"] ?? "Files/Cursos";
-
-            // Crear directorio si no existe
-            if (!Directory.Exists(_fileStoragePath))
-            {
-                Directory.CreateDirectory(_fileStoragePath);
-            }
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<IEnumerable<CursoDto>> GetAllAsync()
@@ -68,39 +61,20 @@ namespace SIGAD.Application.Services
             if (certificado == null || certificado.Length == 0)
                 throw new ArgumentException("El certificado es obligatorio");
 
-            var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-            var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
-            
-            if (!allowedExtensions.Contains(extension))
-                throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
+            // Subir archivo usando FileStorageService
+            var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
+                certificado, 
+                "cursos", 
+                new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
+                10 * 1024 * 1024 // 10MB
+            );
 
-            if (certificado.Length > 10 * 1024 * 1024) // 10MB
-                throw new ArgumentException("El archivo no puede exceder los 10MB");
-
-            // Generar hash del contenido
-            string contentHash;
-            using (var stream = certificado.OpenReadStream())
+            // Verificar que la solicitud existe SOLO si se proporciona un SolicitudId
+            if (crearCursoDto.SolicitudId.HasValue && 
+                !await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId.Value))
             {
-                using (var sha256 = SHA256.Create())
-                {
-                    var hashBytes = sha256.ComputeHash(stream);
-                    contentHash = Convert.ToHexString(hashBytes);
-                }
-            }
-
-            // Generar nombre único para el archivo
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(_fileStoragePath, fileName);
-
-            // Guardar archivo
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await certificado.CopyToAsync(stream);
-            }
-
-            // Verificar que la solicitud existe
-            if (!await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId))
                 throw new ArgumentException("La solicitud especificada no existe");
+            }
 
             // Buscar o crear la organización
             var organizacion = await _organizacionRepository.GetByNombreAsync(crearCursoDto.OrganizacionNombre);
@@ -124,14 +98,21 @@ namespace SIGAD.Application.Services
                 NumeroHoras = crearCursoDto.NumeroHoras,
                 FechaFinalizacion = crearCursoDto.FechaFinalizacion,
                 DocenteCedula = crearCursoDto.DocenteCedula,
-                CertificadoRuta = filePath,
-                ContenidoHash = contentHash
+                CertificadoRuta = localPath,
+                UrlCloudinary = cloudinaryUrl,
+                ContenidoHash = contentHash,
+                TipoCurso = Enum.Parse<TipoCurso>(crearCursoDto.TipoCurso),
+                ImpartidoPorDocente = crearCursoDto.ImpartidoPorDocente,
+                HorasImpartidas = crearCursoDto.HorasImpartidas 
             };
 
             await _cursoRepository.AddAsync(curso);
 
-            // Asociar automáticamente a la solicitud
-            await _cursoRepository.AddToSolicitudAsync(crearCursoDto.SolicitudId, curso.Id);
+            // Asociar automáticamente a la solicitud SOLO si se proporciona un SolicitudId
+            if (crearCursoDto.SolicitudId.HasValue)
+            {
+                await _cursoRepository.AddToSolicitudAsync(crearCursoDto.SolicitudId.Value, curso.Id);
+            }
 
             // Obtener curso completo con relaciones
             var cursoCreado = await _cursoRepository.GetByIdAsync(curso.Id);
@@ -150,46 +131,26 @@ namespace SIGAD.Application.Services
             cursoExistente.NumeroHoras = actualizarCursoDto.NumeroHoras;
             cursoExistente.FechaFinalizacion = actualizarCursoDto.FechaFinalizacion;
             cursoExistente.DocenteCedula = actualizarCursoDto.DocenteCedula;
+            cursoExistente.TipoCurso = Enum.Parse<TipoCurso>(actualizarCursoDto.TipoCurso);
+            cursoExistente.ImpartidoPorDocente = actualizarCursoDto.ImpartidoPorDocente;
+            cursoExistente.HorasImpartidas = actualizarCursoDto.HorasImpartidas;
 
             // Si se proporciona nuevo certificado
             if (certificado != null && certificado.Length > 0)
             {
-                var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-                var extension = Path.GetExtension(certificado.FileName).ToLowerInvariant();
-                
-                if (!allowedExtensions.Contains(extension))
-                    throw new ArgumentException("Tipo de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC, DOCX");
-
-                if (certificado.Length > 10 * 1024 * 1024) // 10MB
-                    throw new ArgumentException("El archivo no puede exceder los 10MB");
-
                 // Eliminar archivo anterior
-                if (File.Exists(cursoExistente.CertificadoRuta))
-                {
-                    File.Delete(cursoExistente.CertificadoRuta);
-                }
+                await _fileStorageService.EliminarArchivoDualAsync(cursoExistente.CertificadoRuta, cursoExistente.UrlCloudinary);
 
-                // Generar nuevo hash
-                string contentHash;
-                using (var stream = certificado.OpenReadStream())
-                {
-                    using (var sha256 = SHA256.Create())
-                    {
-                        var hashBytes = sha256.ComputeHash(stream);
-                        contentHash = Convert.ToHexString(hashBytes);
-                    }
-                }
+                // Subir nuevo archivo
+                var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
+                    certificado, 
+                    "cursos", 
+                    new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
+                    10 * 1024 * 1024 // 10MB
+                );
 
-                // Guardar nuevo archivo
-                var fileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(_fileStoragePath, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await certificado.CopyToAsync(stream);
-                }
-
-                cursoExistente.CertificadoRuta = filePath;
+                cursoExistente.CertificadoRuta = localPath;
+                cursoExistente.UrlCloudinary = cloudinaryUrl;
                 cursoExistente.ContenidoHash = contentHash;
             }
 
@@ -206,11 +167,8 @@ namespace SIGAD.Application.Services
             if (curso == null)
                 return false;
 
-            // Eliminar archivo asociado
-            if (File.Exists(curso.CertificadoRuta))
-            {
-                File.Delete(curso.CertificadoRuta);
-            }
+            // Eliminar archivos duales
+            await _fileStorageService.EliminarArchivoDualAsync(curso.CertificadoRuta, curso.UrlCloudinary);
 
             await _cursoRepository.DeleteAsync(id);
             return true;
@@ -307,8 +265,20 @@ namespace SIGAD.Application.Services
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
                 CertificadoRuta = curso.CertificadoRuta,
+                UrlCloudinary = curso.UrlCloudinary,
                 ContenidoHash = curso.ContenidoHash,
-                OrganizacionId = curso.OrganizacionId
+                OrganizacionId = curso.OrganizacionId,
+                TipoCurso = curso.TipoCurso.ToString(),
+                ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                HorasImpartidas = curso.HorasImpartidas,
+                
+                // Mapeo de solicitudes asociadas
+                SolicitudId = curso.CursosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
+                Solicitudes = curso.CursosPorSolicitud?.Select(cs => new SolicitudBasicaDto
+                {
+                    SolicitudId = cs.SolicitudId.ToString(),
+                    Estado = cs.SolicitudAscenso?.Estado.ToString() ?? "Desconocido"
+                }).ToList()
             };
         }
 
@@ -325,8 +295,11 @@ namespace SIGAD.Application.Services
                     ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}" 
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
-                TieneCertificado = !string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta)
+                TieneCertificado = !string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta),
+                TipoCurso = curso.TipoCurso.ToString(),
+                ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                HorasImpartidas = curso.HorasImpartidas
             };
         }
     }
-} 
+}
