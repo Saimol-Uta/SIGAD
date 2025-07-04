@@ -27,6 +27,9 @@ namespace SIGAD.Application.DTOs
 
         [Display(Name = "Archivo")]
         public bool TieneCertificado { get; set; }
+        
+        public string CertificadoRuta { get; set; } = string.Empty;
+        
         [Display(Name = "Tipo Curso")]
         public string TipoCurso { get; set; } = string.Empty;
 

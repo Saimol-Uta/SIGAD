@@ -80,6 +80,7 @@ builder.Services.AddScoped<IRangoRepository, EfRangoRepository>();
 builder.Services.AddScoped<ICuentaRepository, EfCuentaRepository>();
 builder.Services.AddScoped<IDocenteRepository, EfDocenteRepository>();
 builder.Services.AddScoped<ISolicitudAscensoRepository, EfSolicitudAscensoRepository>();
+builder.Services.AddScoped<IApelacionRepository, EfApelacionRepository>();
 builder.Services.AddScoped<IArticuloRepository, EfArticuloRepository>();
 builder.Services.AddScoped<ICursoRepository, EfCursoRepository>();
 builder.Services.AddScoped<IInvestigacionRepository, EfInvestigacionRepository>();

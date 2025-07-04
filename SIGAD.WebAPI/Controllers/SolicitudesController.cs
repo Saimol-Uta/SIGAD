@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Services;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
 
@@ -45,7 +46,27 @@ namespace SIGAD.WebAPI.Controllers
         {
             try
             {
-                var solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                SolicitudDetalleDto? solicitud = null;
+
+                if (userRole == "ADMINISTRADOR")
+                {
+                    solicitud = await _solicitudesService.GetDetalleParaAdminAsync(id);
+                }
+                else if (userRole == "DOCENTE")
+                {
+                    var docenteCedula = User.FindFirst("cedula")?.Value;
+                    if (string.IsNullOrEmpty(docenteCedula))
+                    {
+                        return Unauthorized("La cédula del docente no se encontró en el token.");
+                    }
+                    solicitud = await _solicitudesService.GetDetalleParaDocenteAsync(id, docenteCedula);
+                }
+                else
+                {
+                    return Forbid("No tiene permisos para acceder a esta información.");
+                }
+
                 return solicitud != null ? Ok(solicitud) : NotFound();
             }
             catch (Exception ex)
@@ -303,6 +324,82 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al verificar solicitud activa para docente {Cedula}", docenteCedula);
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
+        // GET: api/solicitudes/historial
+        [HttpGet("historial")]
+        [Authorize]
+        public async Task<IActionResult> GetHistorialDocente()
+        {
+            try
+            {
+                // Debug: Log todos los claims del usuario
+                _logger.LogInformation("Claims del usuario: {Claims}", 
+                    string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+                var cedulaClaim = User.FindFirst("cedula")?.Value;
+                var rolClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+                
+                _logger.LogInformation("Cedula claim: {Cedula}, Rol claim: {Rol}", cedulaClaim, rolClaim);
+                
+                if (string.IsNullOrEmpty(cedulaClaim))
+                {
+                    _logger.LogError("No se encontró el claim de cédula");
+                    return BadRequest(new { error = "No se pudo obtener la cédula del usuario" });
+                }
+
+                // Verificar que el usuario sea docente
+                if (rolClaim != "DOCENTE")
+                {
+                    _logger.LogError("Usuario no tiene rol DOCENTE. Rol actual: {Rol}", rolClaim);
+                    return Forbid($"Acceso denegado. Rol requerido: DOCENTE, Rol actual: {rolClaim}");
+                }
+
+                _logger.LogInformation("Obteniendo historial para docente: {Cedula}", cedulaClaim);
+                var solicitudes = await _solicitudesService.GetHistorialDocenteAsync(cedulaClaim);
+                
+                _logger.LogInformation("Se encontraron {Count} solicitudes", solicitudes?.Count() ?? 0);
+
+                if (solicitudes == null)
+                {
+                    return Ok(new List<object>());
+                }
+
+                var historial = solicitudes.Select(s => new
+                {
+                    id = s.Id.ToString(),
+                    rangoActual = s.RangoActual?.Nombre ?? "N/A",
+                    rangoSolicitado = s.RangoSolicitado?.Nombre ?? "N/A",
+                    estado = s.Estado.ToString(),
+                    fechaEnvio = s.FechaEnvio,
+                    fechaResolucion = s.FechaResolucion,
+                    fechaCreacion = s.FechaCreacion
+                }).OrderByDescending(s => s.fechaCreacion);
+
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener historial de solicitudes");
+                return StatusCode(500, new { error = "Error interno del servidor", details = ex.Message });
+            }
+        }
+
+        // GET: api/solicitudes/con-apelaciones
+        [HttpGet("con-apelaciones")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> GetSolicitudesConApelaciones()
+        {
+            try
+            {
+                var solicitudes = await _solicitudesService.GetSolicitudesConApelacionesAsync();
+                return Ok(solicitudes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener solicitudes con apelaciones");
                 return StatusCode(500, "Error interno del servidor");
             }
         }

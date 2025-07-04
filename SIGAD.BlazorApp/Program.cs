@@ -13,6 +13,11 @@ builder.Services.AddBlazoredLocalStorage(); // Registrar el servicio de local st
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+//REVISAR21
+builder.Services.AddScoped<ISolicitudService, SolicitudService>();
+// Agregar el servicio ISolicitudesService que también se necesita
+builder.Services.AddScoped<ISolicitudesService, SolicitudesService>();
+builder.Services.AddScoped<SolicitudesService>();
 
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudService, SIGAD.BlazorApp.Services.SolicitudService>();
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.BlazorApp.Services.SolicitudesService>();
