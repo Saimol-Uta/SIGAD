@@ -8,7 +8,6 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISolicitudService SolicitudService
 
 <PageTitle>@(Id.HasValue ? "Editar Evaluación - SIGAD" : "Agregar Evaluación - SIGAD")</PageTitle>
 
@@ -437,22 +436,9 @@
                 errorMessage = "No se pudo cargar la evaluación para editar.";
             }
         }
-        else
-        {
-            await VerificarSolicitudActiva();
-        }
     }
 
-    private async Task VerificarSolicitudActiva()
-    {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
-        {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-        }
-    }
+  
 
     private async Task CargarInformacionUsuario()
     {
@@ -576,8 +562,7 @@
             }
             else
             {
-           
-
+                // AGREGAR EVALUACIÓN (sin validar solicitud activa)
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(evaluacionModel.TipoEvaluacion), "PeriodoAcademico");
                 content.Add(new StringContent(evaluacionModel.FechaEvaluacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaEvaluacion");

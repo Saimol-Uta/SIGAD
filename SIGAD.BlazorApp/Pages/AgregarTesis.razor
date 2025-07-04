@@ -10,7 +10,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISolicitudService SolicitudService
+
 
 <PageTitle>@(Id.HasValue ? "Editar Tesis Dirigida - SIGAD" : "Agregar Tesis Dirigida - SIGAD")</PageTitle>
 
@@ -606,7 +606,6 @@
                     ? "✅ Tesis editada exitosamente."
                     : "✅ Tesis dirigida guardada exitosamente.";
                 operacionExitosa = true;
-                await Task.Delay(1000);
                 Navigation.NavigateTo("/gestion-documentos", true);
             }
             else

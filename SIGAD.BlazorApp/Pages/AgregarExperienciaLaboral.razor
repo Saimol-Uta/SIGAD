@@ -9,7 +9,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISolicitudService SolicitudService
+
 
 <PageTitle>@(Id != null ? "Editar Experiencia Laboral - SIGAD" : "Agregar Experiencia Laboral - SIGAD")</PageTitle>
 
@@ -485,31 +485,11 @@
         }
         else
         {
-            // Modo agregar: verificar solicitud activa
-            await VerificarSolicitudActiva();
+            // Ya no es necesario verificar solicitud activa para agregar experiencia
         }
     }
 
-    private async Task VerificarSolicitudActiva()
-    {
-        // Ya no es necesario verificar la solicitud activa, pues la experiencia
-        // se puede crear sin estar asociada a una solicitud
-        // Solo verificamos si el usuario está autenticado
-        try
-        {
-            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                errorMessage = "No se ha iniciado sesión. Redirigiendo...";
-                await Task.Delay(1500);
-                Navigation.NavigateTo("/login");
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error de verificación: {ex.Message}";
-        }
-    }
+
 
     private async Task CargarInformacionUsuario()
     {
@@ -603,7 +583,6 @@
                 if (response.IsSuccessStatusCode)
                 {
                     experienciaCreada = true;
-                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
@@ -623,15 +602,7 @@
                     return;
                 }
 
-                // Obtener el ID real de la solicitud activa
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(1000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
-                }
+
 
                 // Crear el formulario multipart
                 using var content = new MultipartFormDataContent();
@@ -666,8 +637,6 @@
                         timer = 2000
                     });
                     
-                    // Esperar y redirigir
-                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
