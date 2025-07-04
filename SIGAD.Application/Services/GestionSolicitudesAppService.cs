@@ -5,9 +5,9 @@ using SIGAD.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 
 namespace SIGAD.Application.Services
 {
@@ -15,15 +15,18 @@ namespace SIGAD.Application.Services
     {
         private readonly ISolicitudAscensoRepository _solicitudRepository;
         private readonly IDocenteRepository _docenteRepository;
+        private readonly IApelacionRepository _apelacionRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public GestionSolicitudesAppService(
             ISolicitudAscensoRepository solicitudRepository,
             IDocenteRepository docenteRepository,
+            IApelacionRepository apelacionRepository,
             IUnitOfWork unitOfWork)
         {
             _solicitudRepository = solicitudRepository;
             _docenteRepository = docenteRepository;
+            _apelacionRepository = apelacionRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -436,7 +439,7 @@ namespace SIGAD.Application.Services
         }
 
         // Métodos para apelaciones
-        public async Task<(bool success, string message)> PresentarApelacionAsync(Guid solicitudId, string justificacion, string docenteCedula, IFormFile? documentoAdjunto)
+        public async Task<(bool success, string message)> PresentarApelacionAsync(Guid solicitudId, string justificacion, string docenteCedula, IFormFileCollection? documentosAdjuntos)
         {
             try
             {
@@ -458,25 +461,72 @@ namespace SIGAD.Application.Services
                     return (false, "Solo se pueden apelar solicitudes rechazadas");
                 }
 
-                // Crear la apelación
-                string? rutaDocumento = null;
-                if (documentoAdjunto != null)
+                // Verificar si ya existe una apelación pendiente
+                var tieneApelacionPendiente = await _apelacionRepository.TieneApelacionPendienteAsync(solicitudId);
+                if (tieneApelacionPendiente)
                 {
-                    // TODO: Implementar guardado de archivo
-                    rutaDocumento = $"apelaciones/{Guid.NewGuid()}_{documentoAdjunto.FileName}";
+                    return (false, "Ya existe una apelación pendiente para esta solicitud");
                 }
+
+                // Manejar archivos adjuntos si existen
+                string? rutasDocumentos = null;
+                if (documentosAdjuntos != null && documentosAdjuntos.Count > 0)
+                {
+                    var rutas = new List<string>();
+                    var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "apelaciones");
+                    
+                    // Crear el directorio si no existe
+                    if (!Directory.Exists(uploadsPath))
+                    {
+                        Directory.CreateDirectory(uploadsPath);
+                    }
+
+                    foreach (var archivo in documentosAdjuntos)
+                    {
+                        if (archivo.Length > 0)
+                        {
+                            // Generar nombre único para el archivo
+                            var extension = Path.GetExtension(archivo.FileName);
+                            var nombreUnico = $"{Guid.NewGuid()}{extension}";
+                            var rutaCompleta = Path.Combine(uploadsPath, nombreUnico);
+                            
+                            // Guardar el archivo físicamente
+                            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+                            {
+                                await archivo.CopyToAsync(stream);
+                            }
+                            
+                            // Agregar la ruta relativa a la lista
+                            rutas.Add($"uploads/apelaciones/{nombreUnico}");
+                        }
+                    }
+                    
+                    rutasDocumentos = string.Join(";", rutas);
+                }
+
+                // Crear la nueva apelación
+                var nuevaApelacion = new Apelacion(solicitudId, justificacion, docenteCedula)
+                {
+                    DocumentosRespaldo = rutasDocumentos
+                };
+
+                // Agregar la apelación al repositorio
+                await _apelacionRepository.AddAsync(nuevaApelacion);
 
                 // Actualizar el estado de la solicitud a En Apelación
                 solicitud.Estado = EstadoSolicitud.EnApelacion;
-                solicitud.ObservacionesAdmin = $"{solicitud.ObservacionesAdmin}\n\n[APELACIÓN - {DateTime.Now:dd/MM/yyyy HH:mm}]\nJustificación: {justificacion}";
+                await _solicitudRepository.UpdateAsync(solicitud);
                 
+                // Guardar los cambios
                 await _unitOfWork.CompleteAsync();
                 
                 return (true, "Apelación presentada exitosamente");
             }
             catch (Exception ex)
             {
-                return (false, $"Error al presentar la apelación: {ex.Message}");
+                // Log detallado del error
+                Console.WriteLine($"Error en PresentarApelacionAsync: {ex}");
+                return (false, $"Error al presentar la apelación: {ex.Message} | Inner: {ex.InnerException?.Message}");
             }
         }
 
@@ -484,37 +534,28 @@ namespace SIGAD.Application.Services
         {
             try
             {
-                var solicitud = await _solicitudRepository.GetByIdAsync(solicitudId);
-                if (solicitud == null)
-                {
-                    return new List<ApelacionDto>();
-                }
-
-                // Por simplicidad, extraer información de apelación de las observaciones
-                var apelaciones = new List<ApelacionDto>();
+                var apelaciones = await _apelacionRepository.GetApelacionesPorSolicitudAsync(solicitudId);
                 
-                if (solicitud.Estado == EstadoSolicitud.EnApelacion && !string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
+                return apelaciones.Select(a => new ApelacionDto
                 {
-                    // Buscar apelaciones en las observaciones (implementación simplificada)
-                    if (solicitud.ObservacionesAdmin.Contains("[APELACIÓN"))
-                    {
-                        apelaciones.Add(new ApelacionDto
-                        {
-                            Id = Guid.NewGuid(),
-                            SolicitudId = solicitudId,
-                            Justificacion = "Apelación registrada en observaciones",
-                            FechaCreacion = DateTime.Now,
-                            EstadoApelacion = "EN_REVISION",
-                            DocenteCedula = solicitud.DocenteCedula,
-                            DocenteNombre = solicitud.Docente?.Nombre1 ?? ""
-                        });
-                    }
-                }
-
-                return apelaciones;
+                    Id = Guid.NewGuid(), // Convertir int a Guid para compatibilidad
+                    SolicitudId = a.SolicitudAscensoId,
+                    Justificacion = a.Motivo,
+                    FechaCreacion = a.FechaPresentacion,
+                    FechaResolucion = a.FechaResolucion,
+                    EstadoApelacion = a.Estado.ToString(),
+                    ObservacionesResolucion = a.ObservacionesComision,
+                    DocumentoRuta = a.DocumentosRespaldo,
+                    DocenteCedula = a.CreadoPor,
+                    DocenteNombre = a.SolicitudAscenso?.Docente != null 
+                        ? $"{a.SolicitudAscenso.Docente.Nombre1} {a.SolicitudAscenso.Docente.Apellido1}".Trim()
+                        : ""
+                }).ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log del error si es necesario
+                Console.WriteLine($"Error al obtener apelaciones: {ex.Message}");
                 return new List<ApelacionDto>();
             }
         }
@@ -533,6 +574,252 @@ namespace SIGAD.Application.Services
                 CertificacionPath = t.TesisDirigida?.CertificacionRuta ?? "",
                 Institucion = t.TesisDirigida?.Institucion ?? ""
             };
+        }
+
+        // Métodos para administración de apelaciones
+        public async Task<List<SolicitudConApelacionDto>> GetSolicitudesConApelacionesAsync()
+        {
+            try
+            {
+                Console.WriteLine("=== GetSolicitudesConApelacionesAsync - Iniciando ===");
+                var solicitudes = await _solicitudRepository.GetAllWithDetailsAsync();
+                var cantidadSolicitudes = solicitudes?.ToList().Count ?? 0;
+                Console.WriteLine($"Encontradas {cantidadSolicitudes} solicitudes totales");
+
+                var resultado = new List<SolicitudConApelacionDto>();
+
+                foreach (var solicitud in solicitudes)
+                {
+                    // Refrescar el estado de la solicitud desde la base de datos para evitar datos cacheados
+                    var solicitudActualizada = await _solicitudRepository.GetByIdWithDetailsAsync(solicitud.Id);
+                    if (solicitudActualizada == null) continue;
+
+                    var apelaciones = await _apelacionRepository.GetApelacionesPorSolicitudAsync(solicitud.Id);
+                    if (apelaciones == null || !apelaciones.Any())
+                        continue; // Solo mostrar solicitudes con al menos una apelación
+
+                    // Tomar la última apelación (por fecha de creación o resolución)
+                    var ultimaApelacion = apelaciones.OrderByDescending(a => a.FechaPresentacion).FirstOrDefault();
+                    if (ultimaApelacion == null)
+                        continue;
+
+                    // Determinar el estado de la apelación
+                    string estadoApelacion = ultimaApelacion.Estado.ToString();
+                    bool tieneApelacionPendiente = ultimaApelacion.Estado == Domain.Enums.EstadoApelacion.Pendiente;
+                    bool apelacionResuelta = ultimaApelacion.Estado == Domain.Enums.EstadoApelacion.Aceptada || ultimaApelacion.Estado == Domain.Enums.EstadoApelacion.Rechazada;
+
+                    var dto = new SolicitudConApelacionDto
+                    {
+                        Id = solicitudActualizada.Id,
+                        DocenteNombreCompleto = $"{solicitudActualizada.Docente?.Nombre1} {solicitudActualizada.Docente?.Apellido1}".Trim(),
+                        RangoSolicitadoNombre = solicitudActualizada.RangoSolicitado?.Nombre ?? "",
+                        FechaCreacion = solicitudActualizada.FechaCreacion,
+                        Estado = solicitudActualizada.Estado.ToString(),
+                        TieneApelacion = tieneApelacionPendiente || apelacionResuelta,
+                        EstadoApelacion = estadoApelacion // <-- Nuevo campo opcional para mostrar el estado real
+                    };
+
+                    // Corrección: siempre asignar fechas y días restantes, incluso si la apelación está resuelta
+                    dto.FechaApelacion = ultimaApelacion.FechaPresentacion;
+                    dto.FechaLimiteApelacion = ultimaApelacion.FechaLimiteRespuesta;
+                    dto.ApelacionVencida = tieneApelacionPendiente ? DateTime.Now > ultimaApelacion.FechaLimiteRespuesta : false;
+                    dto.DiasRestantesApelacion = tieneApelacionPendiente
+                        ? Math.Max(0, (ultimaApelacion.FechaLimiteRespuesta - DateTime.Now).Days)
+                        : 0;
+
+                    resultado.Add(dto);
+                }
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener solicitudes con apelaciones: {ex}");
+                return new List<SolicitudConApelacionDto>();
+            }
+        }
+
+        public async Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId)
+        {
+            try
+            {
+                var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(solicitudId);
+                if (solicitud == null) return null;
+
+                var apelaciones = await _apelacionRepository.GetApelacionesPorSolicitudAsync(solicitudId);
+                var apelacionActiva = apelaciones?.FirstOrDefault(a => a.Estado == Domain.Enums.EstadoApelacion.Pendiente);
+                
+                if (apelacionActiva == null) return null;
+
+                return new ApelacionDetalleDto
+                {
+                    Id = apelacionActiva.Id, // <-- CORRECTO: el ID de la apelación (int)
+                    SolicitudId = solicitudId,
+                    DocenteNombre = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim(),
+                    DocenteEmail = "", // No hay email en la entidad Docente, dejar vacío o buscar en otro lado
+                    Justificacion = apelacionActiva.Motivo,
+                    DocumentosAdjuntos = string.IsNullOrEmpty(apelacionActiva.DocumentosRespaldo) ? new List<string>() : new List<string> { apelacionActiva.DocumentosRespaldo },
+                    FechaCreacion = apelacionActiva.FechaPresentacion,
+                    Estado = apelacionActiva.Estado.ToString(),
+                    RangoSolicitado = solicitud.RangoSolicitado?.Nombre ?? "",
+                    FechaSolicitud = solicitud.FechaCreacion,
+                    EstadoSolicitud = solicitud.Estado.ToString(),
+                    ObservacionesRechazo = solicitud.ObservacionesAdmin
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener detalle de apelación: {ex}");
+                return null;
+            }
+        }
+
+        public async Task<(bool success, string message)> ResolverApelacionAsync(int apelacionId, ResolverApelacionDto dto, string adminCedula)
+        {
+            try
+            {
+                // Obtener la apelación
+                var apelacion = await _apelacionRepository.GetByIdAsync(apelacionId);
+                if (apelacion == null)
+                {
+                    return (false, "Apelación no encontrada");
+                }
+
+                // Validar que esté pendiente
+                if (apelacion.Estado != Domain.Enums.EstadoApelacion.Pendiente)
+                {
+                    return (false, "Esta apelación ya fue resuelta");
+                }
+
+                // Validar que no esté vencida
+                if (DateTime.Now > apelacion.FechaLimiteRespuesta)
+                {
+                    return (false, "Esta apelación está vencida");
+                }
+
+                // Obtener la solicitud asociada (ya trackeada por el contexto)
+                var solicitud = apelacion.SolicitudAscenso;
+                if (solicitud == null)
+                {
+                    // Si por alguna razón no está incluida, cargarla manualmente
+                    solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(apelacion.SolicitudAscensoId);
+                    if (solicitud == null)
+                        return (false, "Solicitud asociada no encontrada");
+                }
+
+                // Actualizar la apelación
+                apelacion.Estado = dto.Aceptada ? Domain.Enums.EstadoApelacion.Aceptada : Domain.Enums.EstadoApelacion.Rechazada;
+                apelacion.FechaResolucion = DateTime.UtcNow;
+                apelacion.Aceptada = dto.Aceptada;
+                apelacion.ObservacionesComision = dto.ObservacionesComision;
+                apelacion.ModificadoPor = adminCedula;
+                apelacion.FechaModificacion = DateTime.UtcNow;
+
+                // Actualizar el estado de la solicitud
+                if (dto.Aceptada)
+                {
+                    solicitud.Estado = EstadoSolicitud.AprobadaPorApelacion;
+                    // ASCENSO AUTOMÁTICO
+                    await AscenderDocenteAutomaticamenteAsync(solicitud);
+                }
+                else
+                {
+                    solicitud.Estado = EstadoSolicitud.RechazadaDefinitiva;
+                }
+
+                // Guardar cambios (solo una vez)
+                await _unitOfWork.CompleteAsync();
+
+                // Enviar notificación
+                await EnviarNotificacionResolucionAsync(solicitud, apelacion, dto.Aceptada);
+
+                string mensaje = dto.Aceptada 
+                    ? "Apelación aceptada. El docente ha sido ascendido automáticamente."
+                    : "Apelación rechazada. La decisión es definitiva.";
+
+                return (true, mensaje);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al resolver apelación: {ex}");
+                return (false, $"Error al resolver la apelación: {ex.Message}");
+            }
+        }
+
+        private async Task AscenderDocenteAutomaticamenteAsync(SolicitudAscenso solicitud)
+        {
+            try
+            {
+                var docente = await _docenteRepository.GetByCedulaAsync(solicitud.DocenteCedula);
+                if (docente != null)
+                {
+                    // Actualizar el rango del docente
+                    docente.RangoActualId = solicitud.RangoSolicitadoId;
+                    await _docenteRepository.UpdateAsync(docente);
+                    // Guardar el cambio en la base de datos
+                    await _unitOfWork.CompleteAsync();
+                    Console.WriteLine($"Docente {docente.Cedula} ascendido automáticamente al rango {solicitud.RangoSolicitadoId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en ascenso automático: {ex}");
+                // No fallar el proceso principal por esto
+            }
+        }
+
+        private Task EnviarNotificacionResolucionAsync(SolicitudAscenso solicitud, Apelacion apelacion, bool aceptada)
+        {
+            try
+            {
+                var docente = solicitud.Docente;
+                if (docente == null) return Task.CompletedTask;
+
+                string asunto = aceptada ? "✅ Su apelación ha sido ACEPTADA" : "❌ Resolución de su apelación";
+                
+                string mensaje = aceptada
+                    ? $@"
+                        Estimado {docente.Nombre1} {docente.Apellido1},
+
+                        Nos complace informarle que su apelación para la solicitud de ascenso a '{solicitud.RangoSolicitado?.Nombre}' ha sido ACEPTADA por la Comisión Académica.
+
+                        Su solicitud ha sido aprobada y su ascenso ha sido procesado automáticamente.
+
+                        Observaciones de la Comisión:
+                        {apelacion.ObservacionesComision ?? "Sin observaciones adicionales"}
+
+                        Fecha de resolución: {DateTime.Now:dd/MM/yyyy HH:mm}
+                        Nuevo rango: {solicitud.RangoSolicitado?.Nombre}
+
+                        ¡Felicitaciones por este logro!
+
+                        Sistema SIGAD
+                        Universidad Técnica de Ambato"
+                    : $@"
+                        Estimado {docente.Nombre1} {docente.Apellido1},
+
+                        Lamentamos informarle que su apelación para la solicitud de ascenso a '{solicitud.RangoSolicitado?.Nombre}' ha sido RECHAZADA por la Comisión Académica.
+
+                        Esta decisión es DEFINITIVA según el Art. 6 del reglamento universitario.
+
+                        Observaciones de la Comisión:
+                        {apelacion.ObservacionesComision ?? "Sin observaciones adicionales"}
+
+                        Fecha de resolución: {DateTime.Now:dd/MM/yyyy HH:mm}
+
+                        Sistema SIGAD
+                        Universidad Técnica de Ambato";
+
+                // TODO: Enviar email real usando un servicio de email
+                Console.WriteLine($"EMAIL ENVIADO: {asunto} a {docente.Cedula}@uta.edu.ec");
+                Console.WriteLine($"Contenido: {mensaje}");
+                
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al enviar notificación: {ex}");
+                return Task.CompletedTask;
+            }
         }
     }
 }

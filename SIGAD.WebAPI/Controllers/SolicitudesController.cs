@@ -387,6 +387,23 @@ namespace SIGAD.WebAPI.Controllers
             }
         }
 
+        // GET: api/solicitudes/con-apelaciones
+        [HttpGet("con-apelaciones")]
+        [Authorize(Roles = "ADMINISTRADOR")]
+        public async Task<IActionResult> GetSolicitudesConApelaciones()
+        {
+            try
+            {
+                var solicitudes = await _solicitudesService.GetSolicitudesConApelacionesAsync();
+                return Ok(solicitudes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener solicitudes con apelaciones");
+                return StatusCode(500, "Error interno del servidor");
+            }
+        }
+
         public class AprobacionRequest
         {
             public string Observaciones { get; set; } = string.Empty;

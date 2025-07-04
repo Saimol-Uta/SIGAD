@@ -18,6 +18,11 @@
                  @onclick='() => NavigationManager.NavigateTo("/admin-reportes")'>
                 Generar Reportes
             </div>
+
+            <div class="nav-item @(IsActive("/ver-solicitudes") ? "active" : "")"
+                 @onclick='() => NavigationManager.NavigateTo("/ver-solicitudes")'>
+                Ver Solicitudes
+            </div>
         </div>
 
         <!-- CONTENIDO PRINCIPAL -->

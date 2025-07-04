@@ -9,6 +9,13 @@ namespace SIGAD.Domain.Interfaces
     public interface IApelacionRepository : IBaseRepository<Apelacion>
     {
         /// <summary>
+        /// Actualiza una apelación existente en la base de datos.
+        /// </summary>
+        /// <param name="apelacion">La apelación a actualizar.</param>
+        /// <returns>Una tarea que representa la operación asincrónica.</returns>
+        Task UpdateAsync(Apelacion apelacion);
+
+        /// <summary>
         /// Obtiene todas las apelaciones pendientes de resolución
         /// </summary>
         Task<IEnumerable<Apelacion>> GetApelacionesPendientesAsync();

@@ -1,3 +1,4 @@
+// ...existing code...
 using Microsoft.EntityFrameworkCore;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Enums;
@@ -16,6 +17,12 @@ namespace SIGAD.Infrastructure.Repositories
         public EfApelacionRepository(SigadDbContext context)
         {
             _context = context;
+        }
+
+        public async Task UpdateAsync(Apelacion apelacion)
+        {
+            _context.Apelaciones.Update(apelacion);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<Apelacion> GetByIdAsync(int id)
