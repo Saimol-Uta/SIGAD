@@ -8,7 +8,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISolicitudService SolicitudService
+
 
 <PageTitle>@(Id.HasValue ? "Editar Investigación - SIGAD" : "Agregar Investigación - SIGAD")</PageTitle>
 
@@ -409,22 +409,10 @@
                 errorMessage = "No se pudo cargar la investigación para editar.";
             }
         }
-        else
-        {
-            await VerificarSolicitudActiva();
-        }
+        // Ya no es necesario verificar solicitud activa para agregar investigación
     }
 
-    private async Task VerificarSolicitudActiva()
-    {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
-        {
-            errorMessage = "No hay una solicitud de ascenso activa. Debe iniciar un proceso de ascenso primero.";
-            await Task.Delay(3000);
-            Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-        }
-    }
+
 
     private async Task CargarInformacionUsuario()
     {
@@ -528,7 +516,6 @@
                 if (response.IsSuccessStatusCode)
                 {
                     investigacionCreada = true;
-                    await Task.Delay(2000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
@@ -540,14 +527,7 @@
             else
             {
                 // AGREGAR INVESTIGACIÓN
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    errorMessage = "No hay una solicitud de ascenso activa. Redirigiendo...";
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/iniciar-solicitud-ascenso");
-                    return;
-                }
+
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
@@ -577,7 +557,6 @@
                     });
                     
                     investigacionCreada = true;
-                    await Task.Delay(1000);
                     Navigation.NavigateTo("/gestion-documentos");
                 }
                 else
