@@ -53,13 +53,13 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 _logger.LogInformation($"Generando certificado de acción de personal para docente: {datos.NombreCompleto} ({datos.Cedula})");
-                
+
                 var pdfBytes = await _accionPersonalService.GenerarAccionPersonalPdfAsync(datos);
-                
+
                 string nombreArchivo = $"accion_personal_{datos.Cedula}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
-                
+
                 _logger.LogInformation($"Certificado generado exitosamente: {nombreArchivo}");
-                
+
                 return File(pdfBytes, "application/pdf", nombreArchivo);
             }
             catch (ArgumentException ex)
@@ -90,29 +90,29 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        [Authorize(Roles = "Administrador")]
+        [Authorize] // Permitir acceso a todos los usuarios autenticados
         public async Task<IActionResult> GenerarAccionPersonalDesdeSolicitud(Guid solicitudId)
         {
             try
             {
                 _logger.LogInformation($"Generando certificado de acción de personal para solicitud ID: {solicitudId}");
-                
+
                 // Obtener la solicitud con todos sus detalles
                 var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(solicitudId);
-                
+
                 if (solicitud == null)
                 {
                     _logger.LogWarning($"Solicitud no encontrada: {solicitudId}");
                     return NotFound(new { success = false, message = "Solicitud no encontrada" });
                 }
-                
+
                 // Verificar que la solicitud esté aprobada
                 if (solicitud.Estado != EstadoSolicitud.Aprobada)
                 {
                     _logger.LogWarning($"La solicitud {solicitudId} no está aprobada. Estado actual: {solicitud.Estado}");
                     return BadRequest(new { success = false, message = "Solo se pueden generar certificados para solicitudes aprobadas" });
                 }
-                
+
                 // Verificar que la solicitud tenga los datos necesarios
                 if (solicitud.Docente == null || solicitud.RangoActual == null || solicitud.RangoSolicitado == null)
                 {
@@ -134,14 +134,14 @@ namespace SIGAD.WebAPI.Controllers
                     Consecutivo = $"{solicitudId.ToString().Substring(0, 5)}",
                     SolicitudId = solicitudId
                 };
-                
+
                 // Generar el PDF
                 var pdfBytes = await _accionPersonalService.GenerarAccionPersonalPdfAsync(datosAccionPersonal);
-                
+
                 string nombreArchivo = $"accion_personal_{datosAccionPersonal.Cedula}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
-                
+
                 _logger.LogInformation($"Certificado generado exitosamente para solicitud {solicitudId}: {nombreArchivo}");
-                
+
                 return File(pdfBytes, "application/pdf", nombreArchivo);
             }
             catch (Exception ex)
@@ -162,7 +162,7 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 _logger.LogInformation("Generando certificado de prueba");
-                
+
                 // Datos de prueba para el certificado
                 var datosAccionPersonal = new AccionPersonalDto
                 {
@@ -181,7 +181,7 @@ namespace SIGAD.WebAPI.Controllers
                 var pdfBytes = await _accionPersonalService.GenerarAccionPersonalPdfAsync(datosAccionPersonal);
 
                 _logger.LogInformation("Certificado de prueba generado exitosamente");
-                
+
                 // Devolver el archivo para descarga
                 return File(pdfBytes, "application/pdf", $"accion_personal_prueba_{DateTime.Now:yyyyMMddHHmmss}.pdf");
             }
@@ -220,4 +220,4 @@ namespace SIGAD.WebAPI.Controllers
             }
         }
     }
-} 
+}

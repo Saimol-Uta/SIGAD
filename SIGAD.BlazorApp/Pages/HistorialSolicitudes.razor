@@ -989,8 +989,11 @@
                 // Crear nombre del archivo con timestamp
                 var fileName = $"certificado_accion_personal_{DateTime.Now:yyyyMMddHHmmss}.pdf";
 
+                // Convertir bytes a base64 para JavaScript
+                var base64String = Convert.ToBase64String(resultado.pdfData);
+
                 // Descargar el archivo usando JavaScript
-                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, resultado.pdfData);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, base64String);
 
                 MostrarNotificacionExito("Certificado generado y descargado exitosamente");
             }
@@ -1104,11 +1107,3 @@
         URL.revokeObjectURL(url);
     };
 </script>
-
-   
-   
-   
-   
-   
-                                                
-                                
