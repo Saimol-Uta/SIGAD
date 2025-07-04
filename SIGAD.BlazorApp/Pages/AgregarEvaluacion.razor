@@ -1,10 +1,12 @@
 @page "/agregar-evaluacion"
 @page "/editar-evaluacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
 @using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+@using System.Web
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -450,10 +452,6 @@
                 errorMessage = "No se pudo cargar la evaluación para editar.";
             }
         }
-        else
-        {
-            await VerificarSolicitudActiva();
-        }
     }
 
     private string GetReturnUrl()
@@ -627,8 +625,6 @@
                 content.Add(new StringContent(evaluacionModel.FechaEvaluacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaEvaluacion");
                 content.Add(new StringContent(evaluacionModel.Calificacion.ToString()), "PuntajePorcentual");
                 content.Add(new StringContent(cedula), "DocenteCedula");
-                // Ya no asociamos automáticamente a una solicitud
-                // content.Add(new StringContent(solicitudIdString), "SolicitudId");
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
                 fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(archivoFormulario.ContentType);

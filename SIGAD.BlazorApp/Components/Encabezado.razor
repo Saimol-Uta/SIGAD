@@ -3,7 +3,7 @@
 @inject HttpClient Http
 
 @code {
-    [Parameter] public string Usuario { get; set; } = "Teachers";
+    [Parameter] public string Usuario { get; set; } = "";
     [Parameter] public string UrlFotoPerfil { get; set; } = "/images/IconoUser.png";
 
     private async Task Logout()
