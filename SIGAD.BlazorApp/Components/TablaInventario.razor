@@ -5,40 +5,39 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
-<div class="tabla-inventario">
-    <!-- ENCABEZADO -->
-    <div class="tabla-header">
-        <div class="titulo-seccion">
-            <h3>@config.Titulo</h3>
-            <button class="btn btn-cerrar" @onclick="CerrarTabla">
-                <i class="fas fa-times"></i> Cerrar
-            </button>
-        </div>
-    </div>
-
-    @if (cargando)
-    {
-        <div class="loading-container">
-            <div class="spinner"></div>
-            <p>Cargando documentos...</p>
-        </div>
-    }
-    else if (!string.IsNullOrEmpty(mensajeError))
-    {
-        <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle"></i>
-            @mensajeError
-        </div>
-    }
-    else
-    {
-        @if (documentos.Any())
-        {
-            <div class="tabla-container">
-                <div class="info-documentos">
-                    <p><strong>Total de documentos:</strong> @documentos.Count</p>
+<div class="page-wrapper">
+    <div class="admin-dashboard">
+        <div class="main-content">
+            <!-- ENCABEZADO -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div class="flex bloque-izquierdo">
+                    <h2>@config.Titulo</h2>
                 </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-cerrar" @onclick="CerrarTabla">
+                        <i class="fas fa-times"></i> Cerrar
+                    </button>
+                </div>
+            </div>
 
+            <!-- MENSAJES -->
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger">
+                    @mensajeError
+                </div>
+            }
+
+            <!-- TABLA -->
+            @if (cargando)
+            {
+                <div class="sin-documentos">
+                    <div class="spinner"></div>
+                    <h3>Cargando documentos...</h3>
+                </div>
+            }
+            else if (documentosPaginados.Any())
+            {
                 <div class="tabla-responsive">
                     <table class="tabla-documentos">
                         <thead>
@@ -47,49 +46,29 @@
                                 {
                                     <th>@columna</th>
                                 }
-                                <th>Acciones</th>
+                                <th style="width: 150px; text-align: center;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var documento in documentosPaginados)
+                            @foreach (var doc in documentosPaginados)
                             {
                                 <tr>
-                                    @foreach (var campo in config.Campos)
+                                    @foreach (var valor in ObtenerValoresDocumento(doc, TipoDocumento))
                                     {
-                                        <td>
-                                            @if (documento.TryGetProperty(campo, out var value))
-                                            {
-                                                @if (campo == "FechaSubida" && value.ValueKind == JsonValueKind.String)
-                                                {
-                                                    @if (DateTime.TryParse(value.GetString(), out var fecha))
-                                                    {
-                                                        @fecha.ToString("dd/MM/yyyy")
-                                                    }
-                                                    else
-                                                    {
-                                                        @value.GetString()
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    @value.ToString()
-                                                }
-                                            }
-                                        </td>
+                                        <td>@valor</td>
                                     }
-                                    <td class="acciones">
-                                        <button class="btn btn-sm btn-info" @onclick="() => VerDocumento(documento)"
-                                            title="Ver documento">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-warning" @onclick="() => EditarDocumento(documento)"
-                                            title="Editar documento">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" @onclick="() => EliminarDocumento(documento)"
-                                            title="Eliminar documento">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                    <td>
+                                        <div class="opciones-documento">
+                                            @if (!string.IsNullOrEmpty(ObtenerRutaPdf(doc, TipoDocumento)) || !string.IsNullOrEmpty(ObtenerUrlCloudinary(doc, TipoDocumento)))
+                                            {
+                                                <img src="/images/ver.png" alt="Ver PDF" class="btn-opcion" 
+                                                     @onclick="() => VerDocumento(doc)" title="Ver PDF" />
+                                            }
+                                            <img src="/images/editar.png" alt="Editar" class="btn-opcion" 
+                                                 @onclick="() => EditarDocumento(doc)" title="Editar documento" />
+                                            <img src="/images/eliminar.png" alt="Eliminar" class="btn-opcion" 
+                                                 @onclick="() => EliminarDocumento(doc)" title="Eliminar documento" />
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -97,260 +76,214 @@
                     </table>
                 </div>
 
-                <!-- Paginación -->
-                @if (totalPaginas > 1)
+                <!-- PAGINACIÓN -->
+                @if (PaginasTotales > 1)
                 {
                     <div class="paginacion">
-                        <button class="btn btn-sm" @onclick="PaginaAnterior" disabled="@(paginaActual <= 1)">
-                            <i class="fas fa-chevron-left"></i> Anterior
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(1)" disabled="@(paginaActual == 1)">
+                            ««
                         </button>
-                        <span class="info-pagina">Página @paginaActual de @totalPaginas</span>
-                        <button class="btn btn-sm" @onclick="PaginaSiguiente" disabled="@(paginaActual >= totalPaginas)">
-                            Siguiente <i class="fas fa-chevron-right"></i>
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(paginaActual - 1)" disabled="@(paginaActual == 1)">
+                            ‹
+                        </button>
+
+                        @for (int pagina = Math.Max(1, paginaActual - 2); pagina <= Math.Min(PaginasTotales, paginaActual + 2); pagina++)
+                        {
+                            <button class="btn-pagina @(pagina == paginaActual ? "activa" : "")" 
+                                    @onclick="() => CambiarPagina(pagina)">
+                                @pagina
+                            </button>
+                        }
+
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(paginaActual + 1)" disabled="@(paginaActual == PaginasTotales)">
+                            ›
+                        </button>
+                        <button class="btn-pagina" @onclick="() => CambiarPagina(PaginasTotales)" disabled="@(paginaActual == PaginasTotales)">
+                            »»
                         </button>
                     </div>
+                    
+                    <div class="info-paginacion">
+                        Mostrando @((paginaActual - 1) * porPagina + 1) - @(Math.Min(paginaActual * porPagina, documentos.Count)) de @documentos.Count documentos
+                    </div>
                 }
-            </div>
-        }
-        else
-        {
-            <div class="sin-documentos">
-                <div class="icono-vacio">
-                    <i class="fas fa-folder-open"></i>
+            }
+            else
+            {
+                <div class="sin-documentos">
+                    <h3>Sin documentos</h3>
+                    <p>No se encontraron @config.Titulo.ToLower() para este docente.</p>
                 </div>
-                <h4>No hay documentos</h4>
-                <p>No se encontraron documentos de este tipo para mostrar.</p>
-            </div>
-        }
-    }
+            }
+        </div>
+    </div>
 </div>
 
 <style>
-    .tabla-inventario {
-        background: white;
+    .page-wrapper {
+        min-height: 100vh;
+        background-color: #f5f5f5;
+    }
+
+    .admin-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .main-content {
+        background-color: white;
+        padding: 30px;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .tabla-header {
-        background: #0a1d44;
-        color: white;
-        padding: 1rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .titulo-seccion {
+    .bloque-izquierdo {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        width: 100%;
-        justify-content: space-between;
+        gap: 20px;
     }
 
-    .titulo-seccion h3 {
+    .bloque-izquierdo h2 {
         margin: 0;
-        font-size: 1.3rem;
+        color: #0a1d44;
+        font-size: 24px;
     }
 
-    .btn-cerrar {
-        background: rgba(255, 255, 255, 0.2);
+    .btn, .btn-cerrar {
+        background-color: #0a1d44;
         color: white;
+        padding: 10px 16px;
         border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
-        transition: background-color 0.3s ease;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
 
-    .btn-cerrar:hover {
-        background: rgba(255, 255, 255, 0.3);
+    .btn:hover, .btn-cerrar:hover {
+        background-color: #0f2554;
     }
 
-    .loading-container {
-        text-align: center;
-        padding: 3rem;
-        color: #666;
+    .btn:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
     }
 
     .spinner {
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #0a1d44;
-        border-radius: 50%;
         width: 40px;
         height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0a1d44;
+        border-radius: 50%;
         animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
+        margin: 20px auto;
     }
 
     @@keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-
-    .tabla-container {
-        padding: 1.5rem;
-    }
-
-    .info-documentos {
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-left: 4px solid #0a1d44;
-    }
-
-    .tabla-responsive {
-        overflow-x: auto;
-        margin-bottom: 1rem;
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     .tabla-documentos {
         width: 100%;
         border-collapse: collapse;
-        background: white;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .tabla-documentos th,
-    .tabla-documentos td {
-        padding: 0.75rem;
-        border-bottom: 1px solid #dee2e6;
+    .tabla-documentos thead {
+        background-color: #0a1d44;
+        color: white;
+    }
+
+    .tabla-documentos th, .tabla-documentos td {
+        padding: 12px 16px;
         text-align: left;
-    }
-
-    .tabla-documentos th {
-        background: #f8f9fa;
-        font-weight: 600;
-        color: #0a1d44;
-        border-bottom: 2px solid #dee2e6;
+        border-bottom: 1px solid #eee;
     }
 
     .tabla-documentos tbody tr:hover {
         background-color: #f8f9fa;
     }
 
-    .acciones {
-        white-space: nowrap;
+    .opciones-documento {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
     }
 
-    .acciones .btn {
-        margin-right: 0.25rem;
-        padding: 0.25rem 0.5rem;
-    }
-
-    .btn {
-        border: none;
-        border-radius: 4px;
+    .btn-opcion {
+        width: 24px;
+        height: 24px;
         cursor: pointer;
-        font-size: 0.875rem;
-        transition: all 0.3s ease;
+        transition: transform 0.2s;
     }
 
-    .btn-sm {
-        padding: 0.375rem 0.75rem;
-        font-size: 0.8rem;
-    }
-
-    .btn-info {
-        background-color: #17a2b8;
-        color: white;
-    }
-
-    .btn-info:hover {
-        background-color: #138496;
-    }
-
-    .btn-warning {
-        background-color: #ffc107;
-        color: #212529;
-    }
-
-    .btn-warning:hover {
-        background-color: #e0a800;
-    }
-
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    .btn-danger:hover {
-        background-color: #c82333;
+    .btn-opcion:hover {
+        transform: scale(1.1);
     }
 
     .paginacion {
         display: flex;
         justify-content: center;
-        align-items: center;
-        gap: 1rem;
-        margin-top: 1rem;
+        gap: 4px;
+        margin: 20px 0;
     }
 
-    .info-pagina {
-        font-weight: 500;
-        color: #666;
+    .btn-pagina {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        background-color: white;
+        color: #495057;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-pagina:hover {
+        background-color: #e9ecef;
+    }
+
+    .btn-pagina.activa {
+        background-color: #0a1d44;
+        color: white;
+        border-color: #0a1d44;
+    }
+
+    .info-paginacion {
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+        margin-top: 10px;
     }
 
     .sin-documentos {
         text-align: center;
-        padding: 4rem 2rem;
-        color: #666;
+        padding: 40px;
+        color: #6c757d;
     }
 
-    .icono-vacio {
-        font-size: 4rem;
-        color: #dee2e6;
-        margin-bottom: 1rem;
-    }
-
-    .sin-documentos h4 {
-        color: #0a1d44;
-        margin-bottom: 0.5rem;
-    }
-
-    .alert {
-        padding: 1rem;
-        margin: 1rem;
-        border-radius: 4px;
-        border: 1px solid transparent;
-    }
-
-    .alert-danger {
-        color: #721c24;
-        background-color: #f8d7da;
-        border-color: #f1aeb5;
-    }
-
-    @@media (max-width: 768px) {
-        .tabla-header {
-            padding: 1rem;
-        }
-
-        .titulo-seccion {
-            flex-direction: column;
-            gap: 0.5rem;
-            align-items: flex-start;
-        }
-
-        .tabla-container {
-            padding: 1rem;
-        }
-
-        .tabla-responsive {
-            font-size: 0.875rem;
-        }
-
-        .paginacion {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
+    .sin-documentos h3 {
+        margin-bottom: 10px;
+        color: #495057;
     }
 </style>
 
@@ -359,23 +292,38 @@
     [Parameter] public string Cedula { get; set; } = "";
     [Parameter] public EventCallback OnCerrar { get; set; }
 
+    // Variables de estado
     private bool cargando = true;
     private string? mensajeError = null;
-    private List<JsonElement> documentos = new();
+
+    // Variables de paginación  
     private int paginaActual = 1;
-    private int porPagina = 10;
+    private int porPagina => TipoDocumento == "evaluaciones" ? 10 : 8;
 
-    private ConfiguracionTabla config = new();
-    private List<JsonElement> documentosPaginados => documentos
-    .Skip((paginaActual - 1) * porPagina)
-    .Take(porPagina)
-    .ToList();
-    private int totalPaginas => (int)Math.Ceiling((double)documentos.Count / porPagina);
+    // Variables para documentos
+    private List<JsonElement> documentos = new();
 
-    protected override void OnParametersSet()
+    // Configuración dinámica
+    private DocumentConfig config = new();
+
+    // Propiedades calculadas
+    private IEnumerable<JsonElement> documentosPaginados => documentos
+        .Skip((paginaActual - 1) * porPagina)
+        .Take(porPagina);
+
+    private int PaginasTotales => (int)Math.Ceiling(documentos.Count / (double)porPagina);
+
+    protected override async Task OnParametersSetAsync()
     {
-        Console.WriteLine($"[DEBUG TablaInventario] OnParametersSet - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
-        base.OnParametersSet();
+        Console.WriteLine($"[DEBUG TablaInventario] OnParametersSetAsync - TipoDocumento: '{TipoDocumento}', Cedula: '{Cedula}'");
+        
+        // Solo recargar si ambos parámetros están disponibles y ha habido un cambio
+        if (!string.IsNullOrEmpty(TipoDocumento) && !string.IsNullOrEmpty(Cedula))
+        {
+            config = ObtenerConfiguracion(TipoDocumento);
+            Console.WriteLine($"[DEBUG TablaInventario] Configuración actualizada: {config.Titulo}");
+            await CargarDocumentos();
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -439,7 +387,7 @@
                         Console.WriteLine($"[DEBUG TablaInventario] Respuesta directa - Array con {todosLosDocumentos.Count} elementos");
                     }
                     else if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement) &&
-                    dataElement.ValueKind == JsonValueKind.Array)
+                             dataElement.ValueKind == JsonValueKind.Array)
                     {
                         todosLosDocumentos = dataElement.EnumerateArray().ToList();
                         Console.WriteLine($"[DEBUG TablaInventario] Respuesta con wrapper 'data' - Array con {todosLosDocumentos.Count} elementos");
@@ -509,8 +457,8 @@
                 var baseUrl = Http.BaseAddress?.ToString().TrimEnd('/') ?? "https://localhost:7072";
 
                 var relativePath = pdfRuta.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
-                ? pdfRuta
-                : $"/uploads/{pdfRuta.TrimStart('/')}";
+                    ? pdfRuta
+                    : $"/uploads/{pdfRuta.TrimStart('/')}";
 
                 urlParaUsar = $"{baseUrl}{relativePath}";
             }
@@ -569,7 +517,7 @@
             {
                 // Mostrar mensaje de confirmación
                 var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
-                $"¿Desea editar esta {nombreDocumento}? Será redirigido al formulario de edición.");
+                    $"¿Desea editar esta {nombreDocumento}? Será redirigido al formulario de edición.");
 
                 if (confirmacion)
                 {
@@ -590,7 +538,7 @@
     private async Task EliminarDocumento(JsonElement documento)
     {
         var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm",
-        "¿Está seguro de que desea eliminar este documento? Esta acción no se puede deshacer.");
+            "¿Está seguro de que desea eliminar este documento? Esta acción no se puede deshacer.");
 
         if (!confirmacion) return;
 
@@ -638,69 +586,59 @@
         }
     }
 
-    private void PaginaAnterior()
+    // Configuración dinámica según el tipo de documento
+    private DocumentConfig ObtenerConfiguracion(string tipo)
     {
-        if (paginaActual > 1)
+        return tipo switch
         {
-            paginaActual--;
+            "investigaciones" => new DocumentConfig
+            {
+                Titulo = "🔬 Investigaciones",
+                Columnas = new() { "Título", "Rol", "Fecha Inicio", "Fecha Fin", "Meses" }
+            },
+            "articulos" => new DocumentConfig
+            {
+                Titulo = "📄 Artículos",
+                Columnas = new() { "DOI", "Título", "Revista", "Año", "Idioma" }
+            },
+            "experiencias" => new DocumentConfig
+            {
+                Titulo = "💼 Experiencia Laboral",
+                Columnas = new() { "Institución", "Cargo", "Fecha Inicio", "Fecha Fin", "Años" }
+            },
+            "evaluaciones" => new DocumentConfig
+            {
+                Titulo = "📊 Evaluaciones",
+                Columnas = new() { "Periodo Académico", "Calificación", "Fecha Evaluación" }
+            },
+            "cursos" => new DocumentConfig
+            {
+                Titulo = "🎓 Cursos",
+                Columnas = new() { "Nombre", "Tipo", "Horas", "Fecha", "Institución" }
+            },
+            "tesis" => new DocumentConfig
+            {
+                Titulo = "📚 Tesis Dirigidas",
+                Columnas = new() { "Título", "Nivel", "Estado", "Fecha Inicio", "Institución" }
+            },
+            _ => new DocumentConfig { Titulo = "Documentos", Columnas = new() { "Información" } }
+        };
+    }
+
+    public class DocumentConfig
+    {
+        public string Titulo { get; set; } = "";
+        public List<string> Columnas { get; set; } = new();
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= PaginasTotales)
+        {
+            paginaActual = nuevaPagina;
             StateHasChanged();
         }
     }
-
-    private void PaginaSiguiente()
-    {
-        if (paginaActual < totalPaginas)
-        {
-            paginaActual++;
-            StateHasChanged();
-        }
-    }
-
-    private ConfiguracionTabla ObtenerConfiguracion(string tipoDocumento) => tipoDocumento.ToLower() switch
-    {
-        "investigaciones" => new ConfiguracionTabla
-        {
-            Titulo = "📊 Investigaciones",
-            Columnas = new[] { "Título", "Descripción", "Fecha de Subida", "Archivo" },
-            Campos = new[] { "Titulo", "Descripcion", "FechaSubida", "NombreArchivo" }
-        },
-        "articulos" => new ConfiguracionTabla
-        {
-            Titulo = "📄 Artículos",
-            Columnas = new[] { "Título", "Revista", "Fecha de Subida", "Archivo" },
-            Campos = new[] { "Titulo", "Revista", "FechaSubida", "NombreArchivo" }
-        },
-        "experiencias" => new ConfiguracionTabla
-        {
-            Titulo = "💼 Experiencia Laboral",
-            Columnas = new[] { "Empresa", "Cargo", "Fecha Inicio", "Fecha Fin" },
-            Campos = new[] { "Empresa", "Cargo", "FechaInicio", "FechaFin" }
-        },
-        "evaluaciones" => new ConfiguracionTabla
-        {
-            Titulo = "📈 Evaluaciones",
-            Columnas = new[] { "Tipo", "Período", "Calificación", "Fecha" },
-            Campos = new[] { "Tipo", "Periodo", "Calificacion", "Fecha" }
-        },
-        "cursos" => new ConfiguracionTabla
-        {
-            Titulo = "🎓 Cursos",
-            Columnas = new[] { "Nombre", "Institución", "Fecha de Subida", "Archivo" },
-            Campos = new[] { "Nombre", "Institucion", "FechaSubida", "NombreArchivo" }
-        },
-        "tesis" => new ConfiguracionTabla
-        {
-            Titulo = "📚 Tesis Dirigidas",
-            Columnas = new[] { "Título", "Estudiante", "Nivel", "Estado", "Fecha" },
-            Campos = new[] { "Titulo", "Estudiante", "Nivel", "Estado", "Fecha" }
-        },
-        _ => new ConfiguracionTabla
-        {
-            Titulo = "📋 Documentos",
-            Columnas = new[] { "Nombre", "Tipo", "Fecha" },
-            Campos = new[] { "Nombre", "Tipo", "Fecha" }
-        }
-    };
 
     private string? ObtenerIdDocumento(JsonElement doc, string tipo)
     {
@@ -743,7 +681,7 @@
             foreach (var propiedad in propiedadesPorTipo)
             {
                 if (doc.TryGetProperty(propiedad, out var rutaElement) &&
-                rutaElement.ValueKind == JsonValueKind.String)
+                    rutaElement.ValueKind == JsonValueKind.String)
                 {
                     var ruta = rutaElement.GetString();
                     if (!string.IsNullOrEmpty(ruta))
@@ -755,17 +693,17 @@
 
             // Búsqueda adicional en propiedades generales
             var propiedadesGenerales = new[] {
-"rutaArchivo",
-"archivoPdf",
-"rutaDocumento",
-"pdfPath",
-"filePath"
-};
+                "rutaArchivo",
+                "archivoPdf",
+                "rutaDocumento",
+                "pdfPath",
+                "filePath"
+            };
 
             foreach (var propiedad in propiedadesGenerales)
             {
                 if (doc.TryGetProperty(propiedad, out var rutaElement) &&
-                rutaElement.ValueKind == JsonValueKind.String)
+                    rutaElement.ValueKind == JsonValueKind.String)
                 {
                     var ruta = rutaElement.GetString();
                     if (!string.IsNullOrEmpty(ruta))
@@ -789,19 +727,19 @@
         {
             // Lista de propiedades posibles para buscar la URL de Cloudinary
             var propiedadesPosibles = new[] {
-"urlCloudinary", // ✅ Propiedad estándar para todos los tipos
-"UrlCloudinary", // Con U mayúscula (usado en TesisDirigidaDto)
-"cloudinaryUrl",
-"urlDocumento",
-"cloudUrl",
-"urlArchivo"
-};
+                "urlCloudinary", // ✅ Propiedad estándar para todos los tipos
+                "UrlCloudinary", // Con U mayúscula (usado en TesisDirigidaDto)
+                "cloudinaryUrl",
+                "urlDocumento",
+                "cloudUrl",
+                "urlArchivo"
+            };
 
             // Buscar en todas las propiedades posibles
             foreach (var propiedad in propiedadesPosibles)
             {
                 if (doc.TryGetProperty(propiedad, out var urlElement) &&
-                urlElement.ValueKind == JsonValueKind.String)
+                    urlElement.ValueKind == JsonValueKind.String)
                 {
                     var url = urlElement.GetString();
                     if (!string.IsNullOrEmpty(url))
@@ -819,19 +757,103 @@
         }
     }
 
-    public class ConfiguracionTabla
+    private List<string> ObtenerValoresDocumento(JsonElement doc, string tipo)
     {
-        public string Titulo { get; set; } = "";
-        public string[] Columnas { get; set; } = Array.Empty<string>();
-        public string[] Campos { get; set; } = Array.Empty<string>();
+        try
+        {
+            return tipo switch
+            {
+                "investigaciones" => new List<string>
+                {
+                    doc.TryGetProperty("titulo", out var titulo) ? titulo.GetString() ?? "" : "",
+                    doc.TryGetProperty("rolEnInvestigacion", out var rol) ? rol.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicio) ? fechaInicio.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("fechaFinalizacion", out var fechaFin) ? fechaFin.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("mesesDeInvestigacion", out var meses) ? meses.GetDecimal().ToString("F0") : ""
+                },
+                "articulos" => new List<string>
+                {
+                    doc.TryGetProperty("doi", out var doi) ? doi.GetString() ?? "" : "",
+                    doc.TryGetProperty("titulo", out var tituloArt) ? tituloArt.GetString() ?? "" : "",
+                    doc.TryGetProperty("revista", out var revista) ? revista.GetString() ?? "" : "",
+                    doc.TryGetProperty("anioPublicacion", out var anio) ? anio.GetInt32().ToString() : "",
+                    doc.TryGetProperty("idiomaPublicacion", out var idioma) ? idioma.GetString() ?? "" : ""
+                },
+                "experiencias" => new List<string>
+                {
+                    doc.TryGetProperty("organizacionNombre", out var institucion) ? institucion.GetString() ?? "" : "",
+                    doc.TryGetProperty("cargo", out var cargo) ? cargo.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicioExp) ? fechaInicioExp.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("fechaFin", out var fechaFinExp) && fechaFinExp.ValueKind != JsonValueKind.Null ? fechaFinExp.GetDateTime().ToString("yyyy-MM-dd") : "Actual",
+                    ObtenerAniosExperiencia(doc)
+                },
+                "evaluaciones" => new List<string>
+                {
+                    doc.TryGetProperty("periodoAcademico", out var periodo) ? periodo.GetString() ?? "" : "",
+                    doc.TryGetProperty("puntajePorcentual", out var calificacion) ? calificacion.GetDecimal().ToString("F1") : "",
+                    doc.TryGetProperty("fechaEvaluacion", out var fechaEval) ? fechaEval.GetDateTime().ToString("yyyy-MM-dd") : ""
+                },
+                "cursos" => new List<string>
+                {
+                    doc.TryGetProperty("nombre", out var nombreCurso) ? nombreCurso.GetString() ?? "" : "",
+                    doc.TryGetProperty("tipoCurso", out var tipoCurso) ? tipoCurso.GetString() ?? "" : "",
+                    doc.TryGetProperty("numeroHoras", out var horas) ? horas.GetInt32().ToString() : "",
+                    doc.TryGetProperty("fechaFinalizacion", out var fechaCurso) ? fechaCurso.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("nombreOrganizacion", out var organizacion) ? organizacion.GetString() ?? "" : ""
+                },
+                "tesis" => new List<string>
+                {
+                    doc.TryGetProperty("tituloTesis", out var tituloTesis) ? tituloTesis.GetString() ?? "" : "",
+                    doc.TryGetProperty("nivelAcademico", out var nivel) ? nivel.GetString() ?? "" : "",
+                    doc.TryGetProperty("estado", out var estado) ? estado.GetString() ?? "" : "",
+                    doc.TryGetProperty("fechaInicio", out var fechaInicioTesis) ? fechaInicioTesis.GetDateTime().ToString("yyyy-MM-dd") : "",
+                    doc.TryGetProperty("institucion", out var institucionTesis) ? institucionTesis.GetString() ?? "" : 
+                        (doc.TryGetProperty("nombreInstitucion", out var inst2) ? inst2.GetString() ?? "" : "")
+                },
+                _ => new List<string> { "Información no disponible" }
+            };
+        }
+        catch (Exception)
+        {
+            return new List<string> { "Error al cargar datos" };
+        }
     }
 
-    public class ApiResponse<T>
+    private string ObtenerAniosExperiencia(JsonElement doc)
     {
-        public bool Success { get; set; }
-        public string? Message { get; set; }
-        public T? Data { get; set; }
+        try
+        {
+            // Si el API ya proporciona el valor calculado, usamos ese
+            if (doc.TryGetProperty("aniosExperiencia", out var aniosElement) && 
+                aniosElement.ValueKind != JsonValueKind.Null)
+            {
+                return aniosElement.GetDecimal().ToString("F1");
+            }
+
+            // Sino, calculamos basados en las fechas
+            if (doc.TryGetProperty("fechaInicio", out var fechaInicioElement) && 
+                fechaInicioElement.ValueKind != JsonValueKind.Null)
+            {
+                var fechaInicio = fechaInicioElement.GetDateTime();
+                var fechaFin = DateTime.Now; // Por defecto es hasta ahora
+                
+                if (doc.TryGetProperty("fechaFin", out var fechaFinElement) && 
+                    fechaFinElement.ValueKind != JsonValueKind.Null)
+                {
+                    fechaFin = fechaFinElement.GetDateTime();
+                }
+                
+                var diferencia = fechaFin - fechaInicio;
+                var anios = diferencia.TotalDays / 365.25; // Considera años bisiestos
+                
+                return anios.ToString("F1");
+            }
+            
+            return "N/A"; // Si no hay suficiente información para calcular
+        }
+        catch
+        {
+            return "N/A";
+        }
     }
 }
-
-                                                                                                                                                                               
