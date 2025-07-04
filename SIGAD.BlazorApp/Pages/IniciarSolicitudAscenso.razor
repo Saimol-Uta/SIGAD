@@ -538,6 +538,13 @@
 </body>
 
 @code {
+
+    
+    
+    private SolicitudAscensoModel solicitudModel = new();
+    private List<RangoModel> rangosDisponibles;
+    private RangoModel rangoSiguiente;
+    private string errorMessage;
     // Variables para información del usuario
     private string nombreUsuario = "";
     private string nombreCompleto = "";
@@ -548,15 +555,12 @@
     private string urlFotoPerfil = "/images/IconoUser.png";
 
     // Variables para el formulario
-    private SolicitudAscensoModel solicitudModel = new();
-    private List<RangoModel>? rangosDisponibles;
-    private RangoModel? rangoSiguiente;
+   
 
     // Variables de estado
     private bool isLoading = true;
     private bool isSubmitting = false;
     private bool solicitudCreada = false;
-    private string? errorMessage;
     private SolicitudExistenteInfo? solicitudExistente;
     private bool mostrarConfirmacionCancelar = false;
 
@@ -647,17 +651,20 @@
     {
         try
         {
-            // Cargar todos los rangos disponibles
-            rangosDisponibles = new List<RangoModel>
-            {
-                new RangoModel { Id = 1, Nombre = "Instructor", ArticulosRequeridos = 0, AniosExperienciaRequeridos = 0, HorasCursoRequeridas = 0, MesesInvestigacionRequeridos = 0, PuntajePromedioEvaluacionesRequerido = 0 },
-                new RangoModel { Id = 2, Nombre = "Profesor Asistente", ArticulosRequeridos = 2, AniosExperienciaRequeridos = 2, HorasCursoRequeridas = 40, MesesInvestigacionRequeridos = 12, PuntajePromedioEvaluacionesRequerido = 70 },
-                new RangoModel { Id = 3, Nombre = "Profesor Asociado", ArticulosRequeridos = 5, AniosExperienciaRequeridos = 5, HorasCursoRequeridas = 80, MesesInvestigacionRequeridos = 24, PuntajePromedioEvaluacionesRequerido = 75 },
-                new RangoModel { Id = 4, Nombre = "Profesor Titular", ArticulosRequeridos = 10, AniosExperienciaRequeridos = 10, HorasCursoRequeridas = 120, MesesInvestigacionRequeridos = 36, PuntajePromedioEvaluacionesRequerido = 80 }
-            };
+            // Llama a tu nuevo endpoint GET. Asegúrate que la URL sea la correcta.
+            // El wrapper "ApiResponse" es opcional pero recomendado para manejar el formato { success: true, data: [...] }
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<RangoModel>>>("api/rangos"); // Cambia "api/rangos" por tu URL real
 
-            // Determinar el rango siguiente automáticamente
-            DeterminarRangoSiguiente();
+            if (response != null && response.Success)
+            {
+                rangosDisponibles = response.Data;
+                // Una vez cargados los rangos, determina cuál es el siguiente
+                DeterminarRangoSiguiente();
+            }
+            else
+            {
+                errorMessage = response?.Message ?? "No se pudieron cargar los rangos.";
+            }
         }
         catch (Exception ex)
         {
@@ -665,30 +672,62 @@
         }
     }
 
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public T Data { get; set; }
+    }
+
     private void DeterminarRangoSiguiente()
     {
-        if (rangosDisponibles == null) return;
-
-        int siguienteRangoId;
-        
-        if (rangoActualId == 0)
+        if (rangosDisponibles == null || !rangosDisponibles.Any())
         {
-            // Si no tiene rango, el siguiente será el rango 2 (después de asignarle el 1 automáticamente)
-            siguienteRangoId = 2;
+            rangoSiguiente = null;
+            return;
+        }
+
+        // Encuentra el objeto del rango actual en la lista
+        var rangoActual = rangosDisponibles.FirstOrDefault(r => r.Id == rangoActualId);
+
+        if (rangoActual == null)
+        {
+            // Si el usuario no tiene rango (rangoActualId es 0 o inválido),
+            // el siguiente es el primero de la lista (Titular Auxiliar 1).
+            // NOTA: Tu lógica original apuntaba al ID=2. Esto es más seguro.
+            rangoSiguiente = rangosDisponibles.FirstOrDefault();
         }
         else
         {
-            // El siguiente rango es el actual + 1
-            siguienteRangoId = rangoActualId + 1;
+            // Encuentra el índice del rango actual en la lista
+            int indiceActual = rangosDisponibles.IndexOf(rangoActual);
+
+            // Verifica si no es el último rango de la lista
+            if (indiceActual >= 0 && indiceActual < rangosDisponibles.Count - 1)
+            {
+                // El siguiente rango es el que está en la siguiente posición de la lista
+                rangoSiguiente = rangosDisponibles[indiceActual + 1];
+            }
+            else
+            {
+                // El usuario ya está en el rango máximo, no hay siguiente.
+                rangoSiguiente = null;
+                // Opcional: puedes poner un mensaje "Ya alcanzó el rango máximo".
+            }
         }
 
-        rangoSiguiente = rangosDisponibles.FirstOrDefault(r => r.Id == siguienteRangoId);
-        
         // Asignar al modelo para el formulario
         if (rangoSiguiente != null)
         {
             solicitudModel.RangoSolicitadoId = rangoSiguiente.Id;
         }
+        else
+        {
+            solicitudModel.RangoSolicitadoId = 0; // O un valor que indique que no hay promoción posible.
+        }
+
+        // ¡Importante! Llama a StateHasChanged() si estás en un evento que no actualiza la UI automáticamente.
+        StateHasChanged();
     }
 
     private async Task HandleSubmit()
@@ -808,7 +847,16 @@
         public int AniosExperienciaRequeridos { get; set; }
         public int HorasCursoRequeridas { get; set; }
         public int MesesInvestigacionRequeridos { get; set; }
+        public int TesisDirigidasRequeridas { get; set; }
         public decimal PuntajePromedioEvaluacionesRequerido { get; set; }
+
+        // Campos adicionales del nuevo reglamento
+        public int HorasCapacitacionPedagogicaRequeridas { get; set; }
+        public int HorasCapacitacionImpartidaRequeridas { get; set; }
+        public int PublicacionesIdiomaExtranjeroRequeridas { get; set; }
+        public int ProyectosInternacionalesRequeridos { get; set; }
+        public bool RequiereArticuloEnGradoActual { get; set; }
+        public bool PermiteCoordinacionProyectos { get; set; }
     }
 
     public class VerifyTokenResponse
