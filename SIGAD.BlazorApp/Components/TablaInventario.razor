@@ -558,14 +558,15 @@
             };
 
             // Redirigir a la página de edición correspondiente según el tipo de documento
+            // Incluir parámetro de retorno para volver al inventario
             string ruta = TipoDocumento switch
             {
-                "investigaciones" => $"/editar-investigacion/{id}",
-                "articulos" => $"/editar-articulo/{Uri.EscapeDataString(id)}",
-                "experiencias" => $"/editar-experiencia/{id}",
-                "evaluaciones" => $"/editar-evaluacion/{id}",
-                "cursos" => $"/editar-curso/{id}",
-                "tesis" => $"/editar-tesis/{id}",
+                "investigaciones" => $"/editar-investigacion/{id}?returnTo=inventario",
+                "articulos" => $"/editar-articulo/{Uri.EscapeDataString(id)}?returnTo=inventario",
+                "experiencias" => $"/editar-experiencia/{id}?returnTo=inventario",
+                "evaluaciones" => $"/editar-evaluacion/{id}?returnTo=inventario",
+                "cursos" => $"/editar-curso/{id}?returnTo=inventario",
+                "tesis" => $"/editar-tesis/{id}?returnTo=inventario",
                 _ => ""
             };
 
