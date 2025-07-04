@@ -1,4 +1,5 @@
-﻿@page "/gestion-documentos"
+﻿@using System.Text.Json.Serialization;
+@page "/gestion-documentos"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
@@ -1303,10 +1304,16 @@
             
             if (response.IsSuccessStatusCode)
             {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - JSON respuesta verificar requisitos: {jsonContent}");
+                
                 var result = await response.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
                 
                 if (result?.Success == true)
                 {
+                    Console.WriteLine($"Debug - Valores requeridos: MesesInvestigacion={result.ValoresRequeridos?.MesesInvestigacion}");
+                    Console.WriteLine($"Debug - Valores actuales: MesesInvestigacion={result.ValoresActuales?.MesesInvestigacion}");
+                    
                     requisitosInfo = result;
                     mostrarDetallesRequisitos = true;
                     mensajeOperacion = "✅ Verificación de requisitos completada";
@@ -1966,24 +1973,52 @@
 
     public class ValoresActuales
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public decimal AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public decimal MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("totalEvaluaciones")]
         public int TotalEvaluaciones { get; set; }
+        
+        [JsonPropertyName("evaluacionesCumplen")]
         public int EvaluacionesCumplen { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
     }
 
     public class ValoresRequeridos
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public int AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public int MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("rangoNombre")]
         public string? RangoNombre { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
     }
 

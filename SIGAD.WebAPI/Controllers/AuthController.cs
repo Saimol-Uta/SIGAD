@@ -530,7 +530,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 0.0m
                     },
                     
-                    // TITULAR AUXILIAR 2 - Anexo 1, Página 7
+                    // TITULAR AUXILIAR 2 - Anexo 1, Promoción de auxiliar 1 a auxiliar 2
                     new {
                         Nombre = "Titular Auxiliar 2",
                         ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
@@ -541,7 +541,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 1 - Anexo 1, Página 8  
+                    // TITULAR AGREGADO 1 - Promoción de auxiliar 2 a agregado 1  
                     new {
                         Nombre = "Titular Agregado 1",
                         ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
@@ -552,7 +552,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 2 - Anexo 1, Página 9
+                    // TITULAR AGREGADO 2 - Promoción de agregado 1 a agregado 2
                     new {
                         Nombre = "Titular Agregado 2",
                         ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
@@ -563,7 +563,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 3 - Anexo 1, Página 10
+                    // TITULAR AGREGADO 3 - Promoción de agregado 2 a agregado 3
                     new {
                         Nombre = "Titular Agregado 3",
                         ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
@@ -574,18 +574,18 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR PRINCIPAL 1 - Anexo 1, Página 11
+                    // TITULAR PRINCIPAL 1 - No aparece en el Anexo 1 del reglamento UTA
                     new {
                         Nombre = "Titular Principal 1",
-                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (1 en idioma extranjero)
-                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
-                        HorasCursoRequeridas = 224,  // 224 horas de capacitación (25% pedagógica = 56h) + 40h impartidas
-                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
-                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        ArticulosRequeridos = 0,  // No especificado en el reglamento
+                        AniosExperienciaRequeridos = 0,  // No especificado en el reglamento
+                        HorasCursoRequeridas = 0,  // No especificado en el reglamento
+                        MesesInvestigacionRequeridos = 0,  // No especificado en el reglamento
+                        TesisDirigidasRequeridas = 0,  // No especificado en el reglamento
+                        PuntajePromedioEvaluacionesRequerido = 0.0m  // No especificado en el reglamento
                     },
                     
-                    // TITULAR PRINCIPAL 2 - Anexo 1, Página 12
+                    // TITULAR PRINCIPAL 2 - Promoción de principal 1 a principal 2
                     new {
                         Nombre = "Titular Principal 2",
                         ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
@@ -1307,6 +1307,7 @@ namespace SIGAD.WebAPI.Controllers
         private async Task<(bool cumple, List<string> requisitosFaltantes, object valoresActuales, object valoresRequeridos)> VerificarRequisitosRangoAsync(Guid solicitudId, SIGAD.Domain.Entities.Rango rango)
         {
             Console.WriteLine($"🔍 DEBUG Backend - Iniciando verificación de requisitos para solicitud {solicitudId}, rango {rango.Nombre}");
+            Console.WriteLine($"🔍 DEBUG Backend - Requisitos del rango '{rango.Nombre}': Art={rango.ArticulosRequeridos}, Exp={rango.AniosExperienciaRequeridos}, Cur={rango.HorasCursoRequeridas}, Inv={rango.MesesInvestigacionRequeridos}, Eval={rango.PuntajePromedioEvaluacionesRequerido}, Tesis={rango.TesisDirigidasRequeridas}");
             var requisitosFaltantes = new List<string>();
 
             // 1. VERIFICAR ARTÍCULOS
