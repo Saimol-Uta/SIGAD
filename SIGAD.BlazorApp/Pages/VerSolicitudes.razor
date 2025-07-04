@@ -458,6 +458,17 @@
                                                 </span>
                                             }
                                         </div>
+                                            
+                                        @* Botón para generar certificado - Solo aparece para solicitudes aprobadas *@
+                                        @if (solicitud.Estado?.Trim() == "Aprobada")
+                                        {
+                                            <button class="btn btn-primary btn-sm ms-1" 
+                                                    @onclick="() => GenerarCertificado(solicitud.Id)"
+                                                    title="Generar certificado de acción de personal">
+                                                <i class="fas fa-certificate me-1"></i>
+                                                Certificado
+                                            </button>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -645,6 +656,7 @@
     private bool apelacionAceptada = true;
     private string observacionesResolucion = "";
     private bool procesandoResolucion = false;
+    private bool generandoCertificado = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -895,6 +907,42 @@
         mostrarNotificacion = false;
         mensajeError = null;
         mensajeExito = null;
+    }
+
+    // Método para generar y descargar certificado
+    private async Task GenerarCertificado(Guid solicitudId)
+    {
+        try
+        {
+            generandoCertificado = true;
+            StateHasChanged();
+
+            var resultado = await SolicitudesService.DescargarCertificadoAsync(solicitudId);
+
+            if (resultado.success)
+            {
+                // Crear nombre del archivo con timestamp
+                var fileName = $"certificado_accion_personal_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+                
+                // Descargar el archivo usando JavaScript
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, resultado.pdfData);
+                
+                MostrarNotificacionExito("Certificado generado y descargado exitosamente");
+            }
+            else
+            {
+                MostrarNotificacionError(resultado.message);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarNotificacionError($"Error inesperado al generar certificado: {ex.Message}");
+        }
+        finally
+        {
+            generandoCertificado = false;
+            StateHasChanged();
+        }
     }
 
     // SweetAlert para notificaciones modernas
