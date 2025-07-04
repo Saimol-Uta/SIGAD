@@ -378,8 +378,8 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        
-        
+
+
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             try
@@ -530,7 +530,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 0.0m
                     },
                     
-                    // TITULAR AUXILIAR 2 - Anexo 1, Página 7
+                    // TITULAR AUXILIAR 2 - Anexo 1, Promoción de auxiliar 1 a auxiliar 2
                     new {
                         Nombre = "Titular Auxiliar 2",
                         ArticulosRequeridos = 1,  // 1 obra de relevancia o artículo indexado
@@ -541,7 +541,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 1 - Anexo 1, Página 8  
+                    // TITULAR AGREGADO 1 - Promoción de auxiliar 2 a agregado 1  
                     new {
                         Nombre = "Titular Agregado 1",
                         ArticulosRequeridos = 2,  // 2 obras de relevancia o artículos indexados
@@ -552,7 +552,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 2 - Anexo 1, Página 9
+                    // TITULAR AGREGADO 2 - Promoción de agregado 1 a agregado 2
                     new {
                         Nombre = "Titular Agregado 2",
                         ArticulosRequeridos = 3,  // 3 obras de relevancia o artículos indexados
@@ -563,7 +563,7 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR AGREGADO 3 - Anexo 1, Página 10
+                    // TITULAR AGREGADO 3 - Promoción de agregado 2 a agregado 3
                     new {
                         Nombre = "Titular Agregado 3",
                         ArticulosRequeridos = 5,  // 5 obras de relevancia o artículos indexados
@@ -574,18 +574,18 @@ namespace SIGAD.WebAPI.Controllers
                         PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
                     },
                     
-                    // TITULAR PRINCIPAL 1 - Anexo 1, Página 11
+                    // TITULAR PRINCIPAL 1 - No aparece en el Anexo 1 del reglamento UTA
                     new {
                         Nombre = "Titular Principal 1",
-                        ArticulosRequeridos = 8,  // 8 obras de relevancia o artículos indexados (1 en idioma extranjero)
-                        AniosExperienciaRequeridos = 3,  // 3 años como titular principal 1
-                        HorasCursoRequeridas = 224,  // 224 horas de capacitación (25% pedagógica = 56h) + 40h impartidas
-                        MesesInvestigacionRequeridos = 24,  // 24 meses dirigiendo proyectos de investigación
-                        TesisDirigidasRequeridas = 2,  // 2 tesis de doctorado dirigidas/codirigidas
-                        PuntajePromedioEvaluacionesRequerido = 75.0m  // 75% en evaluación integral
+                        ArticulosRequeridos = 0,  // No especificado en el reglamento
+                        AniosExperienciaRequeridos = 0,  // No especificado en el reglamento
+                        HorasCursoRequeridas = 0,  // No especificado en el reglamento
+                        MesesInvestigacionRequeridos = 0,  // No especificado en el reglamento
+                        TesisDirigidasRequeridas = 0,  // No especificado en el reglamento
+                        PuntajePromedioEvaluacionesRequerido = 0.0m  // No especificado en el reglamento
                     },
                     
-                    // TITULAR PRINCIPAL 2 - Anexo 1, Página 12
+                    // TITULAR PRINCIPAL 2 - Promoción de principal 1 a principal 2
                     new {
                         Nombre = "Titular Principal 2",
                         ArticulosRequeridos = 12,  // 12 obras de relevancia o artículos indexados (2 en idioma extranjero)
@@ -1306,11 +1306,14 @@ namespace SIGAD.WebAPI.Controllers
         /// <returns>Estado de verificación de requisitos</returns>
         private async Task<(bool cumple, List<string> requisitosFaltantes, object valoresActuales, object valoresRequeridos)> VerificarRequisitosRangoAsync(Guid solicitudId, SIGAD.Domain.Entities.Rango rango)
         {
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando verificación de requisitos para solicitud {solicitudId}, rango {rango.Nombre}");
+            Console.WriteLine($"🔍 DEBUG Backend - Requisitos del rango '{rango.Nombre}': Art={rango.ArticulosRequeridos}, Exp={rango.AniosExperienciaRequeridos}, Cur={rango.HorasCursoRequeridas}, Inv={rango.MesesInvestigacionRequeridos}, Eval={rango.PuntajePromedioEvaluacionesRequerido}, Tesis={rango.TesisDirigidasRequeridas}");
             var requisitosFaltantes = new List<string>();
 
             // 1. VERIFICAR ARTÍCULOS
             var articulosCount = await _context.ArticulosPorSolicitud
                 .CountAsync(aps => aps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Artículos encontrados: {articulosCount}, requeridos: {rango.ArticulosRequeridos}");
 
             // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
             var experienciasLaborales = await _context.ExperienciasPorSolicitud
@@ -1320,6 +1323,7 @@ namespace SIGAD.WebAPI.Controllers
                 .ToListAsync();
 
             var totalAniosExperiencia = CalcularTotalAniosExperiencia(experienciasLaborales);
+            Console.WriteLine($"🔍 DEBUG Backend - Años de experiencia calculados: {totalAniosExperiencia}, requeridos: {rango.AniosExperienciaRequeridos}");
 
             // 3. VERIFICAR HORAS DE CURSOS SEGÚN EL RANGO SOLICITADO
             var cursos = await _context.CursosPorSolicitud
@@ -1336,11 +1340,13 @@ namespace SIGAD.WebAPI.Controllers
                 totalHorasCursos = cursos
                     .Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue)
                     .Sum(c => c.HorasImpartidas ?? 0);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas impartidas calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
             }
             else
             {
                 // Para rangos 1, 2, 3 (Auxiliar 1, 2 y Agregado 1, 2): usar horas de capacitación recibida
                 totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas de capacitación calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
             }
 
             // 4. VERIFICAR MESES DE INVESTIGACIÓN SEGÚN REGLAMENTO UTA (con multiplicadores por rol y proyectos internacionales)
@@ -1353,6 +1359,8 @@ namespace SIGAD.WebAPI.Controllers
             var resultadoInvestigacion = CalcularMesesInvestigacionConReglamento(investigaciones, rango);
             var totalMesesInvestigacion = resultadoInvestigacion.mesesTotales;
             var cumpleRequisitosInternacionales = resultadoInvestigacion.cumpleInternacionales;
+            Console.WriteLine($"🔍 DEBUG Backend - Meses de investigación calculados: {totalMesesInvestigacion}, requeridos: {rango.MesesInvestigacionRequeridos}");
+            Console.WriteLine($"🔍 DEBUG Backend - Cumple requisitos internacionales: {cumpleRequisitosInternacionales}");
 
             // 5. VERIFICAR EVALUACIONES DOCENTES (al menos 75% promedio mínimo)
             var evaluaciones = await _context.EvaluacionesPorSolicitud
@@ -1363,12 +1371,15 @@ namespace SIGAD.WebAPI.Controllers
 
             var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e?.PuntajePorcentual ?? 0) : 0;
             var todasEvaluacionesCumplen = evaluaciones.All(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido);
+            Console.WriteLine($"🔍 DEBUG Backend - Evaluaciones encontradas: {evaluaciones.Count}, promedio: {promedioEvaluaciones:F1}%, requerido: {rango.PuntajePromedioEvaluacionesRequerido}%");
 
             // 6. VERIFICAR TESIS DIRIGIDAS
             var tesisCount = await _context.TesisPorSolicitud
                 .CountAsync(tps => tps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Tesis dirigidas encontradas: {tesisCount}, requeridas: {rango.TesisDirigidasRequeridas}");
 
             // VALIDAR CADA REQUISITO
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando validación de requisitos...");
             if (articulosCount < rango.ArticulosRequeridos)
             {
                 requisitosFaltantes.Add($"Artículos: Tiene {articulosCount}, requiere {rango.ArticulosRequeridos}");
@@ -1451,7 +1462,12 @@ namespace SIGAD.WebAPI.Controllers
                 notaInvestigacion = "Coordinador Principal = 2x tiempo, Coordinador Subrogante = 1.5x tiempo"
             };
 
-            return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
+            bool cumpleRequisitos = requisitosFaltantes.Count == 0;
+            Console.WriteLine($"🔍 DEBUG Backend - Resultado final:");
+            Console.WriteLine($"  - Cumple requisitos: {cumpleRequisitos}");
+            Console.WriteLine($"  - Requisitos faltantes ({requisitosFaltantes.Count}): [{string.Join(", ", requisitosFaltantes)}]");
+
+            return (cumpleRequisitos, requisitosFaltantes, valoresActuales, valoresRequeridos);
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
-﻿@page "/gestion-documentos"
+﻿@using System.Text.Json.Serialization;
+@page "/gestion-documentos"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "DOCENTE")]
 @using SIGAD.BlazorApp.Layout
@@ -833,6 +834,9 @@
                         <button class="btn btn-import" @onclick="@(() => VerTabla("investigaciones"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
+                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Refrescar conteo">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -909,6 +913,8 @@
                 </div>
 
                 <!-- Tesis Asignadas -->
+                 @if (RangoRequiereTesis())
+                                            {
                 <div class="document-card">
                     <h3>
                         <span class="icon"><i class="fas fa-book text-danger"></i></span>
@@ -925,6 +931,8 @@
                         </button>
                     </div>
                 </div>
+       }
+               
             </div>
 
             <!-- Mostrar tabla cuando se selecciona un tipo -->
@@ -1013,10 +1021,13 @@
                                                 <span class="label">­Evaluaciones:</span>
                                                 <span class="value success">@requisitosInfo.ValoresActuales.PromedioEvaluaciones% / @requisitosInfo.ValoresRequeridos.PromedioEvaluaciones% ✅</span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">­ Tesis Dirigidas:</span>
-                                                <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value success">@requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas ✅</span>
+                                                </div>
+                                            }
                                         </div>
 
                                         @if (solicitudEnviada)
@@ -1089,13 +1100,16 @@
                                                     @(requisitosInfo.ValoresActuales.PromedioEvaluaciones >= requisitosInfo.ValoresRequeridos.PromedioEvaluaciones ? "✅" : "❌")
                                                 </span>
                                             </div>
-                                            <div class="requirement-item">
-                                                <span class="label">­Tesis Dirigidas:</span>
-                                                <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
-                                                    @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
-                                                    @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
-                                                </span>
-                                            </div>
+                                            @if (RangoRequiereTesis())
+                                            {
+                                                <div class="requirement-item">
+                                                    <span class="label">📚 Tesis Dirigidas:</span>
+                                                    <span class="value @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "success" : "error")">
+                                                        @requisitosInfo.ValoresActuales.TesisDirigidas / @requisitosInfo.ValoresRequeridos.TesisDirigidas 
+                                                        @(requisitosInfo.ValoresActuales.TesisDirigidas >= requisitosInfo.ValoresRequeridos.TesisDirigidas ? "✅" : "❌")
+                                                    </span>
+                                                </div>
+                                            }
                                         </div>
 
                                         <div class="missing-requirements">
@@ -1127,7 +1141,7 @@
                                     @if (conteoExperiencias == 0) { <li>Experiencia Laboral</li> }
                                     @if (conteoEvaluaciones == 0) { <li>Evaluaciones</li> }
                                     @if (conteoCursos == 0) { <li>Cursos</li> }
-                                    @if (conteoTesis == 0) { <li>Tesis Dirigidas</li> }
+                                    @if (conteoTesis == 0 && RangoRequiereTesis()) { <li>Tesis Dirigidas</li> }
                                 </ul>
                             </div>
                             <div class="submission-actions">
@@ -1265,12 +1279,14 @@
 
     private void VerificarDocumentosCompletos()
     {
+        bool requiereTesis = RangoRequiereTesis();
+        
         tieneDocumentosCompletos = conteoInvestigaciones > 0 && 
                                  conteoArticulos > 0 && 
                                  conteoExperiencias > 0 && 
                                  conteoEvaluaciones > 0 && 
                                  conteoCursos > 0 &&
-                                 conteoTesis > 0;
+                                 (requiereTesis ? conteoTesis > 0 : true);
     }
 
     private async Task VerificarRequisitos()
@@ -1288,10 +1304,16 @@
             
             if (response.IsSuccessStatusCode)
             {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - JSON respuesta verificar requisitos: {jsonContent}");
+                
                 var result = await response.Content.ReadFromJsonAsync<VerificacionRequisitosResponse>();
                 
                 if (result?.Success == true)
                 {
+                    Console.WriteLine($"Debug - Valores requeridos: MesesInvestigacion={result.ValoresRequeridos?.MesesInvestigacion}");
+                    Console.WriteLine($"Debug - Valores actuales: MesesInvestigacion={result.ValoresActuales?.MesesInvestigacion}");
+                    
                     requisitosInfo = result;
                     mostrarDetallesRequisitos = true;
                     mensajeOperacion = "✅ Verificación de requisitos completada";
@@ -1499,12 +1521,32 @@
             var response = await Http.GetAsync($"api/investigaciones/docente/{cedula}");
             if (response.IsSuccessStatusCode)
             {
-                var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
-                conteoInvestigaciones = investigaciones?.Count ?? 0;
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Debug - Respuesta API Investigaciones: {content}");
+                
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<object>>>();
+                if (result?.Success == true && result.Data != null)
+                {
+                    conteoInvestigaciones = result.Data.Count;
+                }
+                else
+                {
+                    // Intentar deserializar directamente como lista
+                    var investigaciones = await response.Content.ReadFromJsonAsync<List<object>>();
+                    conteoInvestigaciones = investigaciones?.Count ?? 0;
+                }
+                
+                Console.WriteLine($"Debug - Conteo investigaciones: {conteoInvestigaciones}");
+            }
+            else
+            {
+                Console.WriteLine($"Debug - Error API Investigaciones: {response.StatusCode}");
+                conteoInvestigaciones = 0;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"Debug - Exception investigaciones: {ex.Message}");
             conteoInvestigaciones = 0;
         }
     }
@@ -1724,8 +1766,11 @@
             Navigation.NavigateTo("/login", true);
         }
     }
-    private void VerTabla(string tipoDocumento)
+    private async void VerTabla(string tipoDocumento)
     {
+        // Actualizar conteos antes de mostrar la tabla
+        await CargarConteoDocumentos();
+        
         tablaVisible = tipoDocumento;
         tipoDocumentoSeleccionado = tipoDocumento; // Establecer el tipo seleccionado para mostrar la guáa
         StateHasChanged();
@@ -1801,8 +1846,13 @@
     {
         try
         {
+            Console.WriteLine("Debug - Actualizando conteos automáticamente...");
+            
             // Actualizar conteo de documentos primero
             await CargarConteoDocumentos();
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
             
             // Verificar si hay requisitos para verificar
             if (!string.IsNullOrEmpty(solicitudId) && tieneDocumentosCompletos)
@@ -1810,11 +1860,71 @@
                 // Verificar los requisitos automáticamente
                 await VerificarRequisitos();
             }
+            
+            Console.WriteLine($"Debug - Conteos actualizados: Inv={conteoInvestigaciones}, Art={conteoArticulos}, Exp={conteoExperiencias}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al actualizar requisitos automáticamente: {ex.Message}");
         }
+    }
+
+    // Método para actualizar conteo manual de un tipo específico de documento
+    private async Task ActualizarConteoManual(string tipoDocumento)
+    {
+        try
+        {
+            Console.WriteLine($"Debug - Actualizando conteo manual para: {tipoDocumento}");
+            
+            switch (tipoDocumento)
+            {
+                case "investigaciones":
+                    await CargarConteoInvestigaciones();
+                    break;
+                case "articulos":
+                    await CargarConteoArticulos();
+                    break;
+                case "experiencias":
+                    await CargarConteoExperiencias();
+                    break;
+                case "evaluaciones":
+                    await CargarConteoEvaluaciones();
+                    break;
+                case "cursos":
+                    await CargarConteoCursos();
+                    break;
+                case "tesis":
+                    await CargarConteoTesis();
+                    break;
+                default:
+                    // Actualizar todos
+                    await CargarConteoDocumentos();
+                    break;
+            }
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Conteo actualizado: {tipoDocumento} = {GetConteoByTipo(tipoDocumento)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar conteo manual: {ex.Message}");
+        }
+    }
+    
+    private int GetConteoByTipo(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => conteoInvestigaciones,
+            "articulos" => conteoArticulos,
+            "experiencias" => conteoExperiencias,
+            "evaluaciones" => conteoEvaluaciones,
+            "cursos" => conteoCursos,
+            "tesis" => conteoTesis,
+            _ => 0
+        };
     }
 
     // Modelos para las respuestas de API
@@ -1863,24 +1973,57 @@
 
     public class ValoresActuales
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public decimal AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public decimal MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("totalEvaluaciones")]
         public int TotalEvaluaciones { get; set; }
+        
+        [JsonPropertyName("evaluacionesCumplen")]
         public int EvaluacionesCumplen { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
     }
 
     public class ValoresRequeridos
     {
+        [JsonPropertyName("articulos")]
         public int Articulos { get; set; }
+        
+        [JsonPropertyName("aniosExperiencia")]
         public int AniosExperiencia { get; set; }
+        
+        [JsonPropertyName("horasCursos")]
         public int HorasCursos { get; set; }
+        
+        [JsonPropertyName("mesesInvestigacion")]
         public int MesesInvestigacion { get; set; }
+        
+        [JsonPropertyName("promedioEvaluaciones")]
         public decimal PromedioEvaluaciones { get; set; }
+        
+        [JsonPropertyName("rangoNombre")]
         public string? RangoNombre { get; set; }
+        
+        [JsonPropertyName("tesisDirigidas")]
         public int TesisDirigidas { get; set; }
+    }
+
+    private bool RangoRequiereTesis()
+    {
+        return requisitosInfo?.ValoresRequeridos?.TesisDirigidas > 0;
     }
 }
