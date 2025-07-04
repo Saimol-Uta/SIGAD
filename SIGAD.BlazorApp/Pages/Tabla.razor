@@ -1166,14 +1166,16 @@
                         {
                             requestData = new { 
                                 EvaluacionId = int.Parse(docId), 
-                                SolicitudId = solicitudId 
+                                SolicitudId = Guid.Parse(solicitudId) 
                             };
+                            // Log temporal para debug
+                            Console.WriteLine($"[FRONTEND] Asociando evaluación - ID: {docId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
                         }
                         else if (TipoDocumento == "articulos")
                         {
                             requestData = new { 
                                 ArticuloDOI = docId,
-                                SolicitudId = solicitudId 
+                                SolicitudId = Guid.Parse(solicitudId) 
                             };
                             // Log temporal para debug
                             Console.WriteLine($"[FRONTEND] Asociando artículo - DOI: '{docId}', SolicitudId: {solicitudId}, Endpoint: {endpoint}");
@@ -1182,7 +1184,7 @@
                         {
                             requestData = new { 
                                 ExperienciaId = int.Parse(docId),
-                                SolicitudId = solicitudId 
+                                SolicitudId = Guid.Parse(solicitudId) 
                             };
                             // Log temporal para debug
                             Console.WriteLine($"[FRONTEND] Asociando experiencia - ID: {docId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
@@ -1191,14 +1193,14 @@
                         {
                             requestData = new { 
                                 InvestigacionId = int.Parse(docId),
-                                SolicitudId = solicitudId 
+                                SolicitudId = Guid.Parse(solicitudId) 
                             };
                             // Log temporal para debug
                             Console.WriteLine($"[FRONTEND] Asociando investigación - ID: {docId}, SolicitudId: {solicitudId}, Endpoint: {endpoint}");
                         }
                         else
                         {
-                            requestData = new { SolicitudId = solicitudId };
+                            requestData = new { SolicitudId = Guid.Parse(solicitudId) };
                         }
                         
                         var response = await Http.PostAsJsonAsync(endpoint, requestData);

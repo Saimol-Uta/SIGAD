@@ -378,8 +378,8 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-        
-        
+
+
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             try
@@ -1306,11 +1306,13 @@ namespace SIGAD.WebAPI.Controllers
         /// <returns>Estado de verificación de requisitos</returns>
         private async Task<(bool cumple, List<string> requisitosFaltantes, object valoresActuales, object valoresRequeridos)> VerificarRequisitosRangoAsync(Guid solicitudId, SIGAD.Domain.Entities.Rango rango)
         {
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando verificación de requisitos para solicitud {solicitudId}, rango {rango.Nombre}");
             var requisitosFaltantes = new List<string>();
 
             // 1. VERIFICAR ARTÍCULOS
             var articulosCount = await _context.ArticulosPorSolicitud
                 .CountAsync(aps => aps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Artículos encontrados: {articulosCount}, requeridos: {rango.ArticulosRequeridos}");
 
             // 2. VERIFICAR AÑOS DE EXPERIENCIA LABORAL (suma total)
             var experienciasLaborales = await _context.ExperienciasPorSolicitud
@@ -1320,6 +1322,7 @@ namespace SIGAD.WebAPI.Controllers
                 .ToListAsync();
 
             var totalAniosExperiencia = CalcularTotalAniosExperiencia(experienciasLaborales);
+            Console.WriteLine($"🔍 DEBUG Backend - Años de experiencia calculados: {totalAniosExperiencia}, requeridos: {rango.AniosExperienciaRequeridos}");
 
             // 3. VERIFICAR HORAS DE CURSOS SEGÚN EL RANGO SOLICITADO
             var cursos = await _context.CursosPorSolicitud
@@ -1336,11 +1339,13 @@ namespace SIGAD.WebAPI.Controllers
                 totalHorasCursos = cursos
                     .Where(c => c.ImpartidoPorDocente && c.HorasImpartidas.HasValue)
                     .Sum(c => c.HorasImpartidas ?? 0);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas impartidas calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
             }
             else
             {
                 // Para rangos 1, 2, 3 (Auxiliar 1, 2 y Agregado 1, 2): usar horas de capacitación recibida
                 totalHorasCursos = cursos.Sum(c => c.NumeroHoras);
+                Console.WriteLine($"🔍 DEBUG Backend - Horas de capacitación calculadas: {totalHorasCursos}, requeridas: {rango.HorasCursoRequeridas}");
             }
 
             // 4. VERIFICAR MESES DE INVESTIGACIÓN SEGÚN REGLAMENTO UTA (con multiplicadores por rol y proyectos internacionales)
@@ -1353,6 +1358,8 @@ namespace SIGAD.WebAPI.Controllers
             var resultadoInvestigacion = CalcularMesesInvestigacionConReglamento(investigaciones, rango);
             var totalMesesInvestigacion = resultadoInvestigacion.mesesTotales;
             var cumpleRequisitosInternacionales = resultadoInvestigacion.cumpleInternacionales;
+            Console.WriteLine($"🔍 DEBUG Backend - Meses de investigación calculados: {totalMesesInvestigacion}, requeridos: {rango.MesesInvestigacionRequeridos}");
+            Console.WriteLine($"🔍 DEBUG Backend - Cumple requisitos internacionales: {cumpleRequisitosInternacionales}");
 
             // 5. VERIFICAR EVALUACIONES DOCENTES (al menos 75% promedio mínimo)
             var evaluaciones = await _context.EvaluacionesPorSolicitud
@@ -1363,12 +1370,15 @@ namespace SIGAD.WebAPI.Controllers
 
             var promedioEvaluaciones = evaluaciones.Any() ? evaluaciones.Average(e => e?.PuntajePorcentual ?? 0) : 0;
             var todasEvaluacionesCumplen = evaluaciones.All(e => (e?.PuntajePorcentual ?? 0) >= rango.PuntajePromedioEvaluacionesRequerido);
+            Console.WriteLine($"🔍 DEBUG Backend - Evaluaciones encontradas: {evaluaciones.Count}, promedio: {promedioEvaluaciones:F1}%, requerido: {rango.PuntajePromedioEvaluacionesRequerido}%");
 
             // 6. VERIFICAR TESIS DIRIGIDAS
             var tesisCount = await _context.TesisPorSolicitud
                 .CountAsync(tps => tps.SolicitudId == solicitudId);
+            Console.WriteLine($"🔍 DEBUG Backend - Tesis dirigidas encontradas: {tesisCount}, requeridas: {rango.TesisDirigidasRequeridas}");
 
             // VALIDAR CADA REQUISITO
+            Console.WriteLine($"🔍 DEBUG Backend - Iniciando validación de requisitos...");
             if (articulosCount < rango.ArticulosRequeridos)
             {
                 requisitosFaltantes.Add($"Artículos: Tiene {articulosCount}, requiere {rango.ArticulosRequeridos}");
@@ -1451,7 +1461,12 @@ namespace SIGAD.WebAPI.Controllers
                 notaInvestigacion = "Coordinador Principal = 2x tiempo, Coordinador Subrogante = 1.5x tiempo"
             };
 
-            return (requisitosFaltantes.Count == 0, requisitosFaltantes, valoresActuales, valoresRequeridos);
+            bool cumpleRequisitos = requisitosFaltantes.Count == 0;
+            Console.WriteLine($"🔍 DEBUG Backend - Resultado final:");
+            Console.WriteLine($"  - Cumple requisitos: {cumpleRequisitos}");
+            Console.WriteLine($"  - Requisitos faltantes ({requisitosFaltantes.Count}): [{string.Join(", ", requisitosFaltantes)}]");
+
+            return (cumpleRequisitos, requisitosFaltantes, valoresActuales, valoresRequeridos);
         }
 
         /// <summary>
