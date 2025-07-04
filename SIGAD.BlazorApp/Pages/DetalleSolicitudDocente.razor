@@ -1,0 +1,1518 @@
+@page "/docente/solicitud/{solicitudId}"
+@using SIGAD.BlazorApp.Layout
+@attribute [Layout(typeof(EmptyLayout))]
+@using SIGAD.BlazorApp.Models
+@using SIGAD.BlazorApp.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
+@inject ISolicitudesService SolicitudesService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+
+<div class="page-wrapper">
+    <div class="admin-dashboard">
+        <div class="main-content">
+            <!-- ENCABEZADO -->
+            <div class="header-section">
+                <div class="header-left">
+                    <h2>📋 Detalle de Solicitud</h2>
+                    <p class="subtitle">Información completa de su solicitud de ascenso</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn-volver" @onclick="VolverAlHistorial">
+                        <i class="fas fa-arrow-left"></i> Volver al Historial
+                    </button>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <div class="loading-container">
+                    <div>Cargando detalles de la solicitud...</div>
+                    <div class="spinner"></div>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="error-message">
+                    <strong>Error:</strong> @mensajeError
+                    <button @onclick="CargarDetalle" class="btn-reintentar">
+                        Reintentar
+                    </button>
+                </div>
+            }
+            else if (solicitud != null)
+            {
+                <!-- INFORMACIÓN GENERAL -->
+                <div class="detalle-card">
+                    <div class="card-header">
+                        <h3>Información General</h3>
+                        <span class="estado-badge @GetEstadoClass(solicitud.Estado)">
+                            @GetEstadoDisplay(solicitud.Estado)
+                        </span>
+                    </div>
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>ID de Solicitud:</label>
+                                <span>@solicitud.Id</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Rango Actual:</label>
+                                <span>@(solicitud.RangoActualNombre ?? "N/A")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Rango Solicitado:</label>
+                                <span>@solicitud.RangoSolicitadoNombre</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Fecha de Envío:</label>
+                                <span>@(solicitud.FechaEnvio?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Fecha de Creación:</label>
+                                <span>@solicitud.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            @if (solicitud.FechaResolucion.HasValue)
+                            {
+                                <div class="info-item">
+                                    <label>Fecha de Resolución:</label>
+                                    <span>@solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOCUMENTOS PRESENTADOS -->
+                <div class="detalle-card">
+                    <div class="card-header">
+                        <h3>📎 Documentos Presentados</h3>
+                    </div>
+                    <div class="card-content">
+                        @if (solicitud.ArticulosPresentados.Any() || 
+                             solicitud.InvestigacionesPresentadas.Any() || 
+                             solicitud.CursosPresentados.Any() || 
+                             solicitud.ExperienciasLaborales.Any() || 
+                             solicitud.EvaluacionesDocente.Any() || 
+                             solicitud.TesisDirigidas.Any())
+                        {
+                            <!-- Artículos -->
+                            @if (solicitud.ArticulosPresentados.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>📄 Artículos Científicos (@solicitud.ArticulosPresentados.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var articulo in solicitud.ArticulosPresentados)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>@articulo.Titulo</h5>
+                                                    <p><strong>Revista:</strong> @articulo.Revista</p>
+                                                    <p><strong>Año:</strong> @articulo.AnioPublicacion</p>
+                                                    @if (!string.IsNullOrEmpty(articulo.DOI))
+                                                    {
+                                                        <p><strong>DOI:</strong> @articulo.DOI</p>
+                                                    }
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("articulo", articulo.DOI))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                    <button @onclick="@(() => EditarDocumento("articulo", articulo.DOI))" class="btn-action btn-edit">
+                                                        <i class="fas fa-edit"></i> Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Investigaciones -->
+                            @if (solicitud.InvestigacionesPresentadas.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>🔬 Proyectos de Investigación (@solicitud.InvestigacionesPresentadas.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var investigacion in solicitud.InvestigacionesPresentadas)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>@investigacion.Titulo</h5>
+                                                    <p><strong>Rol:</strong> @investigacion.RolEnInvestigacion</p>
+                                                    <p><strong>Duración:</strong> @investigacion.MesesDeInvestigacion meses</p>
+                                                    <p><strong>Fecha Finalización:</strong> @investigacion.FechaFinalizacion.ToString("dd/MM/yyyy")</p>
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("investigacion", investigacion.Id.ToString()))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                    <button @onclick="@(() => EditarDocumento("investigacion", investigacion.Id.ToString()))" class="btn-action btn-edit">
+                                                        <i class="fas fa-edit"></i> Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Cursos -->
+                            @if (solicitud.CursosPresentados.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>🎓 Cursos y Capacitaciones (@solicitud.CursosPresentados.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var curso in solicitud.CursosPresentados)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>@curso.Nombre</h5>
+                                                    <p><strong>Organización:</strong> @curso.NombreOrganizacion</p>
+                                                    <p><strong>Duración:</strong> @curso.NumeroHoras horas</p>
+                                                    <p><strong>Fecha Finalización:</strong> @curso.FechaFinalizacion.ToString("dd/MM/yyyy")</p>
+                                                    <p><strong>Certificado:</strong> @(curso.TieneCertificado ? "Sí" : "No")</p>
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("curso", curso.Id.ToString()))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                    <button @onclick="@(() => EditarDocumento("curso", curso.Id.ToString()))" class="btn-action btn-edit">
+                                                        <i class="fas fa-edit"></i> Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Experiencias Laborales -->
+                            @if (solicitud.ExperienciasLaborales.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>💼 Experiencia Laboral (@solicitud.ExperienciasLaborales.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var experiencia in solicitud.ExperienciasLaborales)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>@experiencia.Cargo</h5>
+                                                    <p><strong>Organización:</strong> @experiencia.OrganizacionNombre</p>
+                                                    <p><strong>Tipo:</strong> @experiencia.OrganizacionTipo</p>
+                                                    <p><strong>Período:</strong> @experiencia.PeriodoTrabajo</p>
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("experiencia", experiencia.Id.ToString()))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Evaluaciones Docente -->
+                            @if (solicitud.EvaluacionesDocente.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>⭐ Evaluaciones Docente (@solicitud.EvaluacionesDocente.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var evaluacion in solicitud.EvaluacionesDocente)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>Evaluación @evaluacion.PeriodoAcademico</h5>
+                                                    <p><strong>Puntaje:</strong> @evaluacion.PuntajeFormateado</p>
+                                                    <p><strong>Fecha:</strong> @evaluacion.FechaEvaluacion.ToString("dd/MM/yyyy")</p>
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("evaluacion", evaluacion.Id.ToString()))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                    <button @onclick="@(() => EditarDocumento("evaluacion", evaluacion.Id.ToString()))" class="btn-action btn-edit">
+                                                        <i class="fas fa-edit"></i> Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Tesis Dirigidas -->
+                            @if (solicitud.TesisDirigidas.Any())
+                            {
+                                <div class="documento-seccion">
+                                    <h4>🎯 Tesis Dirigidas (@solicitud.TesisDirigidas.Count)</h4>
+                                    <div class="documentos-grid">
+                                        @foreach (var tesis in solicitud.TesisDirigidas)
+                                        {
+                                            <div class="documento-item">
+                                                <div class="documento-info">
+                                                    <h5>@tesis.Titulo</h5>
+                                                    <p><strong>Nivel Académico:</strong> @tesis.Nivel</p>
+                                                    <p><strong>Institución:</strong> @tesis.Institucion</p>
+                                                    <p><strong>Estado:</strong> @tesis.Estado</p>
+                                                    <p><strong>Período:</strong> @tesis.PeriodoFormateado</p>
+                                                </div>
+                                                <div class="documento-acciones">
+                                                    <button @onclick="@(() => VisualizarPDFDocumento("tesis", tesis.Id.ToString()))" class="btn-action btn-view">
+                                                        <i class="fas fa-eye"></i> Ver PDF
+                                                    </button>
+                                                    <button @onclick="@(() => EditarDocumento("tesis", tesis.Id.ToString()))" class="btn-action btn-edit">
+                                                        <i class="fas fa-edit"></i> Editar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📎</div>
+                                <h3>No hay documentos presentados</h3>
+                                <p>Esta solicitud no tiene documentos de evidencia adjuntos.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- OBSERVACIONES Y ESTADO DE EVALUACIÓN -->
+                @if (EsSolicitudRechazada() || TieneObservaciones())
+                {
+                    <div class="detalle-card">
+                        <div class="card-header">
+                            <h3>📝 Observaciones y Evaluación</h3>
+                        </div>
+                        <div class="card-content">
+                            <!-- Observaciones de Comisión -->
+                            @if (!string.IsNullOrEmpty(solicitud.ObservacionesComision))
+                            {
+                                <div class="observacion-item">
+                                    <div class="observacion-header">
+                                        <h4>💼 Observaciones de la Comisión</h4>
+                                        @if (solicitud.FechaAprobacionComision.HasValue)
+                                        {
+                                            <span class="fecha-observacion">@solicitud.FechaAprobacionComision.Value.ToString("dd/MM/yyyy")</span>
+                                        }
+                                    </div>
+                                    <div class="observacion-content">
+                                        @solicitud.ObservacionesComision
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Observaciones de Consejo -->
+                            @if (!string.IsNullOrEmpty(solicitud.ObservacionesConsejo))
+                            {
+                                <div class="observacion-item">
+                                    <div class="observacion-header">
+                                        <h4>🏛️ Observaciones del Consejo</h4>
+                                        @if (solicitud.FechaAprobacionConsejo.HasValue)
+                                        {
+                                            <span class="fecha-observacion">@solicitud.FechaAprobacionConsejo.Value.ToString("dd/MM/yyyy")</span>
+                                        }
+                                    </div>
+                                    <div class="observacion-content">
+                                        @solicitud.ObservacionesConsejo
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Observaciones del Administrador -->
+                            @if (!string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
+                            {
+                                <div class="observacion-item">
+                                    <div class="observacion-header">
+                                        <h4>👤 Observaciones del Administrador</h4>
+                                        @if (solicitud.FechaResolucion.HasValue)
+                                        {
+                                            <span class="fecha-observacion">@solicitud.FechaResolucion.Value.ToString("dd/MM/yyyy")</span>
+                                        }
+                                    </div>
+                                    <div class="observacion-content">
+                                        @solicitud.ObservacionesAdmin
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- BOTÓN DE APELACIÓN (solo para solicitudes rechazadas) -->
+                @if (EsSolicitudRechazada() && PuedeApelar())
+                {
+                    <div class="detalle-card">
+                        <div class="card-header">
+                            <h3>⚖️ Proceso de Apelación</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="apelacion-info">
+                                <p><strong>Su solicitud ha sido rechazada.</strong> De acuerdo al reglamento universitario, usted tiene derecho a presentar una apelación fundamentada.</p>
+                                <p>La apelación debe incluir:</p>
+                                <ul>
+                                    <li>Motivo detallado de la apelación</li>
+                                    <li>Documentos de soporte adicionales (opcional)</li>
+                                    <li>Argumentos que justifiquen la revisión de la decisión</li>
+                                </ul>
+                            </div>
+                            <div class="apelacion-acciones">
+                                <button @onclick="AbrirModalApelacion" class="btn-primary">
+                                    <i class="fas fa-balance-scale"></i> Presentar Apelación
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Apelación -->
+@if (mostrarModalApelacion)
+{
+    <div class="modal-overlay" @onclick="CerrarModalApelacion">
+        <div class="modal-content apelacion-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>⚖️ Presentar Apelación</h3>
+                <button @onclick="CerrarModalApelacion" class="btn-close">✕</button>
+            </div>
+            
+            <EditForm Model="@modeloApelacion" OnValidSubmit="@EnviarApelacion">
+                <DataAnnotationsValidator />
+                
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="motivoApelacion" class="form-label">
+                            <strong>Motivo de la Apelación *</strong>
+                        </label>
+                        <textarea @bind="modeloApelacion.Motivo" 
+                                  id="motivoApelacion"
+                                  class="form-control" 
+                                  rows="6" 
+                                  placeholder="Explique detalladamente los motivos por los cuales considera que su solicitud debe ser reconsiderada..."
+                                  maxlength="2000"></textarea>
+                        <ValidationMessage For="@(() => modeloApelacion.Motivo)" />
+                        <small class="form-text">@modeloApelacion.Motivo.Length / 2000 caracteres</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <strong>Documentos de Soporte (Opcional)</strong>
+                        </label>
+                        <InputFile @ref="inputFileApelacion" 
+                                   OnChange="@OnFileSelectedApelacion" 
+                                   multiple 
+                                   accept=".pdf,.doc,.docx,.jpg,.png"
+                                   class="form-control" />
+                        <small class="form-text">
+                            Puede adjuntar documentos adicionales que soporten su apelación. 
+                            Formatos permitidos: PDF, DOC, DOCX, JPG, PNG. Máximo 5MB por archivo.
+                        </small>
+                        
+                        @if (archivosApelacion.Any())
+                        {
+                            <div class="archivos-seleccionados">
+                                <h5>Archivos seleccionados:</h5>
+                                @foreach (var archivo in archivosApelacion)
+                                {
+                                    <div class="archivo-item">
+                                        <span class="archivo-nombre">@archivo.Name</span>
+                                        <span class="archivo-tamaño">(@FormatearTamañoArchivo(archivo.Size))</span>
+                                        <button type="button" @onclick="() => RemoverArchivo(archivo)" class="btn-remove">✕</button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(mensajeErrorApelacion))
+                    {
+                        <div class="alert alert-danger">
+                            @mensajeErrorApelacion
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" @onclick="CerrarModalApelacion" class="btn-secondary">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" disabled="@enviandoApelacion">
+                        @if (enviandoApelacion)
+                        {
+                            <span class="spinner-small"></span>
+                            <span>Enviando...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Enviar Apelación</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- Modal de Visualización de PDF -->
+@if (mostrarModalPDF)
+{
+    <div class="modal-overlay" @onclick="CerrarModalPDF">
+        <div class="modal-content pdf-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>📄 Visualización de Documento</h3>
+                <button @onclick="CerrarModalPDF" class="btn-close">✕</button>
+            </div>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(urlPDFActual))
+                {
+                    <iframe src="@urlPDFActual" style="width: 100%; height: 600px; border: none;"></iframe>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <h3>No se pudo cargar el documento</h3>
+                        <p>El archivo no está disponible o no se pudo acceder al mismo.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? solicitudId { get; set; }
+
+    private SolicitudDetalleDto? solicitud;
+    private bool cargando = true;
+    private string mensajeError = "";
+    
+    // Modal de Apelación
+    private bool mostrarModalApelacion = false;
+    private bool enviandoApelacion = false;
+    private string mensajeErrorApelacion = "";
+    private ApelacionModel modeloApelacion = new();
+    private List<IBrowserFile> archivosApelacion = new();
+    private InputFile? inputFileApelacion;
+    
+    // Modal de PDF
+    private bool mostrarModalPDF = false;
+    private string urlPDFActual = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDetalle();
+    }
+
+    private async Task CargarDetalle()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = "";
+
+            if (string.IsNullOrEmpty(solicitudId) || !Guid.TryParse(solicitudId, out var guid))
+            {
+                mensajeError = "ID de solicitud inválido";
+                return;
+            }
+
+            solicitud = await SolicitudesService.GetSolicitudDetalleAsync(guid);
+            
+            if (solicitud == null)
+            {
+                mensajeError = "No se pudo cargar la información de la solicitud";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar los detalles: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void VolverAlHistorial()
+    {
+        Navigation.NavigateTo("/historial-solicitudes");
+    }
+
+    // Métodos de utilidad para estados
+    private string GetEstadoClass(string estado)
+    {
+        return estado.ToLower() switch
+        {
+            "borrador" => "estado-borrador",
+            "enviada" => "estado-enviada",
+            "en_revision" => "estado-en-revision",
+            "aprobada" => "estado-aprobada",
+            "rechazada" => "estado-rechazada",
+            "en_apelacion" => "estado-apelacion",
+            "aprobada_por_apelacion" => "estado-aprobada",
+            "rechazada_definitiva" => "estado-rechazada-definitiva",
+            _ => "estado-borrador"
+        };
+    }
+
+    private string GetEstadoDisplay(string estado)
+    {
+        return estado switch
+        {
+            "BORRADOR" => "Borrador",
+            "ENVIADA" => "Enviada",
+            "EN_REVISION" => "En Revisión",
+            "APROBADA" => "Aprobada",
+            "RECHAZADA" => "Rechazada",
+            "EN_APELACION" => "En Apelación",
+            "APROBADA_POR_APELACION" => "Aprobada por Apelación",
+            "RECHAZADA_DEFINITIVA" => "Rechazada Definitivamente",
+            _ => estado
+        };
+    }
+
+    private bool EsSolicitudRechazada()
+    {
+        return solicitud?.Estado.ToUpper() == "RECHAZADA";
+    }
+
+    private bool PuedeApelar()
+    {
+        // Solo se puede apelar si está rechazada pero no definitivamente
+        return solicitud?.Estado.ToUpper() == "RECHAZADA";
+    }
+
+    private bool TieneObservaciones()
+    {
+        return !string.IsNullOrEmpty(solicitud?.ObservacionesAdmin) ||
+               !string.IsNullOrEmpty(solicitud?.ObservacionesComision) ||
+               !string.IsNullOrEmpty(solicitud?.ObservacionesConsejo);
+    }
+
+    // Métodos para documentos
+    private async Task VisualizarPDF(string rutaArchivo)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(rutaArchivo))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay archivo disponible para visualizar.");
+                return;
+            }
+
+            // Construir la URL completa del archivo
+            urlPDFActual = $"/uploads/{rutaArchivo}";
+            mostrarModalPDF = true;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al abrir el documento: {ex.Message}");
+        }
+    }
+
+    private async Task EditarDocumento(string tipoDocumento, Guid documentoId)
+    {
+        // Por ahora mostrar mensaje, luego implementar navegación a edición
+        await JSRuntime.InvokeVoidAsync("alert", $"Funcionalidad de edición en desarrollo.\nTipo: {tipoDocumento}\nID: {documentoId}");
+    }
+
+    private async Task VisualizarCertificado(string tipoDocumento, int documentoId)
+    {
+        try
+        {
+            // Por ahora mostrar mensaje, luego implementar visualización de certificados
+            await JSRuntime.InvokeVoidAsync("alert", $"Funcionalidad de visualización en desarrollo.\nTipo: {tipoDocumento}\nID: {documentoId}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al visualizar documento: {ex.Message}");
+        }
+    }
+
+    private async Task VisualizarPDFDocumento(string tipoDocumento, string documentoId)
+    {
+        try
+        {
+            string? rutaPdf = null;
+            string? urlCloudinary = null;
+
+            // Obtener la ruta del PDF según el tipo de documento
+            switch (tipoDocumento)
+            {
+                case "articulo":
+                    var articulo = solicitud?.ArticulosPresentados.FirstOrDefault(a => a.DOI == documentoId);
+                    if (articulo != null)
+                    {
+                        rutaPdf = articulo.ArchivoRuta;
+                    }
+                    break;
+
+                case "investigacion":
+                    var investigacion = solicitud?.InvestigacionesPresentadas.FirstOrDefault(i => i.Id.ToString() == documentoId);
+                    if (investigacion != null)
+                    {
+                        rutaPdf = investigacion.InformeRuta;
+                    }
+                    break;
+
+                case "curso":
+                    var curso = solicitud?.CursosPresentados.FirstOrDefault(c => c.Id.ToString() == documentoId);
+                    if (curso != null)
+                    {
+                        rutaPdf = curso.CertificadoRuta;
+                    }
+                    break;
+
+                case "experiencia":
+                    var experiencia = solicitud?.ExperienciasLaborales.FirstOrDefault(e => e.Id.ToString() == documentoId);
+                    if (experiencia != null)
+                    {
+                        rutaPdf = experiencia.CertificadoRuta;
+                    }
+                    break;
+
+                case "evaluacion":
+                    var evaluacion = solicitud?.EvaluacionesDocente.FirstOrDefault(e => e.Id.ToString() == documentoId);
+                    if (evaluacion != null)
+                    {
+                        rutaPdf = evaluacion.InformeRuta;
+                    }
+                    break;
+
+                case "tesis":
+                    var tesis = solicitud?.TesisDirigidas.FirstOrDefault(t => t.Id.ToString() == documentoId);
+                    if (tesis != null)
+                    {
+                        rutaPdf = tesis.CertificacionPath;
+                    }
+                    break;
+            }
+
+            string? urlParaUsar = null;
+
+            // PRIORIDAD 1: Cloudinary URL (si está disponible)
+            if (!string.IsNullOrEmpty(urlCloudinary))
+            {
+                urlParaUsar = urlCloudinary;
+            }
+            // PRIORIDAD 2: URL local como fallback
+            else if (!string.IsNullOrEmpty(rutaPdf))
+            {
+                // Usar la URL base del HttpClient
+                var baseUrl = Http.BaseAddress?.ToString().TrimEnd('/') ?? "https://localhost:7072";
+                
+                // Construir la ruta relativa
+                var relativePath = rutaPdf.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase)
+                    ? rutaPdf
+                    : $"/uploads/{rutaPdf.TrimStart('/')}";
+
+                urlParaUsar = $"{baseUrl}{relativePath}";
+            }
+
+            if (!string.IsNullOrEmpty(urlParaUsar))
+            {
+                // Abrir el PDF en una nueva pestaña
+                await JSRuntime.InvokeVoidAsync("window.open", urlParaUsar, "_blank");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay PDF disponible para este documento.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al abrir PDF: {ex.Message}");
+        }
+    }
+
+    private void CerrarModalPDF()
+    {
+        mostrarModalPDF = false;
+        urlPDFActual = "";
+    }
+
+    // Métodos para apelación
+    private void AbrirModalApelacion()
+    {
+        modeloApelacion = new ApelacionModel();
+        archivosApelacion.Clear();
+        mensajeErrorApelacion = "";
+        mostrarModalApelacion = true;
+    }
+
+    private void CerrarModalApelacion()
+    {
+        mostrarModalApelacion = false;
+        modeloApelacion = new ApelacionModel();
+        archivosApelacion.Clear();
+        mensajeErrorApelacion = "";
+    }
+
+    private void OnFileSelectedApelacion(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            mensajeErrorApelacion = "";
+            
+            foreach (var file in e.GetMultipleFiles(5)) // Máximo 5 archivos
+            {
+                // Validar tamaño (5MB máximo)
+                if (file.Size > 5 * 1024 * 1024)
+                {
+                    mensajeErrorApelacion = $"El archivo '{file.Name}' excede el tamaño máximo de 5MB.";
+                    continue;
+                }
+
+                // Validar tipo de archivo
+                var extensionesPermitidas = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+                var extension = Path.GetExtension(file.Name).ToLower();
+                
+                if (!extensionesPermitidas.Contains(extension))
+                {
+                    mensajeErrorApelacion = $"El archivo '{file.Name}' no tiene un formato permitido.";
+                    continue;
+                }
+
+                // Evitar duplicados
+                if (!archivosApelacion.Any(a => a.Name == file.Name))
+                {
+                    archivosApelacion.Add(file);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeErrorApelacion = $"Error al seleccionar archivos: {ex.Message}";
+        }
+    }
+
+    private void RemoverArchivo(IBrowserFile archivo)
+    {
+        archivosApelacion.Remove(archivo);
+    }
+
+    private string FormatearTamañoArchivo(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number /= 1024;
+            counter++;
+        }
+        return $"{number:n1} {suffixes[counter]}";
+    }
+
+    private async Task EnviarApelacion()
+    {
+        try
+        {
+            enviandoApelacion = true;
+            mensajeErrorApelacion = "";
+
+            if (string.IsNullOrEmpty(solicitudId) || !Guid.TryParse(solicitudId, out var guid))
+            {
+                mensajeErrorApelacion = "ID de solicitud inválido";
+                return;
+            }
+
+            // Validar que hay motivo
+            if (string.IsNullOrWhiteSpace(modeloApelacion.Motivo))
+            {
+                mensajeErrorApelacion = "Debe proporcionar un motivo para la apelación";
+                return;
+            }
+
+            // Llamar al servicio para enviar la apelación
+            var (success, message) = await SolicitudesService.PresentarApelacionAsync(guid, modeloApelacion.Motivo, archivosApelacion);
+            
+            if (success)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Apelación enviada exitosamente. Se ha notificado a las autoridades correspondientes.");
+                
+                // Actualizar estado de la solicitud
+                if (solicitud != null)
+                {
+                    solicitud.Estado = "EN_APELACION";
+                }
+                
+                CerrarModalApelacion();
+            }
+            else
+            {
+                mensajeErrorApelacion = message;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeErrorApelacion = $"Error al enviar la apelación: {ex.Message}";
+        }
+        finally
+        {
+            enviandoApelacion = false;
+        }
+    }
+
+    // Función para editar documentos
+    private void EditarDocumento(string tipoDocumento, string documentoId)
+    {
+        try
+        {
+            string url = "";
+            
+            switch (tipoDocumento.ToLower())
+            {
+                case "articulo":
+                    // Para artículos, usar el DOI como ID
+                    url = $"/editar-articulo/{Uri.EscapeDataString(documentoId)}";
+                    break;
+                case "investigacion":
+                    url = $"/editar-investigacion/{documentoId}";
+                    break;
+                case "curso":
+                    url = $"/editar-curso/{documentoId}";
+                    break;
+                case "tesis":
+                    url = $"/editar-tesis/{documentoId}";
+                    break;
+                case "evaluacion":
+                    url = $"/editar-evaluacion/{documentoId}";
+                    break;
+                default:
+                    Console.WriteLine($"Tipo de documento no soportado para edición: {tipoDocumento}");
+                    return;
+            }
+            
+            // Navegar a la página de edición
+            Navigation.NavigateTo(url);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al navegar a edición de {tipoDocumento}: {ex.Message}");
+        }
+    }
+
+    // Modelo para el formulario de apelación
+    public class ApelacionModel
+    {
+        [Required(ErrorMessage = "El motivo de la apelación es obligatorio")]
+        [StringLength(2000, MinimumLength = 50, ErrorMessage = "El motivo debe tener entre 50 y 2000 caracteres")]
+        public string Motivo { get; set; } = "";
+    }
+}
+
+<style>
+    .page-wrapper {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0a1d44 0%, #1e40af 100%);
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .admin-dashboard {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(10, 29, 68, 0.15);
+        overflow: hidden;
+        min-height: calc(100vh - 40px);
+    }
+
+    .main-content {
+        padding: 30px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #e3f2fd;
+    }
+
+    .header-left h2 {
+        color: #0a1d44;
+        margin: 0;
+        font-weight: 700;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .subtitle {
+        color: #64748b;
+        margin: 5px 0 0 0;
+        font-size: 14px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .btn-volver {
+        background: #0a1d44;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-volver:hover {
+        background: #1e40af;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(10, 29, 68, 0.3);
+    }
+
+    .detalle-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(10, 29, 68, 0.08);
+        margin-bottom: 25px;
+        border: 1px solid #e3f2fd;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #0a1d44 0%, #1e40af 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-weight: 600;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .card-content {
+        padding: 25px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #0a1d44;
+        font-size: 14px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .info-item span {
+        color: #334155;
+        font-size: 16px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .estado-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .estado-borrador { background: #f1f5f9; color: #64748b; }
+    .estado-enviada { background: #dbeafe; color: #1e40af; }
+    .estado-en-revision { background: #fef3c7; color: #d97706; }
+    .estado-aprobada { background: #dcfce7; color: #16a34a; }
+    .estado-rechazada { background: #fee2e2; color: #dc2626; }
+    .estado-apelacion { background: #f3e8ff; color: #7c3aed; }
+    .estado-rechazada-definitiva { background: #374151; color: white; }
+
+    .documento-seccion {
+        margin-bottom: 30px;
+    }
+
+    .documento-seccion h4 {
+        color: #0a1d44;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e3f2fd;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 600;
+    }
+
+    .documentos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+    }
+
+    .documento-item {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 20px;
+        border-left: 4px solid #1e40af;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .documento-item:hover {
+        box-shadow: 0 4px 12px rgba(10, 29, 68, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .documento-info h5 {
+        color: #0a1d44;
+        margin: 0 0 10px 0;
+        font-weight: 600;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .documento-info p {
+        margin: 5px 0;
+        color: #475569;
+        font-size: 14px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .documento-acciones {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-action {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-view {
+        background: #1e40af;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #0a1d44;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(10, 29, 68, 0.3);
+    }
+
+    .btn-edit {
+        background: #0ea5e9;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #0284c7;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(14, 165, 233, 0.3);
+    }
+
+    .observacion-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #dc3545;
+    }
+
+    .observacion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .observacion-header h4 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 16px;
+    }
+
+    .fecha-observacion {
+        color: #6c757d;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .observacion-content {
+        color: #495057;
+        line-height: 1.6;
+    }
+
+    .apelacion-info {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .apelacion-info p {
+        margin: 10px 0;
+        color: #856404;
+    }
+
+    .apelacion-info ul {
+        margin: 10px 0;
+        color: #856404;
+    }
+
+    .apelacion-acciones {
+        text-align: center;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #0a1d44 0%, #1e40af 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(10, 29, 68, 0.3);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .apelacion-modal {
+        width: 600px;
+    }
+
+    .pdf-modal {
+        width: 80vw;
+        height: 80vh;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .btn-close {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background 0.3s ease;
+    }
+
+    .btn-close:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    .modal-body {
+        padding: 25px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .modal-footer {
+        padding: 20px 25px;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-text {
+        color: #6c757d;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .archivos-seleccionados {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .archivos-seleccionados h5 {
+        margin: 0 0 10px 0;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+
+    .archivo-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .archivo-item:last-child {
+        border-bottom: none;
+    }
+
+    .archivo-nombre {
+        flex: 1;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .archivo-tamaño {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .btn-remove {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-remove:hover {
+        background: #c82333;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .spinner-small {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+
+    .loading-container {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    .btn-reintentar {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-left: 10px;
+        font-weight: 500;
+    }
+
+    .btn-reintentar:hover {
+        background: #c82333;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        color: #495057;
+        margin-bottom: 10px;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .main-content {
+            padding: 20px;
+        }
+
+        .header-section {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .documentos-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .apelacion-modal {
+            width: 95vw;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+    }
+</style>

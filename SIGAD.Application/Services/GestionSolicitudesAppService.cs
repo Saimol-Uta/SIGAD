@@ -2,10 +2,12 @@ using SIGAD.Application.DTOs;
 using SIGAD.Domain.Entities;
 using SIGAD.Domain.Interfaces;
 using SIGAD.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace SIGAD.Application.Services
 {
@@ -157,7 +159,8 @@ namespace SIGAD.Application.Services
                     DocenteCedula = a.Articulo?.DocenteCedula ?? "",
                     DocenteNombreCompleto = a.Articulo?.Docente != null
                         ? $"{a.Articulo.Docente.Nombre1} {a.Articulo.Docente.Apellido1}".Trim()
-                        : "N/A"
+                        : "N/A",
+                    ArchivoRuta = a.Articulo?.ArchivoRuta ?? ""
                 }).ToList(),
 
                 InvestigacionesPresentadas = solicitud.InvestigacionesPorSolicitud.Select(i => new VerInvestigacionDto
@@ -167,7 +170,8 @@ namespace SIGAD.Application.Services
                     RolEnInvestigacion = i.Investigacion?.RolEnInvestigacion ?? "",
                     MesesDeInvestigacion = i.Investigacion?.MesesDeInvestigacion ?? 0,
                     FechaFinalizacion = i.Investigacion?.FechaFinalizacion ?? DateTime.MinValue,
-                    NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim()
+                    NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim(),
+                    InformeRuta = i.Investigacion?.InformeRuta ?? ""
                 }).ToList(),
 
                 CursosPresentados = solicitud.CursosPorSolicitud.Select(c => new VerCursoDto
@@ -181,7 +185,8 @@ namespace SIGAD.Application.Services
                     NombreDocente = c.Curso?.Docente != null
                         ? $"{c.Curso.Docente.Nombre1} {c.Curso.Docente.Apellido1}".Trim()
                         : "N/A",
-                    TieneCertificado = !string.IsNullOrEmpty(c.Curso?.CertificadoRuta)
+                    TieneCertificado = !string.IsNullOrEmpty(c.Curso?.CertificadoRuta),
+                    CertificadoRuta = c.Curso?.CertificadoRuta ?? ""
                 }).ToList(),
 
                 ExperienciasLaborales = solicitud.ExperienciaPorSolicitud.Select(e => new VerExperienciaLaboralDto
@@ -204,14 +209,102 @@ namespace SIGAD.Application.Services
                     InformeRuta = ev.Evaluacion?.InformeRuta ?? ""
                 }).ToList(),
 
-                TesisDirigidas = solicitud.TesisPorSolicitud.Select(t => new VerTesisDirigidaDto
+                TesisDirigidas = solicitud.TesisPorSolicitud.Select(MapearTesisDirigida).ToList()
+            };
+        }
+
+        public async Task<SolicitudDetalleDto?> GetDetalleParaDocenteAsync(Guid id, string docenteCedula)
+        {
+            var solicitud = await _solicitudRepository.GetByIdWithDetailsAsync(id);
+            if (solicitud == null) return null;
+
+            // Verificar que el docente solo pueda ver sus propias solicitudes
+            if (solicitud.DocenteCedula != docenteCedula)
+            {
+                return null;
+            }
+
+            return new SolicitudDetalleDto
+            {
+                Id = solicitud.Id,
+                Estado = solicitud.Estado.ToString(),
+                FechaCreacion = solicitud.FechaCreacion,
+                FechaEnvio = solicitud.FechaEnvio,
+                FechaResolucion = solicitud.FechaResolucion,
+                ObservacionesAdmin = solicitud.ObservacionesAdmin,
+                DocenteCedula = solicitud.Docente?.Cedula ?? "",
+                DocenteNombreCompleto = solicitud.Docente != null
+                    ? $"{solicitud.Docente.Nombre1} {solicitud.Docente.Nombre2} {solicitud.Docente.Apellido1} {solicitud.Docente.Apellido2}".Replace("  ", " ").Trim()
+                    : "N/A",
+                RangoActualNombre = solicitud.RangoActual?.Nombre ?? "N/A",
+                RangoSolicitadoNombre = solicitud.RangoSolicitado?.Nombre ?? "N/A",
+
+                // Campos de aprobación UTA
+                AprobadoPorComision = solicitud.AprobadoPorComision,
+                AprobadoPorConsejo = solicitud.AprobadoPorConsejo,
+                FechaAprobacionComision = solicitud.FechaAprobacionComision,
+                FechaAprobacionConsejo = solicitud.FechaAprobacionConsejo,
+                ObservacionesComision = solicitud.ObservacionesComision,
+                ObservacionesConsejo = solicitud.ObservacionesConsejo,
+
+                ArticulosPresentados = solicitud.ArticulosPorSolicitud.Select(a => new VerArticuloDto
                 {
-                    Id = t.TesisDirigida?.Id ?? 0,
-                    Titulo = t.TesisDirigida?.TituloTesis ?? "",
-                    FechaInicio = t.TesisDirigida?.FechaInicio ?? DateTime.MinValue,
-                    FechaFin = t.TesisDirigida?.FechaFin,
-                    Nivel = t.TesisDirigida?.NivelAcademico.ToString() ?? ""
-                }).ToList()
+                    DOI = a.Articulo?.DOI ?? "",
+                    Titulo = a.Articulo?.Titulo ?? "",
+                    Revista = a.Articulo?.Revista ?? "",
+                    AnioPublicacion = a.Articulo?.AnioPublicacion ?? 0,
+                    DocenteCedula = a.Articulo?.DocenteCedula ?? "",
+                    DocenteNombreCompleto = a.Articulo?.Docente != null
+                        ? $"{a.Articulo.Docente.Nombre1} {a.Articulo.Docente.Apellido1}".Trim()
+                        : "N/A",
+                    ArchivoRuta = a.Articulo?.ArchivoRuta ?? ""
+                }).ToList(),
+
+                InvestigacionesPresentadas = solicitud.InvestigacionesPorSolicitud.Select(i => new VerInvestigacionDto
+                {
+                    Id = i.Investigacion?.Id ?? 0,
+                    Titulo = i.Investigacion?.Titulo ?? "",
+                    RolEnInvestigacion = i.Investigacion?.RolEnInvestigacion ?? "",
+                    MesesDeInvestigacion = i.Investigacion?.MesesDeInvestigacion ?? 0,
+                    FechaFinalizacion = i.Investigacion?.FechaFinalizacion ?? DateTime.MinValue,
+                    NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim(),
+                    InformeRuta = i.Investigacion?.InformeRuta ?? ""
+                }).ToList(),
+
+                CursosPresentados = solicitud.CursosPorSolicitud.Select(c => new VerCursoDto
+                {
+                    Id = c.Curso?.Id ?? 0,
+                    Nombre = c.Curso?.Nombre ?? "",
+                    NombreOrganizacion = c.Curso?.Organizacion?.Nombre ?? "",
+                    NumeroHoras = c.Curso?.NumeroHoras ?? 0,
+                    FechaFinalizacion = c.Curso?.FechaFinalizacion ?? DateTime.MinValue,
+                    DocenteCedula = c.Curso?.DocenteCedula ?? "",
+                    NombreDocente = $"{solicitud.Docente?.Nombre1} {solicitud.Docente?.Apellido1}".Trim(),
+                    TieneCertificado = !string.IsNullOrEmpty(c.Curso?.CertificadoRuta),
+                    CertificadoRuta = c.Curso?.CertificadoRuta ?? ""
+                }).ToList(),
+
+                ExperienciasLaborales = solicitud.ExperienciaPorSolicitud.Select(e => new VerExperienciaLaboralDto
+                {
+                    Id = e.ExperienciaLaboral?.Id ?? 0,
+                    OrganizacionNombre = e.ExperienciaLaboral?.Organizacion?.Nombre ?? "",
+                    OrganizacionTipo = e.ExperienciaLaboral?.Organizacion?.TipoOrganizacion ?? "",
+                    Cargo = e.ExperienciaLaboral?.Cargo ?? "",
+                    FechaInicio = e.ExperienciaLaboral?.FechaInicio ?? DateTime.MinValue,
+                    FechaFin = e.ExperienciaLaboral?.FechaFin,
+                    CertificadoRuta = e.ExperienciaLaboral?.CertificadoRuta ?? ""
+                }).ToList(),
+
+                EvaluacionesDocente = solicitud.EvaluacionesPorSolicitud.Select(ev => new VerEvaluacionDocenteDto
+                {
+                    Id = ev.Evaluacion?.Id ?? 0,
+                    PeriodoAcademico = ev.Evaluacion?.PeriodoAcademico ?? "",
+                    FechaEvaluacion = ev.Evaluacion?.FechaEvaluacion ?? DateTime.MinValue,
+                    PuntajePorcentual = ev.Evaluacion?.PuntajePorcentual ?? 0,
+                    InformeRuta = ev.Evaluacion?.InformeRuta ?? ""
+                }).ToList(),
+
+                TesisDirigidas = solicitud.TesisPorSolicitud.Select(MapearTesisDirigida).ToList()
             };
         }
 
@@ -335,6 +428,111 @@ namespace SIGAD.Application.Services
 
             await _solicitudRepository.UpdateAsync(solicitud);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<SolicitudAscenso>> GetHistorialDocenteAsync(string docenteCedula)
+        {
+            return await _solicitudRepository.GetHistorialByDocenteAsync(docenteCedula);
+        }
+
+        // Métodos para apelaciones
+        public async Task<(bool success, string message)> PresentarApelacionAsync(Guid solicitudId, string justificacion, string docenteCedula, IFormFile? documentoAdjunto)
+        {
+            try
+            {
+                // Verificar que la solicitud existe y pertenece al docente
+                var solicitud = await _solicitudRepository.GetByIdAsync(solicitudId);
+                if (solicitud == null)
+                {
+                    return (false, "Solicitud no encontrada");
+                }
+
+                if (solicitud.DocenteCedula != docenteCedula)
+                {
+                    return (false, "No tiene permisos para apelar esta solicitud");
+                }
+
+                // Verificar que la solicitud está rechazada
+                if (solicitud.Estado != EstadoSolicitud.Rechazada)
+                {
+                    return (false, "Solo se pueden apelar solicitudes rechazadas");
+                }
+
+                // Crear la apelación
+                string? rutaDocumento = null;
+                if (documentoAdjunto != null)
+                {
+                    // TODO: Implementar guardado de archivo
+                    rutaDocumento = $"apelaciones/{Guid.NewGuid()}_{documentoAdjunto.FileName}";
+                }
+
+                // Actualizar el estado de la solicitud a En Apelación
+                solicitud.Estado = EstadoSolicitud.EnApelacion;
+                solicitud.ObservacionesAdmin = $"{solicitud.ObservacionesAdmin}\n\n[APELACIÓN - {DateTime.Now:dd/MM/yyyy HH:mm}]\nJustificación: {justificacion}";
+                
+                await _unitOfWork.CompleteAsync();
+                
+                return (true, "Apelación presentada exitosamente");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error al presentar la apelación: {ex.Message}");
+            }
+        }
+
+        public async Task<List<ApelacionDto>> GetApelacionesBySolicitudAsync(Guid solicitudId)
+        {
+            try
+            {
+                var solicitud = await _solicitudRepository.GetByIdAsync(solicitudId);
+                if (solicitud == null)
+                {
+                    return new List<ApelacionDto>();
+                }
+
+                // Por simplicidad, extraer información de apelación de las observaciones
+                var apelaciones = new List<ApelacionDto>();
+                
+                if (solicitud.Estado == EstadoSolicitud.EnApelacion && !string.IsNullOrEmpty(solicitud.ObservacionesAdmin))
+                {
+                    // Buscar apelaciones en las observaciones (implementación simplificada)
+                    if (solicitud.ObservacionesAdmin.Contains("[APELACIÓN"))
+                    {
+                        apelaciones.Add(new ApelacionDto
+                        {
+                            Id = Guid.NewGuid(),
+                            SolicitudId = solicitudId,
+                            Justificacion = "Apelación registrada en observaciones",
+                            FechaCreacion = DateTime.Now,
+                            EstadoApelacion = "EN_REVISION",
+                            DocenteCedula = solicitud.DocenteCedula,
+                            DocenteNombre = solicitud.Docente?.Nombre1 ?? ""
+                        });
+                    }
+                }
+
+                return apelaciones;
+            }
+            catch (Exception)
+            {
+                return new List<ApelacionDto>();
+            }
+        }
+
+        // Actualizar ambos mapeos de TesisDirigidas en GetDetalleAsync y GetDetalleParaDocenteAsync
+        private VerTesisDirigidaDto MapearTesisDirigida(TesisPorSolicitud t)
+        {
+            return new VerTesisDirigidaDto
+            {
+                Id = t.TesisDirigida?.Id ?? 0,
+                Titulo = t.TesisDirigida?.TituloTesis ?? "",
+                FechaInicio = t.TesisDirigida?.FechaInicio ?? DateTime.MinValue,
+                FechaFin = t.TesisDirigida?.FechaFin,
+                Nivel = t.TesisDirigida?.NivelAcademico.ToString() ?? "",
+                Estado = t.TesisDirigida?.Estado.ToString() ?? "",
+                CertificacionPath = t.TesisDirigida?.CertificacionRuta ?? "",
+                Institucion = t.TesisDirigida?.Institucion ?? ""
+            };
         }
     }
 }

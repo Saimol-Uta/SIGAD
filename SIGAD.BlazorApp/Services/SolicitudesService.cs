@@ -2,6 +2,7 @@ using SIGAD.BlazorApp.Models;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace SIGAD.BlazorApp.Services
 {
@@ -20,6 +21,10 @@ namespace SIGAD.BlazorApp.Services
         
         // Método para depuración
         Task<string> GetAuthStatusAsync();
+
+        // Métodos para apelaciones
+        Task<(bool success, string message)> PresentarApelacionAsync(Guid solicitudId, string justificacion, List<IBrowserFile> archivos);
+        Task<List<ApelacionDto>> GetApelacionesBySolicitudAsync(Guid solicitudId);
     }
 
     public class SolicitudesService : ISolicitudesService
@@ -335,6 +340,65 @@ namespace SIGAD.BlazorApp.Services
             {
                 Console.WriteLine($"Error inesperado: {ex.Message}");
                 return (false, "Error inesperado al finalizar el proceso");
+            }
+        }
+
+        // Métodos para apelaciones
+        public async Task<(bool success, string message)> PresentarApelacionAsync(Guid solicitudId, string justificacion, List<IBrowserFile> archivos)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                
+                // Crear un objeto para el body de la petición
+                var requestBody = new 
+                { 
+                    justificacion = justificacion, 
+                    archivos = archivos.Select(file => new { file.Name, file.Size, file.ContentType }).ToList() 
+                };
+                
+                var response = await _httpClient.PostAsJsonAsync($"api/solicitudes/{solicitudId}/apelaciones", requestBody);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (true, result?.Message ?? "Apelación presentada exitosamente");
+                }
+                else
+                {
+                    var errorResult = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                    return (false, errorResult?.Message ?? "Error al presentar la apelación");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al presentar apelación para solicitud {solicitudId}: {ex.Message}");
+                return (false, "Error de conexión al presentar la apelación");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return (false, "Error inesperado al presentar la apelación");
+            }
+        }
+
+        public async Task<List<ApelacionDto>> GetApelacionesBySolicitudAsync(Guid solicitudId)
+        {
+            try
+            {
+                await EnsureAuthenticationHeaderAsync();
+                var response = await _httpClient.GetFromJsonAsync<List<ApelacionDto>>($"api/solicitudes/{solicitudId}/apelaciones");
+                return response ?? new List<ApelacionDto>();
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al obtener apelaciones para solicitud {solicitudId}: {ex.Message}");
+                return new List<ApelacionDto>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inesperado: {ex.Message}");
+                return new List<ApelacionDto>();
             }
         }
      }
