@@ -1,187 +1,117 @@
-# 🎓 SIGAD - Sistema de Gestión Académica Docente
+# SIGAD - Generador de Certificados de Acción de Personal
 
-Sistema completo para la gestión de ascensos docentes universitarios, desarrollado con .NET 9 y SQL Server. Incluye aplicación web Blazor Server y API REST.
+Este proyecto proporciona una API para generar certificados de acción de personal para docentes de la Universidad Técnica de Ambato, siguiendo el formato oficial de la institución.
 
-## 📋 Características Principales
+## Características
 
-- ✅ **Aplicación Web Blazor Server** con interfaz moderna y responsiva
-- ✅ **API REST completa** para gestión de documentos académicos
-- ✅ **Arquitectura limpia** (Domain, Application, Infrastructure, WebAPI, BlazorApp)
-- ✅ **Autenticación JWT** con roles diferenciados (Administrador/Docente)
-- ✅ **Gestión completa de documentos:**
-  - 📄 Artículos científicos
-  - 🔬 Proyectos de investigación
-  - 🎓 Cursos y capacitaciones
-  - 📊 Evaluaciones docentes
-  - 💼 Experiencia laboral
-  - 📘 Tesis dirigidas
-- ✅ **Subida y descarga de archivos** (PDF, DOC, DOCX)
-- ✅ **Validación automática de requisitos** para ascensos
-- ✅ **Base de datos SQL Server** con Entity Framework Core
-- ✅ **Migraciones automáticas** de base de datos
-- ✅ **Documentación Swagger** integrada
-- ✅ **Sistema de solicitudes** con flujo de aprobación
+- Generación de certificados de acción de personal en formato PDF
+- Plantilla HTML personalizable
+- API RESTful para integración con otros sistemas
+- Diseño idéntico al formato oficial de la UTA
 
-## 🏗️ Arquitectura del Proyecto
+## Requisitos previos
 
+- Node.js (v14 o superior)
+- npm o yarn
+- Dependencias del sistema para canvas:
+  - En Ubuntu/Debian: `sudo apt-get install build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev`
+  - En Windows: Instalar Visual Studio Build Tools con C++ build tools
+  - En macOS: `brew install pkg-config cairo pango libpng jpeg giflib librsvg`
+
+## Instalación
+
+1. Clonar el repositorio:
 ```
-SIGAD/
-├── SIGAD.Domain/              # 🏛️ Entidades del dominio e interfaces
-│   ├── Entities/              # Entidades principales (Docente, Solicitud, etc.)
-│   ├── Enums/                 # Enumeraciones del sistema
-│   └── Interfaces/            # Interfaces de repositorios
-├── SIGAD.Application/         # 📋 Lógica de aplicación y DTOs
-│   ├── DTOs/                  # Objetos de transferencia de datos
-│   ├── Services/              # Servicios de aplicación
-│   └── Interfaces/            # Interfaces de servicios
-├── SIGAD.Infrastructure/      # 🗄️ Acceso a datos y servicios externos
-│   ├── Persistence/           # Contexto de Entity Framework
-│   ├── Repositories/          # Implementaciones de repositorios
-│   └── Migrations/            # Migraciones de base de datos
-├── SIGAD.WebAPI/             # 🌐 API REST y controladores
-│   ├── Controllers/           # Controladores de la API
-│   ├── Middleware/            # Middleware personalizado
-│   └── uploads/               # Archivos subidos por usuarios
-├── SIGAD.BlazorApp/          # 🖥️ Aplicación web Blazor Server
-│   ├── Pages/                 # Páginas de la aplicación
-│   ├── Components/            # Componentes reutilizables
-│   ├── Layout/                # Layouts de página
-│   └── Services/              # Servicios del cliente
-└── basesExternas/            # 📊 Scripts de bases de datos externas
-    ├── DITIC.sql             # Base de datos de sistemas
-    ├── SGTH.sql              # Base de datos de talento humano
-    └── SUT.sql               # Base de datos académica
+git clone <url-del-repositorio>
+cd sigad-certificados
 ```
 
-## 🚀 Guía de Instalación Completa
-
-### 📋 Prerrequisitos
-
-Antes de comenzar, asegúrate de tener instalado:
-
-- **[.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)** (versión 9.0 o superior)
-- **[SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads)** (LocalDB, Express, Developer, o Full)
-- **[Visual Studio 2022](https://visualstudio.microsoft.com/)** (recomendado) o **[VS Code](https://code.visualstudio.com/)**
-- **[Git](https://git-scm.com/)** para control de versiones
-
-### 🔧 Verificar Instalaciones
-
-Abre una terminal/PowerShell y verifica que tienes todo instalado:
-
-```bash
-# Verificar .NET
-dotnet --version
-# Debe mostrar 9.0.x
-
-# Verificar SQL Server (LocalDB)
-sqllocaldb info
-# Debe mostrar las instancias disponibles
-
-# Verificar Git
-git --version
+2. Instalar las dependencias:
+```
+npm install
 ```
 
-
-### 2️⃣ Configurar la Base de Datos
-
-3. **Edita `appsettings.Development.json`** con tus configuraciones:
-
-   ```json
-   {
-     "ConnectionStrings": {
-       "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=SIGAD_DB;Trusted_Connection=true;MultipleActiveResultSets=true;TrustServerCertificate=true;",
-       "SGTH": "Server=(localdb)\\MSSQLLocalDB;Database=SGTH;Trusted_Connection=true;TrustServerCertificate=true;",
-       "SUT": "Server=(localdb)\\MSSQLLocalDB;Database=SUT;Trusted_Connection=true;TrustServerCertificate=true;",
-       "DITIC": "Server=(localdb)\\MSSQLLocalDB;Database=DITIC;Trusted_Connection=true;TrustServerCertificate=true;"
-     },
-     "JwtSettings": {
-       "SecretKey": "Mi-Clave-Super-Secreta-Para-JWT-Que-Debe-Ser-Muy-Larga-Y-Segura-123456789",
-       "Issuer": "SIGAD-API",
-       "Audience": "SIGAD-Users",
-       "ExpiryMinutes": 60
-     },
-     "Logging": {
-       "LogLevel": {
-         "Default": "Information",
-         "Microsoft.AspNetCore": "Warning"
-       }
-     },
-     "AllowedHosts": "*"
-   }
-   ```
-
-### 4️⃣ Restaurar Dependencias
-
-```bash
-# Desde la carpeta raíz del proyecto
-dotnet restore
-
-# Esto descargará todas las dependencias necesarias
+3. Crear la estructura de directorios necesaria:
+```
+mkdir -p public/img temp
 ```
 
-### 5️⃣ Ejecutar Migraciones de Base de Datos
+4. Agregar las imágenes requeridas en la carpeta `public/img`:
+   - `logo_uta.png`: Logo oficial de la Universidad Técnica de Ambato
+   - `firma_presidente.png`: Firma digitalizada del Presidente del H. Consejo Universitario
+   - `firma_secretario.png`: Firma digitalizada del Secretario General
 
-# Navegar a la carpeta del proyecto API
+## Configuración
 
-* Eliminar los archivos de migración si existen
-* Abrir Consola del administrador de paquetes de Visual Studio 2022
-* cambiar el proyecto predeterminado a SIGAD.infrastructure
-* Ejecutar los siguientes comandos:
+No se requiere configuración adicional para el funcionamiento básico. El servidor utilizará el puerto 3000 por defecto, pero puede cambiarse mediante la variable de entorno `PORT`.
 
-```bash
-Add-Migration InitialSchema -StartupProject SIGAD.WebAPI
+## Uso
 
-Update-Database -StartupProject SIGAD.WebAPI
+1. Iniciar el servidor:
+```
+npm start
 ```
 
-#### 🔧 Solución de Problemas con Migraciones
-
-Si encuentras errores con las migraciones:
-
-* Eliminar el contenido en la carpeta `SIGAD.Infrastructure\Migrations`
-* Asegúrate de que la cadena de conexión en `appsettings.Development.json` sea correcta
-* Eliminar la base de datos SISTEMA_DOCENTES en local
-* volver a ejecutar los comandos de migración
-
-```bash
-Add-Migration InitialSchema -StartupProject SIGAD.WebAPI
-
-Update-Database -StartupProject SIGAD.WebAPI
+2. Para desarrollo con recarga automática:
+```
+npm run dev
 ```
 
-### 6️⃣ Ejecutar la Aplicación
+3. Acceder a la API:
+   - Página principal: `http://localhost:3000/`
+   - Endpoints de la API: `http://localhost:3000/api/certificados/`
 
-#### Ejecutar solo la API
+## Endpoints de la API
 
-* Selecciona la carpeta `SIGAD.WebAPI` y establece como proyecto de inicio en Visual Studio o ejecuta desde la terminal:
-```bash
-# Desde SIGAD.WebAPI
-dotnet run
-
-# O con hot reload para desarrollo
-dotnet watch run
+### Generar un certificado de acción de personal
 ```
-#### Ejecutar Usando Visual Studio
+POST /api/certificados/accion-personal
+```
 
-1. Abrir `SIGAD.sln` en Visual Studio
-2. Configurar múltiples proyectos de inicio:
-   - Click derecho en la solución → "Establecer proyectos de inicio"
-   - Seleccionar "Varios proyectos de inicio"
-   - Establecer `SIGAD.WebAPI` y `SIGAD.BlazorApp` como "Iniciar"
-3. Presionar F5 para ejecutar
+Cuerpo de la solicitud (JSON):
+```json
+{
+  "nombreCompleto": "Nombre del Docente",
+  "cedula": "1234567890",
+  "rangoAnterior": "Auxiliar 1",
+  "rangoNuevo": "Auxiliar 2",
+  "fechaSesion": "15 de julio de 2023",
+  "periodoConvocatoria": "Primer semestre 2023",
+  "fechaEfectivaPromocion": "1 de agosto de 2023",
+  "dia": "20",
+  "mes": "julio",
+  "anio": "2023",
+  "nombrePresidente": "Dr. Juan Pérez",
+  "nombreSecretario": "Abg. María López",
+  "consecutivo": "001"
+}
+```
 
-## 🌐 URLs y Acceso al Sistema
+Respuesta: Archivo PDF del certificado.
 
-Una vez que la aplicación esté ejecutándose, podrás acceder a:
+### Obtener la plantilla HTML del certificado
+```
+GET /api/certificados/plantilla-accion-personal
+```
 
-### 🖥️ Aplicación Web Principal
-- **URL:** `https://localhost:5001` o `http://localhost:5000`
-- **Descripción:** Interfaz principal para docentes y administradores
+Respuesta: Archivo HTML con la plantilla del certificado.
 
-### 🔧 API REST
-- **URL Base:** `https://localhost:7087/api` o `http://localhost:5000/api`
-- **Documentación Swagger:** `https://localhost:7087/swagger`
-- **Descripción:** API para integraciones y desarrollo
+## Integración con SIGAD
 
-### 🏥 Monitoreo (Si está habilitado)
-- **Health Check:** `https://localhost:7087/health`
+Para integrar este generador de certificados con el sistema SIGAD principal:
+
+1. Asegúrese de que ambos sistemas puedan comunicarse (misma red o mediante API pública)
+2. Realice llamadas a la API desde el sistema SIGAD cuando se necesite generar un certificado
+3. Utilice los datos de la solicitud de ascenso aprobada para completar los campos del certificado
+
+## Personalización
+
+Para personalizar la apariencia del certificado:
+
+1. Modifique el archivo `accion_personal_template.html` para cambiar la estructura HTML
+2. Ajuste los estilos CSS dentro del mismo archivo
+3. Para cambios más profundos en la generación del PDF, modifique `accion_personal_generator.js`
+
+## Licencia
+
+Este proyecto es propiedad de la Universidad Técnica de Ambato y está destinado para uso interno.

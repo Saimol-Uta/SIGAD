@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using SIGAD.Application.Interfaces;
 using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Application.Services;
@@ -17,6 +18,9 @@ using SIGAD.WebAPI.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar licencia de QuestPDF
+QuestPDF.Settings.License = LicenseType.Community;
 
 // --- SECCIÓN DE CONFIGURACIÓN DE SERVICIOS ---
 
@@ -106,6 +110,8 @@ builder.Services.AddScoped<ValidacionRequisitosService>();
 builder.Services.AddScoped<IValidacionRequisitosService, ValidacionRequisitosService>();
 //builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+// Servicio para generación de certificados de acción de personal
+builder.Services.AddScoped<IAccionPersonalService, AccionPersonalService>();
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SigadDbContext>());
 builder.Services.AddScoped<ReporteBackendService>();
@@ -200,6 +206,7 @@ if (!Directory.Exists(uploadsPath))
     Directory.CreateDirectory(Path.Combine(uploadsPath, "experiencias"));
     Directory.CreateDirectory(Path.Combine(uploadsPath, "evaluaciones"));
     Directory.CreateDirectory(Path.Combine(uploadsPath, "tesis"));
+    Directory.CreateDirectory(Path.Combine(uploadsPath, "acciones_personal"));
 }
 
 app.UseStaticFiles(); // Esto sirve wwwroot por defecto

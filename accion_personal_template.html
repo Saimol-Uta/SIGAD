@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acción de Personal</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Times New Roman", Times, serif;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .diagonal-border-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 120px;
+            height: 100%;
+            background: linear-gradient(to right, #8B0000, #8B0000);
+            z-index: -1;
+        }
+        .diagonal-border-top-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 180px;
+            height: 100%;
+            background: linear-gradient(to right, #8B0000 0%, #8B0000 60%, transparent 100%);
+            z-index: -2;
+        }
+        .gold-line-1 {
+            position: absolute;
+            top: 10%;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #DAA520;
+            z-index: -1;
+        }
+        .gold-line-2 {
+            position: absolute;
+            top: 20%;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #DAA520;
+            z-index: -1;
+        }
+        .gold-line-3 {
+            position: absolute;
+            bottom: 5%;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #DAA520;
+            z-index: -1;
+        }
+        .header {
+            text-align: center;
+            padding-top: 40px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            display: block;
+        }
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .subtitle {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .document-number {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .intro-text {
+            font-size: 14px;
+            text-align: justify;
+            margin: 20px 80px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .considering-list {
+            margin: 20px 80px;
+            text-align: justify;
+        }
+        .considering-item {
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        .resolution-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .resolution-article {
+            font-size: 14px;
+            margin: 15px 80px;
+            text-align: justify;
+        }
+        .signature-section {
+            font-size: 14px;
+            text-align: center;
+            margin: 30px 80px;
+        }
+        .signature-line {
+            font-size: 14px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin: 50px 100px 20px 100px;
+        }
+        .signature {
+            text-align: center;
+            width: 45%;
+        }
+        .signature-img {
+            width: 150px;
+            height: 80px;
+            margin: 0 auto;
+        }
+        .signature-name {
+            font-size: 12px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .signature-title {
+            font-size: 10px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Elementos de fondo -->
+        <div class="diagonal-border-left"></div>
+        <div class="diagonal-border-top-left"></div>
+        <div class="gold-line-1"></div>
+        <div class="gold-line-2"></div>
+        <div class="gold-line-3"></div>
+        
+        <!-- Contenido del documento -->
+        <div class="header">
+            <img class="logo" src="@Model.LogoUrl" alt="Logo UTA">
+            <div class="title">UNIVERSIDAD TÉCNICA DE AMBATO</div>
+            <div class="subtitle">DIRECCIÓN DE TALENTO HUMANO</div>
+        </div>
+        
+        <div class="document-number">
+            ### *ACCIÓN DE PERSONAL Nro. UTA-AP-@Model.Anio:@Model.Consecutivo*
+        </div>
+        
+        <div class="intro-text">
+            El Rector de la Universidad Técnica de Ambato, en uso de sus atribuciones legales y estatutarias,
+        </div>
+        
+        <div class="section-title">VISTOS:</div>
+        
+        <div class="intro-text">
+            La solicitud de promoción al grado escalafonario inmediato superior, presentada por el/la docente *@Model.NombreCompleto*, con cédula de ciudadanía Nro. *@Model.Cedula*.
+        </div>
+        
+        <div class="section-title">CONSIDERANDO:</div>
+        
+        <div class="considering-list">
+            <div class="considering-item">
+                • Que, el Estatuto de la Universidad Técnica de Ambato confiere al Honorable Consejo Universitario la atribución de aprobar los procesos de promoción del personal académico titular.
+            </div>
+            <div class="considering-item">
+                • Que, el "REGLAMENTO PARA LA PROMOCIÓN DEL PERSONAL ACADÉMICO TITULAR DE LA UNIVERSIDAD TÉCNICA DE AMBATO", expedido mediante Resolución 0677-CU-P-2023, establece los requisitos y el procedimiento para el efecto.
+            </div>
+            <div class="considering-item">
+                • Que, la Comisión Académica de Escalafón y Promoción, tras el análisis de la documentación presentada por el/la solicitante, emitió el informe técnico favorable para la promoción.
+            </div>
+            <div class="considering-item">
+                • Que, el Honorable Consejo Universitario, en sesión de *@Model.FechaSesion*, conoció y aprobó el informe de promoción del personal académico titular correspondiente al período *@Model.PeriodoConvocatoria*, en el cual consta el/la docente antes mencionado/a.
+            </div>
+        </div>
+        
+        <div class="resolution-title">RESUELVE:</div>
+        
+        <div class="resolution-article">
+            *Artículo 1.- PROMOVER, al/a la docente *@Model.NombreCompleto*, de la categoría de *@Model.RangoAnterior* a la categoría de *@Model.RangoNuevo* dentro del escalafón del personal académico titular de la Universidad Técnica de Ambato.
+        </div>
+        
+        <div class="resolution-article">
+            *Artículo 2.- DISPONER, que la presente promoción rige a partir del *@Model.FechaEfectivaPromocion*, de conformidad con lo establecido en el Artículo 8 del reglamento de la materia.
+        </div>
+        
+        <div class="resolution-article">
+            *Artículo 3.- FIJAR, la remuneración mensual unificada correspondiente a la categoría de *@Model.RangoNuevo*, conforme a la escala salarial vigente en la Institución.
+        </div>
+        
+        <div class="resolution-article">
+            *Artículo 4.- ENCARGAR*, la ejecución y registro de la presente Acción de Personal a la Dirección de Talento Humano y a la Dirección Financiera para los fines legales y económicos pertinentes.
+        </div>
+        
+        <div class="signature-section">
+            Dado y firmado en la ciudad de Ambato, a los @Model.Dia días del mes de @Model.Mes de @Model.Anio.
+        </div>
+        
+        <div class="signature-line">
+            Comuníquese y cúmplase.
+        </div>
+        
+        <div class="signatures">
+            <div class="signature">
+                <img class="signature-img" src="@Model.FirmaPresidente" alt="Firma Presidente">
+                <div class="signature-name">PRESIDENTE DEL H. CONSEJO</div>
+                <div class="signature-title">UNIVERSITARIO TÉCNICO DE AMBATO</div>
+            </div>
+            <div class="signature">
+                <img class="signature-img" src="@Model.FirmaSecretario" alt="Firma Secretario">
+                <div class="signature-name">SECRETARIO GENERAL</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
