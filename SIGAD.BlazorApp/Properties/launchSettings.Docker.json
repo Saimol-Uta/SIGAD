@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Docker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://+:7087;http://+:5250",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Docker",
+        "SIGAD_API_URL": "https://sigad-webapi:7072"
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# Ignorar archivos de build y temporales
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+**/.git/
+**/.gitignore
+**/.dockerignore
+**/Dockerfile*
+**/docker-compose*
+**/README.md
+**/LICENSE.txt
+**/*.md
+**/*.log
+**/.env
+**/.env.local
+**/secrets.json
+
+# Ignorar archivos de base de datos
+**/*.bak
+**/*.mdf
+**/*.ldf
+
+# Ignorar archivos de certificados (excepto los necesarios)
+**/*.pfx
+!dev-cert.pfx
