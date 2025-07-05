@@ -8,11 +8,12 @@ param(
 
 Write-Host "📝 Creando migración: $MigrationName" -ForegroundColor Green
 
-# Ejecutar usando el contenedor con EF tools ya instalado
+# Ejecutar usando una imagen SDK temporal con EF tools
 docker run --rm -it --network sigad_sigad-network `
     -v "${PWD}:/src" -w /src `
-    sigad-sigad-webapi:latest `
-    bash -c "export PATH=`"`$PATH:/root/.dotnet/tools`" && dotnet ef migrations add $MigrationName --project `"SIGAD.Infrastructure`" --startup-project `"SIGAD.WebAPI`""
+    -e ConnectionStrings__DefaultConnection="Server=sigad-database;Database=SISTEMA_DOCENTES;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;" `
+    mcr.microsoft.com/dotnet/sdk:9.0 `
+    bash -c "dotnet tool install --global dotnet-ef && /root/.dotnet/tools/dotnet-ef migrations add $MigrationName --project SIGAD.Infrastructure --startup-project SIGAD.WebAPI"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Migración '$MigrationName' creada exitosamente" -ForegroundColor Green
