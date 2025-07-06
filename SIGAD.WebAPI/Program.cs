@@ -221,7 +221,7 @@ app.UseStaticFiles(new StaticFileOptions
 // --- SECCIÓN DE CONFIGURACIÓN DE MIDDLEWARE ---
 
 // 1. Configurar el pipeline de solicitudes HTTP
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();

@@ -1,0 +1,63 @@
+services:
+  # Base de datos SQL Server simplificada
+  sigad-database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sigad-database
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=SIGAD123456!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sigad-database-data:/var/opt/mssql
+    networks:
+      - sigad-network
+    restart: unless-stopped
+
+  # WebAPI - Backend con Clean Architecture
+  sigad-webapi:
+    build:
+      context: .
+      dockerfile: SIGAD.WebAPI/Dockerfile
+    container_name: sigad-webapi
+    ports:
+      - "5217:5217"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:5217
+      # Base de datos principal (funciona con Docker + scripts .ps1)
+      - ConnectionStrings__DefaultConnection=Server=sigad-database;Database=SISTEMA_DOCENTES;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;
+      # TODO: Cambiar estas connection strings por las bases de datos externas cuando las tengas
+      - ConnectionStrings__SGTH=Server=sigad-database;Database=SGTH;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;
+      - ConnectionStrings__SUT=Server=sigad-database;Database=SUT;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;
+      - ConnectionStrings__DITIC=Server=sigad-database;Database=DITIC;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;
+    volumes:
+      - sigad-uploads:/app/uploads
+    depends_on:
+      - sigad-database
+    networks:
+      - sigad-network
+    restart: unless-stopped
+
+  # BlazorApp - Frontend
+  sigad-blazorapp:
+    build:
+      context: .
+      dockerfile: SIGAD.BlazorApp/Dockerfile
+    container_name: sigad-blazorapp
+    ports:
+      - "5250:5250"
+    depends_on:
+      - sigad-webapi
+    networks:
+      - sigad-network
+    restart: unless-stopped
+
+networks:
+  sigad-network:
+    driver: bridge
+
+volumes:
+  sigad-database-data:
+  sigad-uploads:

@@ -24,10 +24,16 @@ builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.B
 
 builder.Services.AddScoped<ReporteService>();
 
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddScoped(sp => 
 {
-    BaseAddress = new Uri("https://localhost:7072"),
-    Timeout = TimeSpan.FromMinutes(10) // 10 minutos para operaciones críticas como apelaciones
+    // Para BlazorApp, usar la URL del navegador actual ya que el contenedor usa nginx
+    var baseAddress = "http://localhost:5217";
+    
+    return new HttpClient
+    {
+        BaseAddress = new Uri(baseAddress),
+        Timeout = TimeSpan.FromMinutes(10) // 10 minutos para operaciones críticas como apelaciones
+    };
 });
 
 await builder.Build().RunAsync();
