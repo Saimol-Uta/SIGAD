@@ -37,3 +37,12 @@ builder.Services.AddScoped(sp =>
 });
 
 await builder.Build().RunAsync();
+
+builder.Services.AddHttpClient("SIGAD.WebApi", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5217"); // La dirección de tu API
+    client.Timeout = TimeSpan.FromMinutes(10);
+})
+.AddHttpMessageHandler<AuthorizationMessageHandler>();
+
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("SIGAD.WebApi"));
