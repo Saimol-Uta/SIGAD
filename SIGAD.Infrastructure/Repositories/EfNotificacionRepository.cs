@@ -72,10 +72,20 @@ namespace SIGAD.Infrastructure.Repositories
 
         public void RemoveRange(IEnumerable<Notificacion> entities)
         {
-            // Marca un conjunto de entidades para ser eliminadas.
             _dbSet.RemoveRange(entities);
         }
-
+        public async Task<int> CountUnreadByCedulaAsync(string cedula)
+        {
+            return await _context.Notificaciones
+                .CountAsync(n => n.DocenteCedula == cedula && !n.EsLeida);
+        }
+        public async Task<IEnumerable<Notificacion>> GetAllByCedulaOrderedByDateAsync(string cedula)
+        {
+            return await _context.Notificaciones
+                .Where(n => n.DocenteCedula == cedula)
+                .OrderByDescending(n => n.FechaCreacion)
+                .ToListAsync();
+        }
         #endregion
     }
 }

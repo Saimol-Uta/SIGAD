@@ -11,10 +11,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SIGAD.Application\SIGAD.Application.csproj" />
+    <ProjectReference Include="..\SIGAD.Infrastructure\SIGAD.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
