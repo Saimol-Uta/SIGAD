@@ -232,6 +232,33 @@
     .required {
         color: #dc3545;
     }
+    
+    .invalid-feedback {
+        display: block !important;
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .text-success {
+        color: #28a745 !important;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+        font-size: 0.8rem;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    .form-control:valid {
+        border-color: #28a745;
+    }
 </style>
 
 <script>
@@ -313,15 +340,47 @@
                             <label class="form-label">
                                 Fecha de Inicio <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaInicio" @bind-Value:after="CalcularMesesInvestigacion" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaInicio" 
+                                       @bind-Value:after="ValidarFechasInvestigacion" 
+                                       class="@($"form-control {(fechaInicioValida ? "" : "is-invalid")}")" 
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => investigacionModel.FechaInicio)" />
+                            @if (!fechaInicioValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de inicio no puede ser futura
+                                </div>
+                            }
                         </div>
                         <div class="form-group">
                             <label class="form-label">
                                 Fecha de Finalización <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" @bind-Value:after="CalcularMesesInvestigacion" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" 
+                                       @bind-Value:after="ValidarFechasInvestigacion" 
+                                       class="@($"form-control {(fechaFinValida ? "" : "is-invalid")}")" 
+                                       min="@investigacionModel.FechaInicio.ToString("yyyy-MM-dd")"
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => investigacionModel.FechaFinalizacion)" />
+                            @if (!fechaFinValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    @if (investigacionModel.FechaFinalizacion > DateTime.Today)
+                                    {
+                                        <span>⚠️ La fecha de finalización no puede ser futura. Una investigación debe estar completada para registrarse.</span>
+                                    }
+                                    else if (investigacionModel.FechaFinalizacion <= investigacionModel.FechaInicio)
+                                    {
+                                        <span>⚠️ La fecha de finalización debe ser posterior a la fecha de inicio</span>
+                                    }
+                                </div>
+                            }
+                            @if (fechaInicioValida && fechaFinValida)
+                            {
+                                <small class="text-success">
+                                    ✅ Duración: @duracionCalculada
+                                </small>
+                            }
                         </div>
                     </div>
 
@@ -373,7 +432,7 @@
                                 @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (!Id.HasValue && archivoFormulario == null))">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (!Id.HasValue && archivoFormulario == null) || !fechaInicioValida || !fechaFinValida)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando investigación...</span>
@@ -401,6 +460,11 @@
     private string archivoSeleccionado = "";
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
+    // Variables para validación de fechas
+    private bool fechaInicioValida = true;
+    private bool fechaFinValida = true;
+    private string duracionCalculada = "";
+
     // Para edición
     private string? archivoActualRuta;
     private string? archivoActualNombre;
@@ -424,12 +488,6 @@
 
         await CargarInformacionUsuario();
 
-        // Para nuevas investigaciones, calcular meses iniciales
-        if (!Id.HasValue)
-        {
-            CalcularMesesInvestigacion();
-        }
-
         if (Id.HasValue)
         {
             // Cargar datos de la investigación para edición
@@ -447,9 +505,6 @@
                     investigacionModel.MesesDeInvestigacion = inv.MesesDeInvestigacion;
                     archivoActualRuta = inv.InformeRuta;
                     archivoActualNombre = Path.GetFileName(inv.InformeRuta);
-                    
-                    // Recalcular meses por si las fechas han cambiado
-                    CalcularMesesInvestigacion();
                 }
             }
             else
@@ -457,7 +512,9 @@
                 errorMessage = "No se pudo cargar la investigación para editar.";
             }
         }
-        // Ya no es necesario verificar solicitud activa para agregar investigación
+        
+        // Validar fechas y calcular meses (tanto para nueva como para edición)
+        ValidarFechasInvestigacion();
     }
 
     private async Task VerificarSolicitudActiva()
@@ -527,6 +584,26 @@
     private async Task HandleSubmit()
     {
         if (enviandoFormulario) return;
+
+        // Validar fechas antes de enviar
+        if (!fechaInicioValida)
+        {
+            errorMessage = "La fecha de inicio no puede ser futura.";
+            return;
+        }
+        
+        if (!fechaFinValida)
+        {
+            if (investigacionModel.FechaFinalizacion > DateTime.Today)
+            {
+                errorMessage = "La fecha de finalización no puede ser futura. Una investigación debe estar completada para registrarse.";
+            }
+            else if (investigacionModel.FechaFinalizacion <= investigacionModel.FechaInicio)
+            {
+                errorMessage = "La fecha de finalización debe ser posterior a la fecha de inicio.";
+            }
+            return;
+        }
 
         // Al agregar, el archivo es obligatorio. Al editar, solo si se selecciona uno nuevo.
         if (!Id.HasValue && archivoFormulario == null)
@@ -682,6 +759,48 @@
         }
     }
 
+    private void ValidarFechasInvestigacion()
+    {
+        // Validar fecha de inicio
+        fechaInicioValida = investigacionModel.FechaInicio <= DateTime.Today;
+        
+        // Validar fecha de finalización
+        // 1. No puede ser futura
+        // 2. Debe ser posterior a la fecha de inicio
+        fechaFinValida = investigacionModel.FechaFinalizacion <= DateTime.Today && 
+                        investigacionModel.FechaFinalizacion > investigacionModel.FechaInicio;
+        
+        // Calcular duración si las fechas son válidas
+        if (fechaInicioValida && fechaFinValida)
+        {
+            CalcularMesesInvestigacion();
+            
+            var duracion = investigacionModel.FechaFinalizacion - investigacionModel.FechaInicio;
+            var meses = investigacionModel.MesesDeInvestigacion;
+            var años = meses / 12;
+            var mesesRestantes = meses % 12;
+            
+            if (años > 0)
+            {
+                duracionCalculada = mesesRestantes > 0 
+                    ? $"{años} año{(años > 1 ? "s" : "")} y {mesesRestantes} mes{(mesesRestantes > 1 ? "es" : "")}"
+                    : $"{años} año{(años > 1 ? "s" : "")}";
+            }
+            else
+            {
+                duracionCalculada = $"{meses} mes{(meses > 1 ? "es" : "")}";
+            }
+            
+            duracionCalculada += $" ({duracion.Days} días)";
+        }
+        else
+        {
+            duracionCalculada = "";
+        }
+        
+        StateHasChanged();
+    }
+
     private void CalcularMesesInvestigacion()
     {
         // Solo calcular si ambas fechas están establecidas y la fecha de fin es posterior a la de inicio
@@ -751,8 +870,8 @@
     public class InvestigacionModel
     {
         public string Titulo { get; set; } = "";
-        public DateTime FechaInicio { get; set; } = DateTime.Today;
-        public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
+        public DateTime FechaInicio { get; set; } = DateTime.Today.AddMonths(-12); // 12 meses atrás por defecto
+        public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(-6); // 6 meses atrás por defecto
         public string RolEnInvestigacion { get; set; } = "";
         public int MesesDeInvestigacion { get; set; } = 6; // Inicializar con 6 meses por defecto
         public bool EsInternacional { get; set; } = false;

@@ -364,16 +364,41 @@
                             <label class="form-label">
                                 Fecha de Inicio <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="experienciaModel.FechaInicio" class="form-control" />
+                            <InputDate @bind-Value="experienciaModel.FechaInicio" 
+                                       @bind-Value:after="ValidarFechasExperiencia" 
+                                       class="@($"form-control {(fechaInicioValida ? "" : "is-invalid")}")" 
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => experienciaModel.FechaInicio)" />
+                            @if (!fechaInicioValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de inicio no puede ser futura
+                                </div>
+                            }
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">
                                 Fecha de Finalización <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="experienciaModel.FechaFinalizacion" class="form-control" />
+                            <InputDate @bind-Value="experienciaModel.FechaFinalizacion" 
+                                       @bind-Value:after="ValidarFechasExperiencia" 
+                                       class="@($"form-control {(fechaFinValida ? "" : "is-invalid")}")" 
+                                       min="@experienciaModel.FechaInicio.ToString("yyyy-MM-dd")"
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => experienciaModel.FechaFinalizacion)" />
+                            @if (!fechaFinValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de finalización debe ser posterior a la fecha de inicio y no futura
+                                </div>
+                            }
+                            @if (fechaInicioValida && fechaFinValida)
+                            {
+                                <small class="text-success">
+                                    ✅ Duración: @duracionExperiencia
+                                </small>
+                            }
                         </div>
                     </div>
 
@@ -462,6 +487,11 @@
     private string archivoSeleccionado = "";
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
+    // Variables para validación de fechas
+    private bool fechaInicioValida = true;
+    private bool fechaFinValida = true;
+    private string duracionExperiencia = "";
+
     // Variables de estado
     private bool enviandoFormulario = false;
     private bool experienciaCreada = false;
@@ -523,6 +553,44 @@
         {
             // Ya no es necesario verificar solicitud activa para agregar experiencia
         }
+    }
+
+    private void ValidarFechasExperiencia()
+    {
+        // Validar fecha de inicio (no puede ser futura)
+        fechaInicioValida = experienciaModel.FechaInicio <= DateTime.Today;
+        
+        // Validar fecha de finalización (debe ser posterior al inicio y no futura)
+        fechaFinValida = experienciaModel.FechaFinalizacion > experienciaModel.FechaInicio && 
+                        experienciaModel.FechaFinalizacion <= DateTime.Today;
+        
+        // Calcular duración si las fechas son válidas
+        if (fechaInicioValida && fechaFinValida)
+        {
+            var duracion = experienciaModel.FechaFinalizacion - experienciaModel.FechaInicio;
+            var años = (int)(duracion.TotalDays / 365.25);
+            var meses = (int)((duracion.TotalDays % 365.25) / 30.44);
+            var días = (int)(duracion.TotalDays % 30.44);
+            
+            var partes = new List<string>();
+            
+            if (años > 0)
+                partes.Add($"{años} año{(años > 1 ? "s" : "")}");
+            
+            if (meses > 0)
+                partes.Add($"{meses} mes{(meses > 1 ? "es" : "")}");
+            
+            if (días > 0 && años == 0 && meses == 0)
+                partes.Add($"{días} día{(días > 1 ? "s" : "")}");
+            
+            duracionExperiencia = partes.Count > 0 ? string.Join(", ", partes) : "Menos de 1 día";
+        }
+        else
+        {
+            duracionExperiencia = "";
+        }
+        
+        StateHasChanged();
     }
 
     private string GetReturnUrl()
