@@ -1,6 +1,7 @@
 @page "/agregar-curso"
 @page "/editar-curso/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using System.Web
 @attribute [Authorize(Roles = "DOCENTE")]
 @attribute [Layout(typeof(EmptyLayout))]
@@ -48,119 +49,144 @@
     .user-profile {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 0.9rem;
-        color: #444;
+        gap: 1rem;
     }
 
-        .user-profile img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid #0a1d44;
-            object-fit: cover;
-        }
+    .user-profile span {
+        font-weight: bold;
+        color: #0a1d44;
+    }
+
+    .user-profile img {
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+    }
 
     .back-btn, .logout-btn {
         background-color: #0a1d44;
         color: white;
-        border: none;
         padding: 0.5rem 1rem;
-        border-radius: 4px;
+        border: none;
+        border-radius: 5px;
         cursor: pointer;
-        font-size: 0.9rem;
-        margin-left: 15px;
-        transition: background-color 0.3s ease;
         text-decoration: none;
         display: inline-block;
+        transition: background-color 0.3s ease;
     }
 
-    .back-btn {
-        background-color: #6c757d;
-    }
-
-        .back-btn:hover {
-            background-color: #5a6268;
-        }
-
-    .logout-btn:hover {
-        background-color: #09203f;
+    .back-btn:hover, .logout-btn:hover {
+        background-color: #1e3a5f;
     }
 
     .main-content {
         display: flex;
         justify-content: center;
-        padding: 2rem;
+        align-items: flex-start;
         min-height: calc(100vh - 120px);
+        padding: 2rem;
+        position: relative;
     }
 
     .form-container {
-        background: white;
+        background-color: white;
         padding: 2rem;
-        max-width: 800px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         width: 100%;
-        border: 1px solid #0a1d44;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-        z-index:2;
+        max-width: 800px;
+        z-index: 2;
     }
 
-        .form-container h1 {
-            font-size: 2.5rem;
-            font-weight: 500;
-            color: #0a1d44;
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
+    .form-container h1 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: #0a1d44;
+        font-size: 2rem;
+    }
 
-        .form-container .subtitle {
-            font-size: 1.1rem;
-            color: #666;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+    .subtitle {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #666;
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
 
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .form-label {
         display: block;
+        margin-bottom: 0.5rem;
         font-weight: bold;
         color: #0a1d44;
-        margin-bottom: 0.5rem;
-        font-size: 1rem;
+    }
+
+    .required {
+        color: #d9534f;
     }
 
     .form-control {
         width: 100%;
         padding: 0.75rem;
         border: 1px solid #ddd;
-        border-radius: 4px;
+        border-radius: 5px;
         font-size: 1rem;
         transition: border-color 0.3s ease;
     }
 
-        .form-control:focus {
-            outline: none;
-            border-color: #0a1d44;
-            box-shadow: 0 0 0 2px rgba(10, 29, 68, 0.1);
-        }
+    .form-control:focus {
+        outline: none;
+        border-color: #0a1d44;
+        box-shadow: 0 0 5px rgba(10, 29, 68, 0.3);
+    }
 
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+    .form-control.is-invalid {
+        border-color: #d9534f;
+    }
+
+    .invalid-feedback {
+        color: #d9534f;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: normal;
+        cursor: pointer;
+    }
+
+    .form-check-input {
+        width: auto;
+        margin: 0;
+    }
+
+    .btn-group {
+        display: flex;
         gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
     }
 
     .btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 4px;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
+        padding: 0.75rem 2rem;
         border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s ease;
         text-decoration: none;
         display: inline-block;
         text-align: center;
@@ -171,82 +197,77 @@
         color: white;
     }
 
-        .btn-primary:hover {
-            background-color: #081527;
-        }
+    .btn-primary:hover:not(:disabled) {
+        background-color: #1e3a5f;
+    }
+
+    .btn-primary:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
 
     .btn-secondary {
         background-color: #6c757d;
         color: white;
     }
 
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .btn-group {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 2rem;
+    .btn-secondary:hover {
+        background-color: #545b62;
     }
 
     .alert {
         padding: 1rem;
-        border-radius: 4px;
         margin-bottom: 1rem;
+        border-radius: 5px;
+        font-weight: bold;
     }
 
     .alert-danger {
         background-color: #f8d7da;
-        border: 1px solid #f1aeb5;
         color: #721c24;
+        border: 1px solid #f5c6cb;
     }
 
     .alert-success {
-        background-color: #d1e7dd;
-        border: 1px solid #a3cfbb;
-        color: #0f5132;
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .text-success {
+        color: #28a745;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        font-weight: bold;
     }
 
     .triangle-bg {
         position: fixed;
-        top: 115px;
-        right: -75px;
-        height: auto;
-        max-height: 90vh;
-        max-width: 40vw;
-        z-index: 0;
-        object-fit: contain;
-        pointer-events: none;
-        opacity: 0.3;
+        bottom: -50px;
+        right: -50px;
+        width: 300px;
+        height: 300px;
+        z-index: 1;
+        opacity: 0.1;
     }
 
-    .required {
-        color: #dc3545;
-    }
-
-    /* --- Media Query para el tamaño intermedio (Tablets) --- */
-    @@media (max-width: 1199px) and (min-width: 769px) {
-        /* 1. Aseguramos que el layout principal sea horizontal */
-        .main-content {
-            flex-direction: row;
-            align-items: center; /* Centra los elementos verticalmente */
-            justify-content: center; /* Mantiene el espacio entre ellos */
-            padding: 2rem; /* Un padding adecuado para este tamaño */
-        }
-        /* 4. La clave: Ocultamos los triángulos en este tamaño */
-        .triangle-bg {
-            display: none;
-        }
+    .validation-message {
+        color: #d9534f;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
     }
 
     @@media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
         .main-content {
             flex-direction: column;
             align-items: stretch;
@@ -258,6 +279,26 @@
         }
     }
 </style>
+
+<script>
+    // Función para notificar al modal parent de una operación completada
+    window.notifyModalParent = function(success) {
+        console.log('Debug - Notificando al parent modal, success:', success);
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'operationComplete',
+                    success: success
+                }, '*');
+                console.log('Debug - Mensaje enviado al parent exitosamente');
+            } else {
+                console.log('Debug - No hay parent window disponible');
+            }
+        } catch (error) {
+            console.error('Debug - Error al enviar mensaje al parent:', error);
+        }
+    };
+</script>
 
 <body>
     <div class="header">
@@ -298,14 +339,6 @@
                     <DataAnnotationsValidator />
 
                     <div class="form-group">
-                        <label class="form-label">¿Tipo de curso? <span class="required">*</span></label>
-                        <InputRadioGroup @bind-Value="cursoModel.ImpartidoPorDocente">
-                            <InputRadio Value="false" /> Recibido
-                            <InputRadio Value="true" /> Impartido (dictado por usted)
-                        </InputRadioGroup>
-                    </div>
-
-                    <div class="form-group">
                         <label class="form-label">
                             Nombre del Curso <span class="required">*</span>
                         </label>
@@ -319,16 +352,41 @@
                             <label class="form-label">
                                 Fecha de Inicio <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="cursoModel.FechaInicio" class="form-control" />
+                            <InputDate @bind-Value="cursoModel.FechaInicio" 
+                                       @bind-Value:after="ValidarFechasCurso" 
+                                       class="@($"form-control {(fechaInicioValida ? "" : "is-invalid")}")" 
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => cursoModel.FechaInicio)" />
+                            @if (!fechaInicioValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de inicio no puede ser futura
+                                </div>
+                            }
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">
                                 Fecha de Finalización <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="cursoModel.FechaFinalizacion" class="form-control" />
+                            <InputDate @bind-Value="cursoModel.FechaFinalizacion" 
+                                       @bind-Value:after="ValidarFechasCurso" 
+                                       class="@($"form-control {(fechaFinValida ? "" : "is-invalid")}")" 
+                                       min="@cursoModel.FechaInicio.ToString("yyyy-MM-dd")"
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => cursoModel.FechaFinalizacion)" />
+                            @if (!fechaFinValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de finalización debe ser posterior a la fecha de inicio y no futura
+                                </div>
+                            }
+                            @if (fechaInicioValida && fechaFinValida)
+                            {
+                                <small class="text-success">
+                                    ✅ Duración: @duracionCurso
+                                </small>
+                            }
                         </div>
                     </div>
 
@@ -373,11 +431,18 @@
                             <label class="form-label">
                                 Tipo de Curso <span class="required">*</span>
                             </label>
-                            <InputText @bind-Value="cursoModel.TipoCurso" class="form-control"
-                                       placeholder="Ej: Diplomado, Seminario, Taller" />
+                            <InputSelect @bind-Value="cursoModel.TipoCurso" class="form-control">
+                                <option value="">Seleccione el tipo de curso</option>
+                                @foreach (var tipo in TiposCurso)
+                                {
+                                    <option value="@tipo.Key">@tipo.Value</option>
+                                }
+                            </InputSelect>
                             <ValidationMessage For="@(() => cursoModel.TipoCurso)" />
+                            <small class="text-muted">Seleccione el tipo según el reglamento académico</small>
                         </div>
                     </div>
+
                     <div class="form-group">
                         <label class="form-label">
                             Organización <span class="required">*</span>
@@ -437,6 +502,20 @@
 @code {
     [Parameter] public int? Id { get; set; }
 
+    // Constantes locales para tipos de curso (evitar dependencia directa del enum del dominio)
+    private static readonly Dictionary<string, string> TiposCurso = new()
+    {
+        { "ActualizacionCientifica", "Actualización Científica" },
+        { "ActualizacionPedagogica", "Actualización Pedagógica" },
+        { "Especializacion", "Especialización" },
+        { "Diplomado", "Diplomado" },
+        { "Seminario", "Seminario/Taller" },
+        { "Conferencia", "Conferencia/Ponencia" },
+        { "Certificacion", "Certificación Profesional" },
+        { "CapacitacionImpartida", "Capacitación Impartida" },
+        { "CapacitacionTecnica", "Capacitación Técnica" }
+    };
+
     private string nombreUsuario = "";
     private CursoModel cursoModel = new();
     private bool enviandoFormulario = false;
@@ -446,7 +525,12 @@
     private string certificadoSeleccionado = "";
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
-    // Lista de organizaciones de ejemplo
+    // Variables para validación de fechas
+    private bool fechaInicioValida = true;
+    private bool fechaFinValida = true;
+    private string duracionCurso = "";
+
+    // Lista de organizaciones de ejemplos
     private List<OrganizacionModel> organizaciones = new()
     {
         new OrganizacionModel { Id = 1, Nombre = "Ministerio de Educación" },
@@ -456,6 +540,80 @@
         new OrganizacionModel { Id = 5, Nombre = "SENA" }
     };
 
+    protected override async Task OnInitializedAsync()
+    {
+        // Obtener parámetros de query
+        var uri = new Uri(Navigation.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        
+        if (query["returnTo"] != null)
+        {
+            returnTo = query["returnTo"];
+        }
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<UserInfoResponse>("/api/Usuario/info");
+            if (result != null && !string.IsNullOrEmpty(result.Username))
+            {
+                nombreUsuario = result.Username;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener información del usuario: {ex.Message}");
+        }
+
+        if (Id.HasValue)
+        {
+            await CargarCurso();
+        }
+        else
+        {
+            // Inicializar fechas en blanco para nuevo curso
+            cursoModel.FechaInicio = DateTime.Today;
+            cursoModel.FechaFinalizacion = DateTime.Today;
+        }
+    }
+
+    private async Task CargarCurso()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"/api/Cursos/{Id.Value}");
+            if (response.IsSuccessStatusCode)
+            {
+                var curso = await response.Content.ReadFromJsonAsync<CursoDto>();
+                if (curso != null)
+                {
+                    cursoModel = new CursoModel
+                    {
+                        Id = curso.Id,
+                        Nombre = curso.Nombre,
+                        FechaInicio = curso.FechaInicio,
+                        FechaFinalizacion = curso.FechaFinalizacion,
+                        NumeroHoras = curso.NumeroHoras,
+                        HorasImpartidas = curso.HorasImpartidas,
+                        TipoCurso = curso.TipoCurso,
+                        OrganizacionId = curso.OrganizacionId,
+                        ImpartidoPorDocente = curso.ImpartidoPorDocente,
+                        CertificadoRuta = curso.CertificadoRuta
+                    };
+                    
+                    ValidarFechasCurso();
+                }
+            }
+            else
+            {
+                errorMessage = "❌ No se pudo cargar el curso. Por favor, intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"❌ Error al cargar el curso: {ex.Message}";
+        }
+    }
+
     private void OnCertificadoSelected(InputFileChangeEventArgs e)
     {
         certificadoFile = e.File;
@@ -464,7 +622,7 @@
         // Validar tamaño (10MB)
         if (certificadoFile.Size > 10 * 1024 * 1024)
         {
-            errorMessage = "El archivo es demasiado grande. Máximo permitido: 10MB";
+            errorMessage = "❌ El archivo es demasiado grande. Máximo permitido: 10MB";
             certificadoFile = null;
             certificadoSeleccionado = "";
             return;
@@ -475,7 +633,7 @@
         var extensionesPermitidas = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
         if (!extensionesPermitidas.Contains(extension))
         {
-            errorMessage = "Formato de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC o DOCX";
+            errorMessage = "❌ Formato de archivo no permitido. Use: PDF, JPG, JPEG, PNG, DOC o DOCX";
             certificadoFile = null;
             certificadoSeleccionado = "";
             return;
@@ -485,70 +643,59 @@
         StateHasChanged();
     }
 
-    protected override async Task OnInitializedAsync()
+    private void ValidarFechasCurso()
     {
-        // Leer parámetro returnTo de la query string
-        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        var queryParams = HttpUtility.ParseQueryString(uri.Query);
-        var returnToParam = queryParams["returnTo"];
-        if (!string.IsNullOrEmpty(returnToParam))
+        // Validar fecha de inicio (no puede ser futura)
+        fechaInicioValida = cursoModel.FechaInicio <= DateTime.Today;
+        
+        // Validar fecha de finalización (debe ser posterior al inicio y no futura)
+        fechaFinValida = cursoModel.FechaFinalizacion > cursoModel.FechaInicio && 
+                         cursoModel.FechaFinalizacion <= DateTime.Today;
+        
+        // Calcular duración si ambas fechas son válidas
+        if (fechaInicioValida && fechaFinValida)
         {
-            returnTo = returnToParam;
-        }
-
-        await CargarInformacionUsuario();
-
-        if (Id.HasValue)
-        {
-            // Cargar datos del curso para edición
-            var response = await Http.GetAsync($"api/cursos/{Id.Value}");
-            if (response.IsSuccessStatusCode)
+            var dias = (cursoModel.FechaFinalizacion - cursoModel.FechaInicio).Days;
+            var meses = dias / 30.0;
+            
+            if (dias == 0)
             {
-                var curso = await response.Content.ReadFromJsonAsync<CursoModel>();
-                if (curso != null)
-                {
-                    cursoModel = curso;
-                }
+                duracionCurso = "1 día";
+            }
+            else if (dias < 30)
+            {
+                duracionCurso = $"{dias + 1} días";
+            }
+            else if (meses < 12)
+            {
+                duracionCurso = $"{meses:F1} meses ({dias + 1} días)";
             }
             else
             {
-                errorMessage = "No se pudo cargar el curso para editar.";
+                var años = meses / 12.0;
+                duracionCurso = $"{años:F1} años ({dias + 1} días)";
             }
         }
+        else
+        {
+            duracionCurso = "";
+        }
+        
+        StateHasChanged();
     }
 
-    private async Task VerificarSolicitudActiva()
+    private async Task OnImpartidoPorDocenteChange()
     {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
+        // Limpiar valores cuando cambia el tipo
+        if (cursoModel.ImpartidoPorDocente)
         {
-            // Solo mostrar una advertencia, no redirigir automáticamente
-            errorMessage = "⚠️ No hay una solicitud de ascenso activa. Podrá agregar documentos, pero no se asociarán automáticamente a una solicitud.";
+            cursoModel.NumeroHoras = 0;
         }
-    }
-
-    private async Task CargarInformacionUsuario()
-    {
-        try
+        else
         {
-            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-            if (!string.IsNullOrEmpty(token))
-            {
-                var response = await Http.GetAsync("api/auth/verify");
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
-                    if (result?.Success == true && result.Data != null)
-                    {
-                        nombreUsuario = $"{result.Data.Nombre1} {result.Data.Apellido1}";
-                    }
-                }
-            }
+            cursoModel.HorasImpartidas = null;
         }
-        catch (Exception ex)
-        {
-            errorMessage = "Error al cargar información del usuario: " + ex.Message;
-        }
+        StateHasChanged();
     }
 
     private async Task HandleSubmit()
@@ -558,10 +705,27 @@
         enviandoFormulario = true;
         errorMessage = null;
 
+        // Validar fechas antes del envío
+        ValidarFechasCurso();
+        if (!fechaInicioValida || !fechaFinValida)
+        {
+            errorMessage = "❌ Por favor corrija las fechas antes de continuar.";
+            enviandoFormulario = false;
+            return;
+        }
+
         // Validar organización seleccionada
         if (cursoModel.OrganizacionId == null || cursoModel.OrganizacionId <= 0)
         {
-            errorMessage = "Debe seleccionar una organización válida.";
+            errorMessage = "❌ Debe seleccionar una organización válida.";
+            enviandoFormulario = false;
+            return;
+        }
+
+        // Validar tipo de curso seleccionado
+        if (string.IsNullOrEmpty(cursoModel.TipoCurso) || !TiposCurso.ContainsKey(cursoModel.TipoCurso))
+        {
+            errorMessage = "❌ Debe seleccionar un tipo de curso válido.";
             enviandoFormulario = false;
             return;
         }
@@ -569,7 +733,7 @@
         // Validar archivo (obligatorio al agregar, opcional al editar)
         if (!Id.HasValue && certificadoFile == null)
         {
-            errorMessage = "Debe adjuntar el archivo de certificado.";
+            errorMessage = "❌ Debe adjuntar el archivo de certificado.";
             enviandoFormulario = false;
             return;
         }
@@ -579,121 +743,96 @@
             var cedula = await ObtenerCedulaUsuario();
             if (string.IsNullOrEmpty(cedula))
             {
-                errorMessage = "No se pudo obtener la información del usuario";
+                errorMessage = "❌ No se pudo obtener la información del usuario";
+                enviandoFormulario = false;
                 return;
             }
 
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(cursoModel.Nombre), "Nombre");
+            
+            // Para edición usa OrganizacionId, para creación usa OrganizacionNombre
             if (Id.HasValue)
             {
-                // EDITAR CURSO
-                using var content = new MultipartFormDataContent();
-                content.Add(new StringContent(cursoModel.Nombre), "Nombre");
                 content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
-                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
-                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
-                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
-                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
-                content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
-                content.Add(new StringContent(cedula), "DocenteCedula");
-                content.Add(new StringContent(Id.Value.ToString()), "Id");
-
-                // Adjuntar archivo solo si el usuario seleccionó uno nuevo
-                if (certificadoFile != null)
-                {
-                    var stream = certificadoFile.OpenReadStream(10 * 1024 * 1024);
-                    content.Add(new StreamContent(stream), "certificado", certificadoFile.Name);
-                }
-
-                var response = await Http.PutAsync($"api/cursos/{Id.Value}", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    cursoGuardado = true;
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo(GetReturnUrl());
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al actualizar el curso: {errorContent}";
-                }
             }
             else
             {
-                // AGREGAR CURSO
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    // Preguntar al usuario qué quiere hacer
-                    var result = await JSRuntime.InvokeAsync<bool>("confirm", 
-                        "No hay una solicitud de ascenso activa. ¿Desea:\n" +
-                        "• Aceptar: Guardar el curso sin asociarlo a una solicitud\n" +
-                        "• Cancelar: Ir a crear una solicitud de ascenso primero");
-                    
-                    if (!result)
-                    {
-                        // Usuario quiere crear una solicitud primero
-                        var redirectUrl = returnTo == "inventario" 
-                            ? "/iniciar-solicitud-ascenso?returnTo=inventario" 
-                            : "/iniciar-solicitud-ascenso";
-                        Navigation.NavigateTo(redirectUrl);
-                        return;
-                    }
-                    // Si result es true, continúa guardando sin SolicitudId
-                }
-
-                using var content = new MultipartFormDataContent();
-                content.Add(new StringContent(cursoModel.Nombre), "Nombre");
-                
-                // Obtener el nombre de la organización a partir del ID seleccionado
+                // Buscar el nombre de la organización seleccionada para crear
                 var organizacionSeleccionada = organizaciones.FirstOrDefault(o => o.Id == cursoModel.OrganizacionId);
                 var organizacionNombre = organizacionSeleccionada?.Nombre ?? "";
                 content.Add(new StringContent(organizacionNombre), "OrganizacionNombre");
-                
-                content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
-                content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
-                content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
-                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
-                content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
-                content.Add(new StringContent(cedula), "DocenteCedula");
-                // No incluir SolicitudId para que el curso no se asocie automáticamente
-                // Se asociará después desde la interfaz de "Documentos disponibles"
+            }
+            
+            content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
+            content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
+            content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
+            content.Add(new StringContent(cursoModel.TipoCurso!), "TipoCurso");
+            content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+            content.Add(new StringContent(cedula), "DocenteCedula");
 
-                // Adjuntar archivo (obligatorio al agregar)
-                var stream = certificadoFile!.OpenReadStream(10 * 1024 * 1024);
-                content.Add(new StreamContent(stream), "certificado", certificadoFile!.Name);
+            // Para edición, agregar el ID
+            if (Id.HasValue)
+            {
+                content.Add(new StringContent(Id.Value.ToString()), "Id");
+            }
 
-                var response = await Http.PostAsync("api/cursos", content);
+            // Adjuntar archivo solo si el usuario seleccionó uno nuevo
+            if (certificadoFile != null)
+            {
+                var stream = certificadoFile.OpenReadStream(10 * 1024 * 1024);
+                content.Add(new StreamContent(stream), "certificado", certificadoFile.Name);
+            }
 
-                if (response.IsSuccessStatusCode)
+            HttpResponseMessage response;
+            if (Id.HasValue)
+            {
+                response = await Http.PutAsync($"/api/Cursos/{Id.Value}", content);
+            }
+            else
+            {
+                response = await Http.PostAsync("/api/Cursos", content);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                cursoGuardado = true;
+                
+                // Si viene de modal, notificar al parent y no navegar
+                if (returnTo == "modal")
+                {
+                    await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                    await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                }
+                else
                 {
                     // Mostrar SweetAlert con cierre automático
                     await JSRuntime.InvokeVoidAsync("Swal.fire", new
                     {
                         position = "center",
                         icon = "success",
-                        title = Id != null ? "¡Curso actualizado!" : "¡Curso guardado!",
+                        title = "¡Curso guardado!",
                         text = "La información se ha guardado correctamente",
                         showConfirmButton = false,
                         timer = 2000
                     });
-                    
+                       
                     // Esperar y redirigir
                     await Task.Delay(2200); // Esperar a que termine el SweetAlert
                     Navigation.NavigateTo(GetReturnUrl());
                 }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al guardar el curso: {errorContent}";
-                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"❌ Error al {(Id.HasValue ? "actualizar" : "guardar")} el curso: {errorContent}";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al procesar la solicitud: {ex.Message}";
+            errorMessage = $"❌ Error al procesar la solicitud: {ex.Message}";
         }
         finally
         {
@@ -713,7 +852,7 @@
             var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
             if (!string.IsNullOrEmpty(token))
             {
-                var response = await Http.GetAsync("api/auth/verify");
+                var response = await Http.GetAsync("/api/auth/verify");
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>();
@@ -723,62 +862,55 @@
         }
         catch
         {
-            // Silenciar errores
+            // En caso de error, devolver null
         }
         return null;
     }
 
     private async Task Logout()
     {
-        try
-        {
-            var response = await Http.PostAsync("api/auth/logout", null);
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
-            Navigation.NavigateTo("/login", true);
-        }
-        catch (Exception)
-        {
-            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
-            Navigation.NavigateTo("/login", true);
-        }
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        Navigation.NavigateTo("/login");
     }
 
-    private void OnImpartidoPorDocenteChange(ChangeEventArgs e)
-    {
-        cursoModel.ImpartidoPorDocente = (bool)(e.Value ?? false);
-        
-        // Resetear valores cuando cambia el tipo
-        if (cursoModel.ImpartidoPorDocente)
-        {
-            cursoModel.NumeroHoras = 0; // Limpiar horas de capacitación
-        }
-        else
-        {
-            cursoModel.HorasImpartidas = 0; // Limpiar horas impartidas
-        }
-        
-        StateHasChanged(); // Refrescar la UI
-    }
-
-    // Modelos
+    // Clases auxiliares
     public class CursoModel
     {
         public int Id { get; set; }
         public string Nombre { get; set; } = "";
-        public DateTime FechaInicio { get; set; } = DateTime.Today;
-        public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddDays(30);
-        public int NumeroHoras { get; set; } = 0;
-        public int? HorasImpartidas { get; set; } = 0;
-        public bool ImpartidoPorDocente { get; set; } = false;
-        public int? OrganizacionId { get; set; }
+        public DateTime FechaInicio { get; set; }
+        public DateTime FechaFinalizacion { get; set; }
+        public int NumeroHoras { get; set; }
+        public int? HorasImpartidas { get; set; }
         public string TipoCurso { get; set; } = "";
-        public string? CertificadoRuta { get; set; }
+        public int? OrganizacionId { get; set; }
+        public bool ImpartidoPorDocente { get; set; }
+        public string CertificadoRuta { get; set; } = "";
     }
 
     public class OrganizacionModel
     {
         public int Id { get; set; }
         public string Nombre { get; set; } = "";
+    }
+
+    public class CursoDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+        public DateTime FechaInicio { get; set; }
+        public DateTime FechaFinalizacion { get; set; }
+        public int NumeroHoras { get; set; }
+        public int? HorasImpartidas { get; set; }
+        public string TipoCurso { get; set; } = "";
+        public int OrganizacionId { get; set; }
+        public bool ImpartidoPorDocente { get; set; }
+        public string CertificadoRuta { get; set; } = "";
+    }
+
+    public class UserInfoResponse
+    {
+        public string Username { get; set; } = "";
     }
 
     public class VerifyTokenResponse
@@ -789,8 +921,8 @@
 
     public class UserData
     {
-        public string? Nombre1 { get; set; }
-        public string? Apellido1 { get; set; }
-        public string? Cedula { get; set; }
+        public string Cedula { get; set; } = "";
+        public string Nombre1 { get; set; } = "";
+        public string Apellido1 { get; set; } = "";
     }
 }

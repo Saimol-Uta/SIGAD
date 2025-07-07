@@ -6,6 +6,7 @@
 @using SIGAD.BlazorApp.Services
 @using SIGAD.BlazorApp.Components
 @using System.Text.Json
+@using Microsoft.JSInterop
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -699,6 +700,217 @@
         color: #721c24;
     }
 
+    /* Estilos para el modal de agregar documento */
+    .add-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1002;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .add-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .add-modal-header {
+        background: linear-gradient(135deg, #0a1d44 0%, #1e3a8a 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px 12px 0 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .add-modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .add-modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.2s ease;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .add-modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .add-modal-body {
+        padding: 0;
+        max-height: calc(90vh - 200px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .add-modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .iframe-container {
+        width: 100%;
+        height: calc(90vh - 200px);
+        border: none;
+        background: white;
+    }
+
+    .loading-iframe {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        background: #f8f9fa;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    .loading-iframe i {
+        margin-right: 0.5rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Estilos para el modal de editar documento */
+    .edit-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1003;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .edit-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .edit-modal-header {
+        background: linear-gradient(135deg, #dc3545 0%, #b91d2b 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px 12px 0 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .edit-modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .edit-modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.2s ease;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edit-modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .edit-modal-body {
+        padding: 0;
+        max-height: calc(90vh - 200px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .edit-modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        border-radius: 0 0 12px 12px;
+    }
+
     /* Estilos para documentos utilizados en tablas */
     .document-row-used {
         background: linear-gradient(90deg, #fff3cd 0%, #fff 15%);
@@ -755,6 +967,147 @@
         .status-sidebar {
             position: static;
             order: -1;
+        }
+    }
+
+    /* Estilos del Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 95%;
+        max-width: 1200px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @@keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 2px solid #0a1d44;
+        background: linear-gradient(135deg, #0a1d44 0%, #1a365d 100%);
+        color: white;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .modal-close-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
+
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        max-height: calc(90vh - 160px);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    /* Responsive para el modal */
+    @@media (max-width: 768px) {
+        .modal-content {
+            width: 98%;
+            max-height: 95vh;
+            margin: 10px;
+        }
+
+        .modal-header {
+            padding: 1rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .modal-footer {
+            padding: 1rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+            justify-content: center;
         }
     }
 
@@ -834,9 +1187,7 @@
                         <button class="btn btn-import" @onclick="@(async () => await VerTabla("investigaciones"))" disabled="@operacionEnProceso">
                             <i class="fas fa-search"></i> Ver documentos
                         </button>
-                        <button class="btn btn-info" @onclick="@(async () => await ActualizarConteoManual("investigaciones"))" disabled="@operacionEnProceso" title="Recarga manual (solo si es necesario)">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                      
                     </div>
                 </div>
 
@@ -935,16 +1286,119 @@
                
             </div>
 
-            <!-- Mostrar tabla cuando se selecciona un tipo -->
+            <!-- Modal para mostrar la tabla -->
             @if (!string.IsNullOrEmpty(tablaVisible))
             {
-                <div style="margin-top: 3rem;">
-                    <Tabla TipoDocumento="@tablaVisible" 
-                           Cedula="@cedula" 
-                           OnImportar="ImportarDocumentos" 
-                           OnAgregar="AgregarDocumento"
-                           OnCerrar="@(async () => await CerrarTabla())"
-                           OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
+                <div class="modal-overlay" @onclick="CerrarTabla">
+                    <div class="modal-content" @onclick:stopPropagation="true">
+                        <div class="modal-header">
+                            <h3>📊 @(tablaVisible switch {
+                                "investigaciones" => "Proyectos de Investigación",
+                                "articulos" => "Artículos Científicos", 
+                                "experiencias" => "Experiencia Laboral",
+                                "evaluaciones" => "Evaluaciones Docentes",
+                                "cursos" => "Cursos y Capacitaciones",
+                                "tesis" => "Tesis Dirigidas",
+                                _ => "Documentos"
+                            })</h3>
+                            <button class="modal-close-btn" @onclick="CerrarTabla">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <Tabla TipoDocumento="@tablaVisible" 
+                                   Cedula="@cedula" 
+                                   OnImportar="ImportarDocumentos" 
+                                   OnAgregar="AbrirModalAgregar"
+                                   OnEditar="AbrirModalEditarString"
+                                   OnCerrar="@(async () => await CerrarTabla())"
+                                   OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" @onclick="CerrarTabla">
+                                <i class="fas fa-times"></i> Cerrar
+                            </button>
+                            <button class="btn btn-primary" @onclick="() => AbrirModalAgregar(tablaVisible)">
+                                <i class="fas fa-plus"></i> Agregar @(tablaVisible.TrimEnd('s'))
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Modal para agregar documento -->
+            @if (!string.IsNullOrEmpty(tipoDocumentoAgregar))
+            {
+                <div class="add-modal-overlay" @onclick="CerrarModalAgregar">
+                    <div class="add-modal-content" @onclick:stopPropagation="true">
+                        <div class="add-modal-header">
+                            <h3>
+                                <i class="fas @(GetIconoTipoDocumento(tipoDocumentoAgregar))"></i>
+                                Agregar @(GetNombreTipoDocumento(tipoDocumentoAgregar))
+                            </h3>
+                            <button class="add-modal-close-btn" @onclick="CerrarModalAgregar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="add-modal-body">
+                            @if (cargandoModalAgregar)
+                            {
+                                <div class="loading-iframe">
+                                    <i class="fas fa-spinner"></i>
+                                    Cargando formulario...
+                                </div>
+                            }
+                            else
+                            {
+                                <iframe src="@GetUrlAgregarDocumento(tipoDocumentoAgregar)" 
+                                        class="iframe-container"
+                                        @onload="OnIframeLoaded"></iframe>
+                            }
+                        </div>
+                        <div class="add-modal-footer">
+                            <button class="btn btn-secondary" @onclick="CerrarModalAgregar">
+                                <i class="fas fa-times"></i> Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Modal para editar documento -->
+            @if (!string.IsNullOrEmpty(tipoDocumentoEditar) && !string.IsNullOrEmpty(documentoIdEditar))
+            {
+                <div class="edit-modal-overlay" @onclick="CerrarModalEditar">
+                    <div class="edit-modal-content" @onclick:stopPropagation="true">
+                        <div class="edit-modal-header">
+                            <h3>
+                                <i class="fas @(GetIconoTipoDocumento(tipoDocumentoEditar))"></i>
+                                Editar @(GetNombreTipoDocumento(tipoDocumentoEditar))
+                            </h3>
+                            <button class="edit-modal-close-btn" @onclick="CerrarModalEditar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="edit-modal-body">
+                            @if (cargandoModalEditar)
+                            {
+                                <div class="loading-iframe">
+                                    <i class="fas fa-spinner"></i>
+                                    Cargando formulario de edición...
+                                </div>
+                            }
+                            else
+                            {
+                                <iframe src="@GetUrlEditarDocumento(tipoDocumentoEditar, documentoIdEditar)" 
+                                        class="iframe-container"
+                                        @onload="OnIframeEditarLoaded"></iframe>
+                            }
+                        </div>
+                        <div class="edit-modal-footer">
+                            <button class="btn btn-secondary" @onclick="CerrarModalEditar">
+                                <i class="fas fa-times"></i> Cerrar
+                            </button>
+                        </div>
+                    </div>
                 </div>
             }
 
@@ -1160,6 +1614,37 @@
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
 </body>
 
+<script>
+    // Listener para mensajes de los iframes
+    window.addEventListener('message', function(event) {
+        console.log('Debug - Mensaje recibido del iframe:', event.data);
+        
+        if (event.data && event.data.type === 'operationComplete' && event.data.success) {
+            console.log('Debug - Operación completada exitosamente en iframe');
+            
+            // Notificar a Blazor para cerrar el modal
+            if (window.blazorModalManager && window.blazorModalManager.cerrarModal) {
+                window.blazorModalManager.cerrarModal();
+            }
+        }
+    });
+
+    // Función para que Blazor registre el manejador de cierre de modal
+    window.blazorModalManager = {
+        cerrarModal: null
+    };
+
+    // Función para registrar el modal manager desde Blazor
+    window.registerModalManager = function(dotNetObjectRef) {
+        console.log('Debug - Registrando modal manager');
+        window.currentPageInstance = dotNetObjectRef;
+        window.blazorModalManager.cerrarModal = function() {
+            console.log('Debug - Cerrando modal desde JavaScript');
+            window.currentPageInstance.invokeMethodAsync('CerrarModalActivo');
+        };
+    };
+</script>
+
 @code {
     // Variables para información del usuario
     private string nombreUsuario = "";
@@ -1167,6 +1652,15 @@
     private string cedula = "";
     private string urlFotoPerfil = "/images/IconoUser.png";
     private string? tablaVisible = null;
+
+    // Variables para modal de agregar documento
+    private string? tipoDocumentoAgregar = null;
+    private bool cargandoModalAgregar = false;
+
+    // Variables para modal de editar documento
+    private string? tipoDocumentoEditar = null;
+    private string? documentoIdEditar = null;
+    private bool cargandoModalEditar = false;
 
     // Variables de conteo de documentos
     private int conteoInvestigaciones = 0;
@@ -1210,17 +1704,21 @@
     {
         await base.OnAfterRenderAsync(firstRender);
         
+        if (firstRender)
+        {
+            // Registrar la función para cerrar modales desde JavaScript
+            var objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerModalManager", objRef);
+            
+            hasCargadoContadores = true;
+        }
         // Si no es el primer render y aún no se han cargado los contadores,
         // significa que el usuario regresó a la p├ígina
-        if (!firstRender && !hasCargadoContadores)
+        else if (!hasCargadoContadores)
         {
             await CargarConteoDocumentos();
             hasCargadoContadores = true;
             StateHasChanged();
-        }
-        else if (firstRender)
-        {
-            hasCargadoContadores = true;
         }
     }
 
@@ -1840,6 +2338,9 @@
 
     private void AgregarDocumento(string tipoDocumento)
     {
+        Console.WriteLine($"Debug - AgregarDocumento (NAVEGACIÓN) llamado con: {tipoDocumento}");
+        Console.WriteLine("Debug - Este método NO debería ser llamado si el modal funciona correctamente");
+        
         string ruta = tipoDocumento switch
         {
             "investigaciones" => "/agregar-investigacion",
@@ -1851,6 +2352,168 @@
             _ => "/gestion-documentos"
         };
         Navigation.NavigateTo(ruta);
+    }
+
+    // Métodos para el modal de agregar documentos
+    private async Task AbrirModalAgregar(string tipoDocumento)
+    {
+        try
+        {
+            Console.WriteLine($"Debug - AbrirModalAgregar llamado con: {tipoDocumento}");
+            
+            cargandoModalAgregar = true;
+            tipoDocumentoAgregar = tipoDocumento;
+            StateHasChanged();
+
+            Console.WriteLine($"Debug - Modal state: cargandoModalAgregar={cargandoModalAgregar}, tipoDocumentoAgregar={tipoDocumentoAgregar}");
+
+            // Simular una pequeña carga para mostrar el loading
+            await Task.Delay(300);
+            cargandoModalAgregar = false;
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Modal cargado: cargandoModalAgregar={cargandoModalAgregar}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al abrir modal agregar: {ex.Message}");
+            cargandoModalAgregar = false;
+            tipoDocumentoAgregar = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarModalAgregar()
+    {
+        tipoDocumentoAgregar = null;
+        cargandoModalAgregar = false;
+        StateHasChanged();
+
+        // Actualizar contadores cuando se cierre el modal (en caso de que se haya agregado algo)
+        await ActualizarRequisitosAutomaticamente();
+    }
+
+    private void OnIframeLoaded()
+    {
+        // Método para manejar cuando el iframe se ha cargado completamente
+        cargandoModalAgregar = false;
+        StateHasChanged();
+    }
+
+    private string GetUrlAgregarDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "/agregar-investigacion?returnTo=modal",
+            "articulos" => "/agregar-articulo?returnTo=modal", 
+            "experiencias" => "/agregar-experiencia-laboral?returnTo=modal",
+            "evaluaciones" => "/agregar-evaluacion?returnTo=modal",
+            "cursos" => "/agregar-curso?returnTo=modal",
+            "tesis" => "/agregar-tesis?returnTo=modal",
+            _ => "/gestion-documentos"
+        };
+    }
+
+    private string GetIconoTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "fa-microscope",
+            "articulos" => "fa-newspaper",
+            "experiencias" => "fa-briefcase", 
+            "evaluaciones" => "fa-chart-line",
+            "cursos" => "fa-graduation-cap",
+            "tesis" => "fa-book",
+            _ => "fa-file"
+        };
+    }
+
+    private string GetNombreTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "Investigación",
+            "articulos" => "Artículo",
+            "experiencias" => "Experiencia Laboral",
+            "evaluaciones" => "Evaluación",
+            "cursos" => "Curso",
+            "tesis" => "Tesis",
+            _ => "Documento"
+        };
+    }
+
+    // Métodos para el modal de editar documentos
+    private async Task AbrirModalEditarString(string data)
+    {
+        try
+        {
+            // Parsear el string con formato "tipo:id"
+            var parts = data.Split(':');
+            if (parts.Length != 2)
+            {
+                Console.WriteLine($"Error - Formato de datos de edición inválido: {data}");
+                return;
+            }
+
+            string tipoDocumento = parts[0];
+            string documentoId = parts[1];
+
+            Console.WriteLine($"Debug - AbrirModalEditarString llamado con: Tipo={tipoDocumento}, ID={documentoId}");
+            
+            cargandoModalEditar = true;
+            tipoDocumentoEditar = tipoDocumento;
+            documentoIdEditar = documentoId;
+            StateHasChanged();
+
+            Console.WriteLine($"Debug - Modal editar state: cargandoModalEditar={cargandoModalEditar}, tipoDocumentoEditar={tipoDocumentoEditar}, documentoIdEditar={documentoIdEditar}");
+
+            // Simular una pequeña carga para mostrar el loading
+            await Task.Delay(300);
+            cargandoModalEditar = false;
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Modal editar cargado: cargandoModalEditar={cargandoModalEditar}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al abrir modal editar: {ex.Message}");
+            cargandoModalEditar = false;
+            tipoDocumentoEditar = null;
+            documentoIdEditar = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarModalEditar()
+    {
+        tipoDocumentoEditar = null;
+        documentoIdEditar = null;
+        cargandoModalEditar = false;
+        StateHasChanged();
+
+        // Actualizar contadores cuando se cierre el modal (en caso de que se haya editado algo)
+        await ActualizarRequisitosAutomaticamente();
+    }
+
+    private void OnIframeEditarLoaded()
+    {
+        // Método para manejar cuando el iframe de edición se ha cargado completamente
+        cargandoModalEditar = false;
+        StateHasChanged();
+    }
+
+    private string GetUrlEditarDocumento(string tipoDocumento, string documentoId)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => $"/editar-investigacion/{documentoId}?returnTo=modal",
+            "articulos" => $"/editar-articulo/{Uri.EscapeDataString(documentoId)}?returnTo=modal",
+            "experiencias" => $"/editar-experiencia/{documentoId}?returnTo=modal",
+            "evaluaciones" => $"/editar-evaluacion/{documentoId}?returnTo=modal",
+            "cursos" => $"/editar-curso/{documentoId}?returnTo=modal",
+            "tesis" => $"/editar-tesis/{documentoId}?returnTo=modal",
+            _ => "/gestion-documentos"
+        };
     }
 
     // Métodos para actualizar contadores específicos (más eficiente)
@@ -1879,6 +2542,11 @@
                     break;
                 case "tesis":
                     await CargarConteoTesis();
+                    break;
+            
+                // También permitir actualización de todos los contadores
+                case "todos":
+                    await CargarConteoDocumentos();
                     break;
             }
             
@@ -2120,5 +2788,25 @@
     private bool RangoRequiereTesis()
     {
         return requisitosInfo?.ValoresRequeridos?.TesisDirigidas > 0;
+    }
+
+    // Método para cerrar modal llamado desde JavaScript
+    [JSInvokable]
+    public async Task CerrarModalActivo()
+    {
+        Console.WriteLine("Debug - CerrarModalActivo llamado desde JavaScript");
+        
+        if (!string.IsNullOrEmpty(tipoDocumentoAgregar))
+        {
+            Console.WriteLine("Debug - Cerrando modal de agregar");
+            await CerrarModalAgregar();
+        }
+        else if (!string.IsNullOrEmpty(tipoDocumentoEditar))
+        {
+            Console.WriteLine("Debug - Cerrando modal de editar");
+            await CerrarModalEditar();
+        }
+        
+        StateHasChanged();
     }
 }

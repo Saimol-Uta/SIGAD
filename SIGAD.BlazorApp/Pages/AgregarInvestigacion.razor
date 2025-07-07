@@ -1,11 +1,11 @@
 @page "/agregar-investigacion"
 @page "/editar-investigacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "DOCENTE")]
-@using SIGAD.BlazorApp.Layout
-@using SIGAD.BlazorApp.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@attribute [Authorize(Roles = "DOCENTE")]
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -232,7 +232,54 @@
     .required {
         color: #dc3545;
     }
+    
+    .invalid-feedback {
+        display: block !important;
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .text-success {
+        color: #28a745 !important;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+        font-size: 0.8rem;
+    }
+    
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    .form-control:valid {
+        border-color: #28a745;
+    }
 </style>
+
+<script>
+    // Función para notificar al modal parent de una operación completada
+    window.notifyModalParent = function(success) {
+        console.log('Debug - Notificando al parent modal, success:', success);
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'operationComplete',
+                    success: success
+                }, '*');
+                console.log('Debug - Mensaje enviado al parent exitosamente');
+            } else {
+                console.log('Debug - No hay parent window disponible');
+            }
+        } catch (error) {
+            console.error('Debug - Error al enviar mensaje al parent:', error);
+        }
+    };
+</script>
 
 <body>
     <header class="header">
@@ -293,15 +340,47 @@
                             <label class="form-label">
                                 Fecha de Inicio <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaInicio" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaInicio" 
+                                       @bind-Value:after="ValidarFechasInvestigacion" 
+                                       class="@($"form-control {(fechaInicioValida ? "" : "is-invalid")}")" 
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => investigacionModel.FechaInicio)" />
+                            @if (!fechaInicioValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de inicio no puede ser futura
+                                </div>
+                            }
                         </div>
                         <div class="form-group">
                             <label class="form-label">
                                 Fecha de Finalización <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" 
+                                       @bind-Value:after="ValidarFechasInvestigacion" 
+                                       class="@($"form-control {(fechaFinValida ? "" : "is-invalid")}")" 
+                                       min="@investigacionModel.FechaInicio.ToString("yyyy-MM-dd")"
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => investigacionModel.FechaFinalizacion)" />
+                            @if (!fechaFinValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    @if (investigacionModel.FechaFinalizacion > DateTime.Today)
+                                    {
+                                        <span>⚠️ La fecha de finalización no puede ser futura. Una investigación debe estar completada para registrarse.</span>
+                                    }
+                                    else if (investigacionModel.FechaFinalizacion <= investigacionModel.FechaInicio)
+                                    {
+                                        <span>⚠️ La fecha de finalización debe ser posterior a la fecha de inicio</span>
+                                    }
+                                </div>
+                            }
+                            @if (fechaInicioValida && fechaFinValida)
+                            {
+                                <small class="text-success">
+                                    ✅ Duración: @duracionCalculada
+                                </small>
+                            }
                         </div>
                     </div>
 
@@ -321,8 +400,12 @@
                         <div class="form-group">
                             <label class="form-label">
                                 Meses de Investigación <span class="required">*</span>
+                                <small class="text-muted">(Calculado automáticamente)</small>
                             </label>
-                            <InputNumber @bind-Value="investigacionModel.MesesDeInvestigacion" class="form-control" min="1" max="120" />
+                            <InputNumber @bind-Value="investigacionModel.MesesDeInvestigacion" class="form-control" readonly="true" min="1" max="120" />
+                            <small class="form-text text-muted">
+                                Este campo se calcula automáticamente basándose en las fechas de inicio y finalización.
+                            </small>
                             <ValidationMessage For="@(() => investigacionModel.MesesDeInvestigacion)" />
                         </div>
                     </div>
@@ -349,7 +432,7 @@
                                 @onclick="@(() => Navigation.NavigateTo(GetReturnUrl()))">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (!Id.HasValue && archivoFormulario == null))">
+                        <button type="submit" class="btn btn-primary" disabled="@(enviandoFormulario || (!Id.HasValue && archivoFormulario == null) || !fechaInicioValida || !fechaFinValida)">
                             @if (enviandoFormulario)
                             {
                                 <span>Guardando investigación...</span>
@@ -376,6 +459,11 @@
     private IBrowserFile? archivoFormulario;
     private string archivoSeleccionado = "";
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
+
+    // Variables para validación de fechas
+    private bool fechaInicioValida = true;
+    private bool fechaFinValida = true;
+    private string duracionCalculada = "";
 
     // Para edición
     private string? archivoActualRuta;
@@ -424,7 +512,9 @@
                 errorMessage = "No se pudo cargar la investigación para editar.";
             }
         }
-        // Ya no es necesario verificar solicitud activa para agregar investigación
+        
+        // Validar fechas y calcular meses (tanto para nueva como para edición)
+        ValidarFechasInvestigacion();
     }
 
     private async Task VerificarSolicitudActiva()
@@ -495,6 +585,26 @@
     {
         if (enviandoFormulario) return;
 
+        // Validar fechas antes de enviar
+        if (!fechaInicioValida)
+        {
+            errorMessage = "La fecha de inicio no puede ser futura.";
+            return;
+        }
+        
+        if (!fechaFinValida)
+        {
+            if (investigacionModel.FechaFinalizacion > DateTime.Today)
+            {
+                errorMessage = "La fecha de finalización no puede ser futura. Una investigación debe estar completada para registrarse.";
+            }
+            else if (investigacionModel.FechaFinalizacion <= investigacionModel.FechaInicio)
+            {
+                errorMessage = "La fecha de finalización debe ser posterior a la fecha de inicio.";
+            }
+            return;
+        }
+
         // Al agregar, el archivo es obligatorio. Al editar, solo si se selecciona uno nuevo.
         if (!Id.HasValue && archivoFormulario == null)
         {
@@ -539,8 +649,18 @@
                 if (response.IsSuccessStatusCode)
                 {
                     investigacionCreada = true;
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo(GetReturnUrl());
+                    
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        await Task.Delay(2000);
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {
@@ -551,26 +671,8 @@
             else
             {
                 // AGREGAR INVESTIGACIÓN
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    // Preguntar al usuario qué quiere hacer
-                    var result = await JSRuntime.InvokeAsync<bool>("confirm", 
-                        "No hay una solicitud de ascenso activa. ¿Desea:\n" +
-                        "• Aceptar: Guardar la investigación sin asociarla a una solicitud\n" +
-                        "• Cancelar: Ir a crear una solicitud de ascenso primero");
-                    
-                    if (!result)
-                    {
-                        // Usuario quiere crear una solicitud primero
-                        var redirectUrl = returnTo == "inventario" 
-                            ? "/iniciar-solicitud-ascenso?returnTo=inventario" 
-                            : "/iniciar-solicitud-ascenso";
-                        Navigation.NavigateTo(redirectUrl);
-                        return;
-                    }
-                    // Si result es true, continúa guardando sin SolicitudId
-                }
+                // No asociar automáticamente a ninguna solicitud
+                // El usuario podrá asociar la investigación manualmente desde la gestión de documentos
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
@@ -579,14 +681,10 @@
                 content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
                 content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
                 content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional");
                 
-                // Solo agregar SolicitudId si existe una solicitud activa
-                if (!string.IsNullOrEmpty(solicitudIdString))
-                {
-                    content.Add(new StringContent(solicitudIdString), "SolicitudId");
-                }
-                
-                content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional"); // Nuevo campo
+                // NO agregar SolicitudId para que la investigación no se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
 
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
@@ -597,20 +695,30 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Mostrar SweetAlert con cierre automático
-                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
-                    {
-                        position = "center",
-                        icon = "success",
-                        title = Id != null ? "¡Investigación actualizada!" : "¡Investigación guardada!",
-                        text = "La información se ha guardado correctamente",
-                        showConfirmButton = false,
-                        timer = 2000
-                    });
-                    
                     investigacionCreada = true;
-                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
-                    Navigation.NavigateTo(GetReturnUrl());
+                    
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        // Mostrar SweetAlert con cierre automático
+                        await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                        {
+                            position = "center",
+                            icon = "success",
+                            title = "¡Investigación guardada!",
+                            text = "La investigación se ha guardado correctamente. Podrá asociarla a una solicitud desde la gestión de documentos.",
+                            showConfirmButton = false,
+                            timer = 3000
+                        });
+                        
+                        await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {
@@ -626,6 +734,76 @@
         finally
         {
             enviandoFormulario = false;
+        }
+    }
+
+    private void ValidarFechasInvestigacion()
+    {
+        // Validar fecha de inicio
+        fechaInicioValida = investigacionModel.FechaInicio <= DateTime.Today;
+        
+        // Validar fecha de finalización
+        // 1. No puede ser futura
+        // 2. Debe ser posterior a la fecha de inicio
+        fechaFinValida = investigacionModel.FechaFinalizacion <= DateTime.Today && 
+                        investigacionModel.FechaFinalizacion > investigacionModel.FechaInicio;
+        
+        // Calcular duración si las fechas son válidas
+        if (fechaInicioValida && fechaFinValida)
+        {
+            CalcularMesesInvestigacion();
+            
+            var duracion = investigacionModel.FechaFinalizacion - investigacionModel.FechaInicio;
+            var meses = investigacionModel.MesesDeInvestigacion;
+            var años = meses / 12;
+            var mesesRestantes = meses % 12;
+            
+            if (años > 0)
+            {
+                duracionCalculada = mesesRestantes > 0 
+                    ? $"{años} año{(años > 1 ? "s" : "")} y {mesesRestantes} mes{(mesesRestantes > 1 ? "es" : "")}"
+                    : $"{años} año{(años > 1 ? "s" : "")}";
+            }
+            else
+            {
+                duracionCalculada = $"{meses} mes{(meses > 1 ? "es" : "")}";
+            }
+            
+            duracionCalculada += $" ({duracion.Days} días)";
+        }
+        else
+        {
+            duracionCalculada = "";
+        }
+        
+        StateHasChanged();
+    }
+
+    private void CalcularMesesInvestigacion()
+    {
+        // Solo calcular si ambas fechas están establecidas y la fecha de fin es posterior a la de inicio
+        if (investigacionModel.FechaInicio != default && 
+            investigacionModel.FechaFinalizacion != default && 
+            investigacionModel.FechaFinalizacion > investigacionModel.FechaInicio)
+        {
+            // Calcular la diferencia en meses
+            var fechaInicio = investigacionModel.FechaInicio;
+            var fechaFin = investigacionModel.FechaFinalizacion;
+            
+            // Calcular meses completos
+            var meses = ((fechaFin.Year - fechaInicio.Year) * 12) + fechaFin.Month - fechaInicio.Month;
+            
+            // Si el día de finalización es menor que el de inicio, restar un mes
+            if (fechaFin.Day < fechaInicio.Day)
+            {
+                meses--;
+            }
+            
+            // Asegurar que sea al menos 1 mes (mínimo requerido)
+            investigacionModel.MesesDeInvestigacion = Math.Max(meses, 1);
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
         }
     }
 
@@ -670,10 +848,10 @@
     public class InvestigacionModel
     {
         public string Titulo { get; set; } = "";
-        public DateTime FechaInicio { get; set; } = DateTime.Today;
-        public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
+        public DateTime FechaInicio { get; set; } = DateTime.Today.AddMonths(-12); // 12 meses atrás por defecto
+        public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(-6); // 6 meses atrás por defecto
         public string RolEnInvestigacion { get; set; } = "";
-        public int MesesDeInvestigacion { get; set; } = 1;
+        public int MesesDeInvestigacion { get; set; } = 6; // Inicializar con 6 meses por defecto
         public bool EsInternacional { get; set; } = false;
     }
 

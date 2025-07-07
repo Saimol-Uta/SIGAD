@@ -283,6 +283,26 @@
     }
 </style>
 
+<script>
+    // Función para notificar al modal parent de una operación completada
+    window.notifyModalParent = function(success) {
+        console.log('Debug - Notificando al parent modal, success:', success);
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'operationComplete',
+                    success: success
+                }, '*');
+                console.log('Debug - Mensaje enviado al parent exitosamente');
+            } else {
+                console.log('Debug - No hay parent window disponible');
+            }
+        } catch (error) {
+            console.error('Debug - Error al enviar mensaje al parent:', error);
+        }
+    };
+</script>
+
 <body>
     <div class="header">
         <div class="branding">
@@ -331,8 +351,18 @@
                             Período Académico <span class="required">*</span>
                         </label>
                         <InputText @bind-Value="evaluacionModel.TipoEvaluacion" class="form-control"
-                                   placeholder="Ej: 2024-1, Enero-Junio 2024, etc." />
+                                   placeholder="Formato: MES-MES-AÑO (Ej: ENERO-JUNIO-2024)" 
+                                   @oninput="ValidarFormatoPeriodo" />
                         <ValidationMessage For="@(() => evaluacionModel.TipoEvaluacion)" />
+                        @if (!string.IsNullOrEmpty(errorPeriodo))
+                        {
+                            <div style="color: #dc3545; font-size: 0.875rem; margin-top: 0.25rem;">
+                                @errorPeriodo
+                            </div>
+                        }
+                        <small style="color: #6c757d; font-size: 0.875rem;">
+                            Formato requerido: MES-MES-AÑO (ejemplo: ENERO-JUNIO-2024)
+                        </small>
                     </div>
 
                     <div class="form-row">
@@ -340,17 +370,46 @@
                             <label class="form-label">
                                 Fecha de Evaluación <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="evaluacionModel.FechaEvaluacion" class="form-control" />
+                            <InputDate @bind-Value="evaluacionModel.FechaEvaluacion" 
+                                       @bind-Value:after="ValidarFechaEvaluacion" 
+                                       class="@($"form-control {(fechaEvaluacionValida ? "" : "is-invalid")}")" 
+                                       max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                             <ValidationMessage For="@(() => evaluacionModel.FechaEvaluacion)" />
+                            @if (!fechaEvaluacionValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La fecha de evaluación no puede ser futura
+                                </div>
+                            }
+                            @if (fechaEvaluacionValida)
+                            {
+                                <small class="text-success">
+                                    ✅ Evaluación de @evaluacionModel.FechaEvaluacion.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-ES"))
+                                </small>
+                            }
                         </div>
 
                         <div class="form-group">
                             <label class="form-label">
                                 Puntaje Porcentual (0-100) <span class="required">*</span>
                             </label>
-                            <InputNumber @bind-Value="evaluacionModel.Calificacion" class="form-control"
+                            <InputNumber @bind-Value="evaluacionModel.Calificacion" 
+                                         @bind-Value:after="ValidarCalificacion" 
+                                         class="@($"form-control {(calificacionValida ? "" : "is-invalid")}")"
                                          placeholder="Ej: 85" min="0" max="100" step="0.1" />
                             <ValidationMessage For="@(() => evaluacionModel.Calificacion)" />
+                            @if (!calificacionValida)
+                            {
+                                <div class="invalid-feedback" style="display: block;">
+                                    ⚠️ La calificación debe estar entre 0 y 100
+                                </div>
+                            }
+                            @if (calificacionValida && evaluacionModel.Calificacion > 0)
+                            {
+                                <small class="text-success">
+                                    ✅ Calificación: @GetCalificacionTexto(evaluacionModel.Calificacion)
+                                </small>
+                            }
                         </div>
                     </div>
 
@@ -417,6 +476,44 @@
     private string? errorMessage;
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
+    // Variables para validación del período académico
+    private string errorPeriodo = "";
+    
+    // Variables para validación de fechas y calificación
+    private bool fechaEvaluacionValida = true;
+    private bool calificacionValida = true;
+    private readonly string[] mesesValidos = 
+    {
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+    };
+
+    private void ValidarFechaEvaluacion()
+    {
+        // Validar que la fecha de evaluación no sea futura
+        fechaEvaluacionValida = evaluacionModel.FechaEvaluacion <= DateTime.Today;
+        StateHasChanged();
+    }
+
+    private void ValidarCalificacion()
+    {
+        // Validar que la calificación esté entre 0 y 100
+        calificacionValida = evaluacionModel.Calificacion >= 0 && evaluacionModel.Calificacion <= 100;
+        StateHasChanged();
+    }
+
+    private string GetCalificacionTexto(decimal calificacion)
+    {
+        return calificacion switch
+        {
+            >= 90 => $"{calificacion:F1}% (Excelente)",
+            >= 80 => $"{calificacion:F1}% (Sobresaliente)",
+            >= 70 => $"{calificacion:F1}% (Aceptable)",
+            >= 60 => $"{calificacion:F1}% (Básico)",
+            _ => $"{calificacion:F1}% (Insuficiente)"
+        };
+    }
+
     protected override async Task OnInitializedAsync()
     {
         // Leer parámetro returnTo de la query string
@@ -457,6 +554,63 @@
     private string GetReturnUrl()
     {
         return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
+    }
+
+    private void ValidarFormatoPeriodo(ChangeEventArgs e)
+    {
+        var valor = e?.Value?.ToString()?.Trim();
+        errorPeriodo = "";
+
+        if (string.IsNullOrEmpty(valor))
+        {
+            return;
+        }
+
+        // Validar formato MES-MES-AÑO
+        var partes = valor.Split('-');
+        if (partes.Length != 3)
+        {
+            errorPeriodo = "El formato debe ser MES-MES-AÑO (ejemplo: ENERO-JUNIO-2024)";
+            return;
+        }
+
+        var mesInicio = partes[0].Trim().ToUpper();
+        var mesFin = partes[1].Trim().ToUpper();
+        var anio = partes[2].Trim();
+
+        // Validar que los meses sean válidos
+        if (!mesesValidos.Contains(mesInicio))
+        {
+            errorPeriodo = $"'{partes[0]}' no es un mes válido. Use nombres completos en mayúscula (ENERO, FEBRERO, etc.)";
+            return;
+        }
+
+        if (!mesesValidos.Contains(mesFin))
+        {
+            errorPeriodo = $"'{partes[1]}' no es un mes válido. Use nombres completos en mayúscula (ENERO, FEBRERO, etc.)";
+            return;
+        }
+
+        // Validar que el año sea un número de 4 dígitos
+        if (!int.TryParse(anio, out int year) || year < 1900 || year > 2100)
+        {
+            errorPeriodo = "El año debe ser un número válido de 4 dígitos entre 1900 y 2100";
+            return;
+        }
+
+        // Validar que el mes de inicio sea anterior o igual al mes de fin
+        var indiceInicio = Array.IndexOf(mesesValidos, mesInicio);
+        var indiceFin = Array.IndexOf(mesesValidos, mesFin);
+
+        if (indiceInicio > indiceFin)
+        {
+            errorPeriodo = $"El mes de inicio ({mesInicio}) no puede ser posterior al mes de fin ({mesFin})";
+            return;
+        }
+
+        // Si llegamos aquí, el formato es válido
+        evaluacionModel.TipoEvaluacion = valor.ToUpper();
+        StateHasChanged();
     }
 
     private async Task VerificarSolicitudActiva()
@@ -533,6 +687,20 @@
     {
         if (enviandoFormulario) return;
 
+        // Validar formato del período académico antes de continuar
+        if (!string.IsNullOrEmpty(errorPeriodo))
+        {
+            errorMessage = "Por favor corrija el formato del período académico antes de continuar.";
+            return;
+        }
+
+        // Validar que el período académico no esté vacío
+        if (string.IsNullOrWhiteSpace(evaluacionModel.TipoEvaluacion))
+        {
+            errorMessage = "El período académico es obligatorio.";
+            return;
+        }
+
         // Al agregar, el archivo es obligatorio. Al editar, solo si se selecciona uno nuevo.
         if (!Id.HasValue && archivoFormulario == null)
         {
@@ -575,25 +743,39 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Mostrar SweetAlert con cierre automático
-                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
-                    {
-                        position = "center",
-                        icon = "success",
-                        title = "¡Evaluación actualizada!",
-                        text = "La información se ha actualizado correctamente",
-                        showConfirmButton = false,
-                        timer = 2000
-                    });
-                    
                     evaluacionCreada = true;
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo(GetReturnUrl());
+                    
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        // Mostrar SweetAlert con cierre automático
+                        await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                        {
+                            position = "center",
+                            icon = "success",
+                            title = "¡Evaluación actualizada!",
+                            text = "La información se ha actualizado correctamente",
+                            showConfirmButton = false,
+                            timer = 2000
+                        });
+                        
+                        await Task.Delay(2000);
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al actualizar la evaluación: {errorContent}";
+                    // Crear un mensaje de error más amigable
+                    errorMessage = "Error al actualizar la evaluación. Por favor verifique que todos los campos estén correctamente completados e intente nuevamente.";
+                    
+                    // Log del error real para debugging (opcional)
+                    Console.WriteLine($"Error del servidor: {errorContent}");
                 }
             }
             else
@@ -634,31 +816,49 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Mostrar SweetAlert con cierre automático
-                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
-                    {
-                        position = "center",
-                        icon = "success",
-                        title = Id != null ? "¡Evaluación actualizada!" : "¡Evaluación guardada!",
-                        text = "La información se ha guardado correctamente",
-                        showConfirmButton = false,
-                        timer = 2000
-                    });
-                    
                     evaluacionCreada = true;
-                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
-                    Navigation.NavigateTo(GetReturnUrl());
+                    
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        // Mostrar SweetAlert con cierre automático
+                        await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                        {
+                            position = "center",
+                            icon = "success",
+                            title = "¡Evaluación guardada!",
+                            text = "La información se ha guardado correctamente",
+                            showConfirmButton = false,
+                            timer = 2000
+                        });
+                        
+                        await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al guardar la evaluación: {errorContent}";
+                    // Crear un mensaje de error más amigable
+                    errorMessage = "Error al guardar la evaluación. Por favor verifique que todos los campos estén correctamente completados e intente nuevamente.";
+                    
+                    // Log del error real para debugging (opcional)
+                    Console.WriteLine($"Error del servidor: {errorContent}");
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al procesar la solicitud: {ex.Message}";
+            // Crear un mensaje de error más amigable para el usuario
+            errorMessage = "Ocurrió un error inesperado al procesar la solicitud. Por favor intente nuevamente más tarde.";
+            
+            // Log del error real para debugging (opcional)
+            Console.WriteLine($"Excepción: {ex.Message}");
         }
         finally
         {

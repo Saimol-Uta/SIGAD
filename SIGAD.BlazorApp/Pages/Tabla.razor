@@ -605,10 +605,18 @@
 </style>
 
 @code {
+    // Clase para los argumentos del evento de editar documento
+    public class EditarDocumentoEventArgs
+    {
+        public string TipoDocumento { get; set; } = "";
+        public string DocumentoId { get; set; } = "";
+    }
+
     [Parameter] public string TipoDocumento { get; set; } = "";
     [Parameter] public string Cedula { get; set; } = "";
     [Parameter] public EventCallback<string> OnImportar { get; set; }
     [Parameter] public EventCallback<string> OnAgregar { get; set; }
+    [Parameter] public EventCallback<string> OnEditar { get; set; }
     [Parameter] public EventCallback OnCerrar { get; set; }
     [Parameter] public EventCallback OnDocumentosActualizados { get; set; }
 
@@ -1100,12 +1108,20 @@
 
     private async Task AgregarDocumento()
     {
+        Console.WriteLine($"Debug - Tabla.AgregarDocumento llamado para: {TipoDocumento}");
+        Console.WriteLine($"Debug - OnAgregar.HasDelegate: {OnAgregar.HasDelegate}");
+        
         if (OnAgregar.HasDelegate)
         {
+            Console.WriteLine($"Debug - Invocando OnAgregar con: {TipoDocumento}");
             await OnAgregar.InvokeAsync(TipoDocumento);
             // Refrescar los datos después de agregar
             await Task.Delay(500); // Pequeña pausa para que se complete la operación
             await CargarDocumentos();
+        }
+        else
+        {
+            Console.WriteLine("Debug - OnAgregar no tiene delegate!");
         }
     }
 
@@ -1472,6 +1488,42 @@
     }
 
     private async Task EditarDocumento(JsonElement doc)
+    {
+        try
+        {
+            var id = ObtenerIdDocumento(doc, TipoDocumento);
+            if (string.IsNullOrEmpty(id))
+            {
+                await MostrarSweetAlert("Error", "No se pudo obtener el identificador del documento", "error");
+                return;
+            }
+
+            // Debug: Log para verificar que se está ejecutando el modal en lugar de la navegación
+            Console.WriteLine($"Debug - EditarDocumento: ID={id}, Tipo={TipoDocumento}");
+
+            // Disparar evento hacia el padre (GestionDocumentos) para abrir el modal de editar
+            if (OnEditar.HasDelegate)
+            {
+                // Pasar información como string con formato "tipo:id"
+                var eventoData = $"{TipoDocumento}:{id}";
+                await OnEditar.InvokeAsync(eventoData);
+                Console.WriteLine($"Debug - Evento OnEditar disparado para tipo: {TipoDocumento}, ID: {id}, Data: {eventoData}");
+            }
+            else
+            {
+                // Fallback: Si no hay event handler, usar navegación directa
+                Console.WriteLine($"Debug - No hay OnEditar handler, usando navegación directa");
+                await EditarDocumentoNavegacion(doc);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MostrarSweetAlert("Error", $"Error al editar documento: {ex.Message}", "error");
+        }
+    }
+
+    // Método fallback para navegación directa (mantener funcionalidad existente)
+    private async Task EditarDocumentoNavegacion(JsonElement doc)
     {
         try
         {

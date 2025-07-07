@@ -54,7 +54,9 @@
 
         try
         {
+
             var response = await Http.PostAsJsonAsync("api/Auth/verificar-codigo", new { Email = correo, Codigo = codigo });
+
 
             if (response.IsSuccessStatusCode)
             {
@@ -81,11 +83,21 @@
 }
 
 <div class="recovery-container">
-        <svg class="svg-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+    <svg class="svg-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid slice">
         <defs>
-            <linearGradient id="grad-dark" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#081631" /><stop offset="100%" stop-color="#0a1d44" /></linearGradient>
-            <linearGradient id="grad-medium" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0a1d44" /><stop offset="100%" stop-color="#0e2c6c" /></linearGradient>
-            <linearGradient id="grad-light" x1="50%" y1="0%" x2="50%" y2="100%"><stop offset="0%" stop-color="#1a3a8a" /><stop offset="100%" stop-color="#0e2c6c" /></linearGradient>
+            <linearGradient id="grad-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#081631" />
+                <stop offset="100%" stop-color="#0a1d44" />
+            </linearGradient>
+            <linearGradient id="grad-medium" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0a1d44" />
+                <stop offset="100%" stop-color="#0e2c6c" />
+            </linearGradient>
+            <linearGradient id="grad-light" x1="50%" y1="0%" x2="50%" y2="100%">
+                <stop offset="0%" stop-color="#1a3a8a" />
+                <stop offset="100%" stop-color="#0e2c6c" />
+            </linearGradient>
         </defs>
         <polygon points="0,0 20,0 10,25" fill="url(#grad-dark)" />
         <polygon points="20,0 45,0 30,20" fill="url(#grad-medium)" />
@@ -120,11 +132,7 @@
 
         <p class="info-text">Ingresa tu correo electrónico para recuperar tu contraseña</p>
 
-        <input class="input"
-               @bind="correo"
-               placeholder="Correo electrónico"
-               type="email"
-               required />
+        <input class="input" @bind="correo" placeholder="Correo electrónico" type="email" required />
 
         <button class="btn" @onclick="EnviarCodigo" disabled="@enProceso">
             Enviar Código de recuperación
@@ -141,11 +149,7 @@
                 Ingresa el código de 6 dígitos que fue enviado a tu correo
             </p>
 
-            <input class="input-codigo"
-                   maxlength="6"
-                   @bind="codigo"
-                   placeholder="------"
-                   inputmode="numeric" />
+            <input class="input-codigo" maxlength="6" @bind="codigo" placeholder="------" inputmode="numeric" />
 
             <button class="btn" style="margin-top: 1rem;" @onclick="VerificarCodigo">
                 Verificar Código
@@ -168,178 +172,184 @@
 
 
 <style>
-.input-codigo {
-    text-align: center;
-    font-size: 1.5rem;
-    letter-spacing: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 0.6rem 1rem;
-    width: 100%;
-    max-width: 300px;
-    margin: 1rem auto 0 auto;
-    display: block;
-    background-color: #f9f9f9;
-    color: #1a1a1a;
-}
+    .input-codigo {
+        text-align: center;
+        font-size: 1.5rem;
+        letter-spacing: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 0.6rem 1rem;
+        width: 100%;
+        max-width: 300px;
+        margin: 1rem auto 0 auto;
+        display: block;
+        background-color: #f9f9f9;
+        color: #1a1a1a;
+    }
 
-.api-message {
-    color: gray;
-    margin-top: 1rem;
-    text-align: center;
-    font-size: 0.95rem;
-}
+    .api-message {
+        color: gray;
+        margin-top: 1rem;
+        text-align: center;
+        font-size: 0.95rem;
+    }
 
-.mensaje-verificacion {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    margin-top: 1rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 500;
-    max-width: 90%;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-}
+    .mensaje-verificacion {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 1rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+    }
 
-.mensaje-verificacion.exito {
-    background-color: #e6f7ed;
-    color: #207544;
-    border: 1px solid #a3d7b4;
-}
+    .mensaje-verificacion.exito {
+        background-color: #e6f7ed;
+        color: #207544;
+        border: 1px solid #a3d7b4;
+    }
 
-.mensaje-verificacion.error {
-    background-color: #fdecea;
-    color: #d93025;
-    border: 1px solid #f5c6cb;
-}
+    .mensaje-verificacion.error {
+        background-color: #fdecea;
+        color: #d93025;
+        border: 1px solid #f5c6cb;
+    }
 
-.mensaje-verificacion .icono {
-    font-size: 1.4rem;
-}
+    .mensaje-verificacion .icono {
+        font-size: 1.4rem;
+    }
 
-.mensaje-verificacion .texto {
-    flex: 1;
-}
+    .mensaje-verificacion .texto {
+        flex: 1;
+    }
 
-.recovery-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #0a1d44; /* Cambia el fondo */
-    position: relative; /* Añade esto */
-    overflow: hidden; /* Añade esto para asegurar que el SVG no se desborde */
-    /* Las propiedades de 'animation' y 'background-size' ya no son necesarias */
-}
+    .recovery-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #0a1d44;
+        /* Cambia el fondo */
+        position: relative;
+        /* Añade esto */
+        overflow: hidden;
+        /* Añade esto para asegurar que el SVG no se desborde */
+        /* Las propiedades de 'animation' y 'background-size' ya no son necesarias */
+    }
 
-.svg-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1; /* Para que esté detrás de todo */
-    opacity: 0.85;
-}
+    .svg-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        /* Para que esté detrás de todo */
+        opacity: 0.85;
+    }
 
-.recovery-box {
-    background-color: white;
-    padding: 3rem;
-    width: 700px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
-    position: relative;
-    border-radius: 0.2rem;
-    text-align: center;
-        z-index: 2; /* Asegura que la caja esté sobre el SVG */
+    .recovery-box {
+        background-color: white;
+        padding: 3rem;
+        width: 700px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+        position: relative;
+        border-radius: 0.2rem;
+        text-align: center;
+        z-index: 2;
+        /* Asegura que la caja esté sobre el SVG */
 
-}
+    }
 
-.recovery-box h2 {
-    font-size: 24px;
-    color: #0a1d44;
-    margin-bottom: 4rem;
-}
-.logo-container {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-bottom: 10px;
-}
+    .recovery-box h2 {
+        font-size: 24px;
+        color: #0a1d44;
+        margin-bottom: 4rem;
+    }
 
-.logo {
-    width: 35px;
-    height: 35px;
-}
+    .logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
 
-.logo-text {
-    font-size: 16px;
-    color: #0a1d44;
-}
-.info-text {
-    text-align: left;
-    color: #999;
-    font-size: 0.95rem;
-    margin: 55px 0 0px 2px;
-}
-.input {
-    width: 100%;
-    padding: 0.8rem;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
+    .logo {
+        width: 35px;
+        height: 35px;
+    }
 
-.btn {
-    width: 60%;
-    background-color: #0a1d44;
-    color: white;
-    border: none;
-    padding: 0.8rem;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-bottom: 1rem;
-    margin-top: 1rem;
+    .logo-text {
+        font-size: 16px;
+        color: #0a1d44;
+    }
 
-}
-.btn:hover {
-                background-color: #0e2c6c;
-                color: white;
+    .info-text {
+        text-align: left;
+        color: #999;
+        font-size: 0.95rem;
+        margin: 55px 0 0px 2px;
+    }
 
-}
+    .input {
+        width: 100%;
+        padding: 0.8rem;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
 
-.codigo-box {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 1rem;
-    flex-wrap: nowrap;
-}
+    .btn {
+        width: 60%;
+        background-color: #0a1d44;
+        color: white;
+        border: none;
+        padding: 0.8rem;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-bottom: 1rem;
+        margin-top: 1rem;
 
-.code-input {
-    width: 40px;
-    height: 50px;
-    text-align: center;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color : gainsboro;
-}
+    }
 
-.volver {
-    position: absolute;
-    top: 50px;
-    right: 50px;
-    color: #888;
-    font-size: 0.9rem;
-    text-decoration: none;
-}
+    .btn:hover {
+        background-color: #0e2c6c;
+        color: white;
 
+    }
 
+    .codigo-box {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 1rem;
+        flex-wrap: nowrap;
+    }
 
+    .code-input {
+        width: 40px;
+        height: 50px;
+        text-align: center;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: gainsboro;
+    }
+
+    .volver {
+        position: absolute;
+        top: 50px;
+        right: 50px;
+        color: #888;
+        font-size: 0.9rem;
+        text-decoration: none;
+    }
 </style>
