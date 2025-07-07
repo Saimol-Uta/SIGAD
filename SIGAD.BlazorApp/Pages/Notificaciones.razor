@@ -1,0 +1,183 @@
+﻿@page "/notificaciones"
+
+@using SIGAD.BlazorApp.Models
+@attribute [Layout(typeof(EmptyLayout))]
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject INotificacionClienteService NotificacionService
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Components
+@using System.Text.Json
+
+<PageTitle>Mis Notificaciones</PageTitle>
+
+<div class="notifications-container">
+    <h1 class="page-title">Centro de Notificaciones</h1>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div style="color: red; border: 1px solid red; padding: 1rem;">@errorMessage</div>
+    }
+    else if (isLoading)
+    {
+        <p>Cargando notificaciones...</p>
+    }
+    else if (notificaciones == null || !notificaciones.Any())
+    {
+        <div class="no-notifications">
+            <p>🎉 ¡Estás al día! No tienes notificaciones pendientes.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="notifications-list">
+            @foreach (var notificacion in notificaciones)
+            {
+                <li class="@(notificacion.EsLeida ? "read" : "unread")" @onclick="() => HandleNotificationClick(notificacion)">
+                    <div class="notification-icon">
+                        <span class="@(notificacion.EsLeida ? "icon-read" : "icon-unread")"></span>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-message">@notificacion.Mensaje</p>
+                        <span class="notification-time">@notificacion.TiempoTranscurrido</span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private List<NotificacionDto> notificaciones;
+    private bool isLoading = true;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // ---- INICIO DEL BLOQUE DE SEGURIDAD MANUAL (igual que en Dashboard) ----
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Navigation.NavigateTo("/login", true); // Redirigir si no hay token
+                return; // Detener la ejecución para no continuar
+            }
+
+            // Añadimos el token al HttpClient para esta y todas las llamadas que salgan de esta página
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            // ---- FIN DEL BLOQUE DE SEGURIDAD MANUAL ----
+
+
+            // Ahora que el token está establecido, cargamos los datos de forma segura
+            isLoading = true;
+            notificaciones = await NotificacionService.GetNotificacionesAsync();
+        }
+        catch (System.Net.Http.HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized || httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            // Si el token es inválido o expiró, redirigir al login
+            errorMessage = "Tu sesión ha expirado. Serás redirigido a la página de inicio de sesión.";
+            StateHasChanged(); // Actualiza la UI para mostrar el mensaje
+            await Task.Delay(2500); // Espera 2.5 segundos para que el usuario lea
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocurrió un error al cargar las notificaciones: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleNotificationClick(NotificacionDto notificacion)
+    {
+        if (!notificacion.EsLeida)
+        {
+            await NotificacionService.MarkAsReadAsync(notificacion.Id);
+            notificacion.EsLeida = true;
+            StateHasChanged();
+        }
+        if (!string.IsNullOrEmpty(notificacion.UrlRedireccion))
+        {
+            Navigation.NavigateTo(notificacion.UrlRedireccion);
+        }
+    }
+}
+
+<style>
+    .notifications-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+
+    .page-title {
+        color: #0a1d44;
+        margin-bottom: 2rem;
+    }
+
+    .notifications-list {
+        list-style: none;
+        padding: 0;
+    }
+
+        .notifications-list li {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+            .notifications-list li:hover {
+                background-color: #f8f9fa;
+            }
+
+    .notification-content {
+        flex-grow: 1;
+    }
+
+    .notification-message {
+        margin: 0;
+    }
+
+    .notification-time {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .unread {
+        background-color: #eaf2ff;
+        font-weight: bold;
+    }
+
+    .read {
+        color: #6c757d;
+    }
+
+    .notification-icon {
+        margin-right: 1rem;
+    }
+
+    .icon-unread {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: #0d6efd;
+        border-radius: 50%;
+    }
+
+    .no-notifications {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+</style>

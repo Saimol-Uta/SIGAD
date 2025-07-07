@@ -9,7 +9,7 @@ namespace SIGAD.Domain.Interfaces
 {
     public interface INotificacionRepository : IBaseRepository<Notificacion>
     {
-        // Aquí podríamos añadir métodos específicos para notificaciones en el futuro, por ejemplo:
-        // Task<IEnumerable<Notificacion>> GetUnreadNotificationsForUserAsync(string cedula);
+        Task<int> CountUnreadByCedulaAsync(string cedula);
+        Task<IEnumerable<Notificacion>> GetAllByCedulaOrderedByDateAsync(string cedula);
     }
 }

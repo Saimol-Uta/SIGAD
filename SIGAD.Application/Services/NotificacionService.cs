@@ -1,6 +1,7 @@
-﻿using SIGAD.Domain.Entities;
-using SIGAD.Domain.Interfaces;
+﻿using SIGAD.Application.DTOs;
 using SIGAD.Application.Interfaces;
+using SIGAD.Domain.Entities;
+using SIGAD.Domain.Interfaces;
 using System;
 using System.IO; // Necesario para leer archivos
 using System.Threading.Tasks;
@@ -88,6 +89,59 @@ namespace SIGAD.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
+        public async Task<int> GetUnreadCountByCedulaAsync(string cedula)
+        {
+            // Ahora llamas al método que definiste en la interfaz. ¡Limpio y correcto!
+            return await _unitOfWork.Notificaciones.CountUnreadByCedulaAsync(cedula);
+        }
+
         // Helper para "ocultar" un bloque de HTML comentándolo
+
+        public async Task<IEnumerable<NotificacionDto>> GetNotificacionesByCedulaAsync(string cedula)
+        {
+            var notificaciones = await _unitOfWork.Notificaciones.GetAllByCedulaOrderedByDateAsync(cedula);
+
+            return notificaciones.Select(n => new NotificacionDto
+            {
+                Id = n.Id,
+                Mensaje = n.Mensaje,
+                EsLeida = n.EsLeida,
+                UrlRedireccion = n.UrlRedireccion,
+                FechaCreacion = n.FechaCreacion,
+                TiempoTranscurrido = CalcularTiempoTranscurrido(n.FechaCreacion)
+            });
+        }
+
+        public async Task<bool> MarkAsReadAsync(int notificacionId, string userCedula)
+        {
+            var notificacion = await _unitOfWork.Notificaciones.GetByIdAsync(notificacionId);
+
+            // Verificación de seguridad: un usuario solo puede marcar sus propias notificaciones
+            if (notificacion == null || notificacion.DocenteCedula != userCedula)
+            {
+                return false;
+            }
+
+            if (!notificacion.EsLeida)
+            {
+                notificacion.EsLeida = true;
+                notificacion.FechaLeida = DateTime.UtcNow;
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            return true;
+        }
+
+        private string CalcularTiempoTranscurrido(DateTime fecha)
+        {
+            var span = DateTime.UtcNow - fecha;
+            if (span.TotalDays > 365) return $"hace {Math.Floor(span.TotalDays / 365)} años";
+            if (span.TotalDays > 30) return $"hace {Math.Floor(span.TotalDays / 30)} meses";
+            if (span.TotalDays > 1) return $"hace {Math.Floor(span.TotalDays)} días";
+            if (span.TotalHours > 1) return $"hace {Math.Floor(span.TotalHours)} horas";
+            if (span.TotalMinutes > 1) return $"hace {Math.Floor(span.TotalMinutes)} minutos";
+            return "hace un momento";
+        }
+
     }
 }
