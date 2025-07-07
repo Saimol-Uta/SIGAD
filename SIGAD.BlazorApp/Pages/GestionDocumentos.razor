@@ -1806,12 +1806,8 @@
                 
                 if (result?.Success == true)
                 {
-                    Console.WriteLine($"🔍 Frontend Debug - Valores requeridos: MesesInvestigacion={result.ValoresRequeridos?.MesesInvestigacion} (tipo: {result.ValoresRequeridos?.MesesInvestigacion?.GetType()})");
-                    Console.WriteLine($"🔍 Frontend Debug - Valores actuales: MesesInvestigacion={result.ValoresActuales?.MesesInvestigacion} (tipo: {result.ValoresActuales?.MesesInvestigacion?.GetType()})");
-                    Console.WriteLine($"🔍 Frontend Debug - Comparación: {result.ValoresActuales?.MesesInvestigacion} >= {result.ValoresRequeridos?.MesesInvestigacion} = {result.ValoresActuales?.MesesInvestigacion >= result.ValoresRequeridos?.MesesInvestigacion}");
-                    Console.WriteLine($"🔍 Frontend Debug - Rango solicitado: {result.RangoSolicitado}");
-                    Console.WriteLine($"🔍 Frontend Debug - Cumple requisitos: {result.CumpleRequisitos}");
-                    Console.WriteLine($"🔍 Frontend Debug - Requisitos faltantes: [{string.Join(", ", result.RequisitosFaltantes ?? new List<string>())}]");
+                    Console.WriteLine($"Debug - Valores requeridos: MesesInvestigacion={result.ValoresRequeridos?.MesesInvestigacion}");
+                    Console.WriteLine($"Debug - Valores actuales: MesesInvestigacion={result.ValoresActuales?.MesesInvestigacion}");
                     
                     requisitosInfo = result;
                     mostrarDetallesRequisitos = true;
