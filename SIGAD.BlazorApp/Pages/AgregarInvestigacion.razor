@@ -1,11 +1,11 @@
 @page "/agregar-investigacion"
 @page "/editar-investigacion/{Id:int?}"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "DOCENTE")]
-@using SIGAD.BlazorApp.Layout
-@using SIGAD.BlazorApp.Services
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@attribute [Authorize(Roles = "DOCENTE")]
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -671,26 +671,8 @@
             else
             {
                 // AGREGAR INVESTIGACIÓN
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
-                {
-                    // Preguntar al usuario qué quiere hacer
-                    var result = await JSRuntime.InvokeAsync<bool>("confirm", 
-                        "No hay una solicitud de ascenso activa. ¿Desea:\n" +
-                        "• Aceptar: Guardar la investigación sin asociarla a una solicitud\n" +
-                        "• Cancelar: Ir a crear una solicitud de ascenso primero");
-                    
-                    if (!result)
-                    {
-                        // Usuario quiere crear una solicitud primero
-                        var redirectUrl = returnTo == "inventario" 
-                            ? "/iniciar-solicitud-ascenso?returnTo=inventario" 
-                            : "/iniciar-solicitud-ascenso";
-                        Navigation.NavigateTo(redirectUrl);
-                        return;
-                    }
-                    // Si result es true, continúa guardando sin SolicitudId
-                }
+                // No asociar automáticamente a ninguna solicitud
+                // El usuario podrá asociar la investigación manualmente desde la gestión de documentos
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(investigacionModel.Titulo), "Titulo");
@@ -699,14 +681,10 @@
                 content.Add(new StringContent(investigacionModel.RolEnInvestigacion), "RolEnInvestigacion");
                 content.Add(new StringContent(investigacionModel.MesesDeInvestigacion.ToString()), "MesesDeInvestigacion");
                 content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional");
                 
-                // Solo agregar SolicitudId si existe una solicitud activa
-                if (!string.IsNullOrEmpty(solicitudIdString))
-                {
-                    content.Add(new StringContent(solicitudIdString), "SolicitudId");
-                }
-                
-                content.Add(new StringContent(investigacionModel.EsInternacional.ToString()), "EsInternacional"); // Nuevo campo
+                // NO agregar SolicitudId para que la investigación no se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
 
 
                 var fileContent = new StreamContent(archivoFormulario!.OpenReadStream(25 * 1024 * 1024));
@@ -733,9 +711,9 @@
                             position = "center",
                             icon = "success",
                             title = "¡Investigación guardada!",
-                            text = "La información se ha guardado correctamente",
+                            text = "La investigación se ha guardado correctamente. Podrá asociarla a una solicitud desde la gestión de documentos.",
                             showConfirmButton = false,
-                            timer = 2000
+                            timer = 3000
                         });
                         
                         await Task.Delay(2200); // Esperar a que termine el SweetAlert

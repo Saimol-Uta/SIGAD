@@ -357,7 +357,9 @@
             @if (articuloGuardado)
             {
                 <div class="alert alert-success">
-                    ✅ @(Id != null ? "Artículo editado exitosamente. Redirigiendo..." : "Artículo agregado exitosamente. Redirigiendo...")
+                    ✅ @(Id != null 
+                        ? "Artículo editado exitosamente. Redirigiendo..." 
+                        : "Artículo agregado exitosamente. Lo encontrará disponible para asociar en la pantalla de gestión de documentos. Redirigiendo...")
                 </div>
             }
             else
@@ -615,16 +617,6 @@
         }
     }
 
-    private async Task VerificarSolicitudActiva()
-    {
-        var solicitudId = await SolicitudService.GetSolicitudActualAsync();
-        if (string.IsNullOrEmpty(solicitudId))
-        {
-            // Solo mostrar una advertencia, no redirigir automáticamente
-            errorMessage = "⚠️ No hay una solicitud de ascenso activa. Podrá agregar documentos, pero no se asociarán automáticamente a una solicitud.";
-        }
-    }
-
     private async Task CargarInformacionUsuario()
     {
         try
@@ -824,51 +816,29 @@
             else
             {
                 // AGREGAR ARTÍCULO
-                var solicitudIdString = await SolicitudService.GetSolicitudActualAsync();
-                if (string.IsNullOrEmpty(solicitudIdString))
+                // No asociar automáticamente a ninguna solicitud
+                // El usuario podrá asociar el artículo manualmente desde la gestión de documentos
+
+                // Crear el formulario multipart
+                using var content = new MultipartFormDataContent();
+                
+                // Validar que el DOI esté presente (es requerido)
+                if (string.IsNullOrEmpty(articuloModel.DOI))
                 {
-                    // Preguntar al usuario qué quiere hacer
-                    var result = await JSRuntime.InvokeAsync<bool>("confirm", 
-                        "No hay una solicitud de ascenso activa. ¿Desea:\n" +
-                        "• Aceptar: Guardar el artículo sin asociarlo a una solicitud\n" +
-                        "• Cancelar: Ir a crear una solicitud de ascenso primero");
-                    
-                    if (!result)
-                    {
-                        // Usuario quiere crear una solicitud primero
-                        var redirectUrl = returnTo == "inventario" 
-                            ? "/iniciar-solicitud-ascenso?returnTo=inventario" 
-                            : "/iniciar-solicitud-ascenso";
-                        Navigation.NavigateTo(redirectUrl);
-                        return;
-                    }
-                    // Si result es true, continúa guardando sin SolicitudId
+                    errorMessage = "El DOI es requerido";
+                    return;
                 }
 
-            // Crear el formulario multipart
-            using var content = new MultipartFormDataContent();
-            
-            // Validar que el DOI esté presente (es requerido)
-            if (string.IsNullOrEmpty(articuloModel.DOI))
-            {
-                errorMessage = "El DOI es requerido";
-                return;
-            }
-
-            // Campos requeridos por CrearArticuloDto
-            content.Add(new StringContent(articuloModel.DOI), "DOI");
-            content.Add(new StringContent(articuloModel.Titulo), "Titulo");
-            content.Add(new StringContent(articuloModel.Revista), "Revista");
-            content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
-            content.Add(new StringContent(cedula), "DocenteCedula");
-            
-            // Solo agregar SolicitudId si existe una solicitud activa
-            if (!string.IsNullOrEmpty(solicitudIdString))
-            {
-                content.Add(new StringContent(solicitudIdString), "SolicitudId");
-            }
-            
-            content.Add(new StringContent(articuloModel.IdiomaPublicacion ?? string.Empty), "IdiomaPublicacion"); // Nuevo campo
+                // Campos requeridos por CrearArticuloDto
+                content.Add(new StringContent(articuloModel.DOI), "DOI");
+                content.Add(new StringContent(articuloModel.Titulo), "Titulo");
+                content.Add(new StringContent(articuloModel.Revista), "Revista");
+                content.Add(new StringContent(articuloModel.AnioPublicacion.ToString()), "AnioPublicacion");
+                content.Add(new StringContent(cedula), "DocenteCedula");
+                content.Add(new StringContent(articuloModel.IdiomaPublicacion ?? string.Empty), "IdiomaPublicacion");
+                
+                // NO agregar SolicitudId para que el artículo no se asocie automáticamente
+                // Se asociará después desde la interfaz de "Documentos disponibles"
 
                 // Adjuntar archivo (obligatorio al agregar)
                 var stream = archivoFile!.OpenReadStream(25 * 1024 * 1024);
@@ -894,9 +864,9 @@
                             position = "center",
                             icon = "success",
                             title = "¡Artículo guardado!",
-                            text = "La información se ha guardado correctamente",
+                            text = "El artículo se ha guardado correctamente. Podrá asociarlo a una solicitud desde la gestión de documentos.",
                             showConfirmButton = false,
-                            timer = 2000
+                            timer = 3000
                         });
                         
                         await Task.Delay(200);
