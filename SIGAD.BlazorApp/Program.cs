@@ -36,7 +36,7 @@ builder.Services.AddScoped(sp =>
     };
 });
 
-await builder.Build().RunAsync();
+builder.Services.AddScoped<AuthorizationMessageHandler>();
 
 builder.Services.AddHttpClient("SIGAD.WebApi", client =>
 {
@@ -46,3 +46,5 @@ builder.Services.AddHttpClient("SIGAD.WebApi", client =>
 .AddHttpMessageHandler<AuthorizationMessageHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("SIGAD.WebApi"));
+
+await builder.Build().RunAsync();
