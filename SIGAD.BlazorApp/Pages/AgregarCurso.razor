@@ -580,7 +580,7 @@
     {
         try
         {
-            var response = await Http.GetAsync($"/api/Curso/{Id.Value}");
+            var response = await Http.GetAsync($"/api/Cursos/{Id.Value}");
             if (response.IsSuccessStatusCode)
             {
                 var curso = await response.Content.ReadFromJsonAsync<CursoDto>();
@@ -750,13 +750,27 @@
 
             using var content = new MultipartFormDataContent();
             content.Add(new StringContent(cursoModel.Nombre), "Nombre");
-            content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
+            
+            // Para edición usa OrganizacionId, para creación usa OrganizacionNombre
+            if (Id.HasValue)
+            {
+                content.Add(new StringContent(cursoModel.OrganizacionId.ToString()!), "OrganizacionId");
+                content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+            }
+            else
+            {
+                // Buscar el nombre de la organización seleccionada para crear
+                var organizacionSeleccionada = organizaciones.FirstOrDefault(o => o.Id == cursoModel.OrganizacionId);
+                var organizacionNombre = organizacionSeleccionada?.Nombre ?? "";
+                content.Add(new StringContent(organizacionNombre), "OrganizacionNombre");
+                content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
+            }
+            
             content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
             content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
             content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
             content.Add(new StringContent(cursoModel.TipoCurso!), "TipoCurso");
             content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
-            content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
             content.Add(new StringContent(cedula), "DocenteCedula");
 
             // Para edición, agregar el ID
@@ -775,11 +789,11 @@
             HttpResponseMessage response;
             if (Id.HasValue)
             {
-                response = await Http.PutAsync($"/api/Curso/{Id.Value}", content);
+                response = await Http.PutAsync($"/api/Cursos/{Id.Value}", content);
             }
             else
             {
-                response = await Http.PostAsync("/api/Curso", content);
+                response = await Http.PostAsync("/api/Cursos", content);
             }
 
             if (response.IsSuccessStatusCode)
