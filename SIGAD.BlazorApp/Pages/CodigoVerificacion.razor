@@ -26,7 +26,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/solicitar-recuperacion", new { email = correo });
+            var response = await Http.PostAsJsonAsync("api/Auth/solicitar-recuperacion", new { email = correo });
             var result = await response.Content.ReadFromJsonAsync<RespuestaApi>();
             mensajeAPI = result?.Message ?? "Respuesta desconocida.";
 
@@ -54,7 +54,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/verificar-codigo", new { Email = correo, Codigo = codigo });
+            var response = await Http.PostAsJsonAsync("api/Auth/verificar-codigo", new { Email = correo, Codigo = codigo });
 
             if (response.IsSuccessStatusCode)
             {

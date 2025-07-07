@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SIGAD.Application\SIGAD.Application.csproj" />
+    <ProjectReference Include="..\SIGAD.Infrastructure\SIGAD.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
