@@ -699,6 +699,133 @@
         color: #721c24;
     }
 
+    /* Estilos para el modal de agregar documento */
+    .add-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1002;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .add-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .add-modal-header {
+        background: linear-gradient(135deg, #0a1d44 0%, #1e3a8a 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px 12px 0 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .add-modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .add-modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.2s ease;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .add-modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .add-modal-body {
+        padding: 0;
+        max-height: calc(90vh - 200px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .add-modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .iframe-container {
+        width: 100%;
+        height: calc(90vh - 200px);
+        border: none;
+        background: white;
+    }
+
+    .loading-iframe {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        background: #f8f9fa;
+        color: #666;
+        font-size: 1.1rem;
+    }
+
+    .loading-iframe i {
+        margin-right: 0.5rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
     /* Estilos para documentos utilizados en tablas */
     .document-row-used {
         background: linear-gradient(90deg, #fff3cd 0%, #fff 15%);
@@ -1099,7 +1226,7 @@
                             <Tabla TipoDocumento="@tablaVisible" 
                                    Cedula="@cedula" 
                                    OnImportar="ImportarDocumentos" 
-                                   OnAgregar="AgregarDocumento"
+                                   OnAgregar="AbrirModalAgregar"
                                    OnCerrar="@(async () => await CerrarTabla())"
                                    OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
                         </div>
@@ -1107,8 +1234,46 @@
                             <button class="btn btn-secondary" @onclick="CerrarTabla">
                                 <i class="fas fa-times"></i> Cerrar
                             </button>
-                            <button class="btn btn-primary" @onclick="() => AgregarDocumento(tablaVisible)">
+                            <button class="btn btn-primary" @onclick="() => AbrirModalAgregar(tablaVisible)">
                                 <i class="fas fa-plus"></i> Agregar @(tablaVisible.TrimEnd('s'))
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Modal para agregar documento -->
+            @if (!string.IsNullOrEmpty(tipoDocumentoAgregar))
+            {
+                <div class="add-modal-overlay" @onclick="CerrarModalAgregar">
+                    <div class="add-modal-content" @onclick:stopPropagation="true">
+                        <div class="add-modal-header">
+                            <h3>
+                                <i class="fas @(GetIconoTipoDocumento(tipoDocumentoAgregar))"></i>
+                                Agregar @(GetNombreTipoDocumento(tipoDocumentoAgregar))
+                            </h3>
+                            <button class="add-modal-close-btn" @onclick="CerrarModalAgregar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="add-modal-body">
+                            @if (cargandoModalAgregar)
+                            {
+                                <div class="loading-iframe">
+                                    <i class="fas fa-spinner"></i>
+                                    Cargando formulario...
+                                </div>
+                            }
+                            else
+                            {
+                                <iframe src="@GetUrlAgregarDocumento(tipoDocumentoAgregar)" 
+                                        class="iframe-container"
+                                        @onload="OnIframeLoaded"></iframe>
+                            }
+                        </div>
+                        <div class="add-modal-footer">
+                            <button class="btn btn-secondary" @onclick="CerrarModalAgregar">
+                                <i class="fas fa-times"></i> Cerrar
                             </button>
                         </div>
                     </div>
@@ -1334,6 +1499,10 @@
     private string cedula = "";
     private string urlFotoPerfil = "/images/IconoUser.png";
     private string? tablaVisible = null;
+
+    // Variables para modal de agregar documento
+    private string? tipoDocumentoAgregar = null;
+    private bool cargandoModalAgregar = false;
 
     // Variables de conteo de documentos
     private int conteoInvestigaciones = 0;
@@ -2007,6 +2176,9 @@
 
     private void AgregarDocumento(string tipoDocumento)
     {
+        Console.WriteLine($"Debug - AgregarDocumento (NAVEGACIÓN) llamado con: {tipoDocumento}");
+        Console.WriteLine("Debug - Este método NO debería ser llamado si el modal funciona correctamente");
+        
         string ruta = tipoDocumento switch
         {
             "investigaciones" => "/agregar-investigacion",
@@ -2018,6 +2190,94 @@
             _ => "/gestion-documentos"
         };
         Navigation.NavigateTo(ruta);
+    }
+
+    // Métodos para el modal de agregar documentos
+    private async Task AbrirModalAgregar(string tipoDocumento)
+    {
+        try
+        {
+            Console.WriteLine($"Debug - AbrirModalAgregar llamado con: {tipoDocumento}");
+            
+            cargandoModalAgregar = true;
+            tipoDocumentoAgregar = tipoDocumento;
+            StateHasChanged();
+
+            Console.WriteLine($"Debug - Modal state: cargandoModalAgregar={cargandoModalAgregar}, tipoDocumentoAgregar={tipoDocumentoAgregar}");
+
+            // Simular una pequeña carga para mostrar el loading
+            await Task.Delay(300);
+            cargandoModalAgregar = false;
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Modal cargado: cargandoModalAgregar={cargandoModalAgregar}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al abrir modal agregar: {ex.Message}");
+            cargandoModalAgregar = false;
+            tipoDocumentoAgregar = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarModalAgregar()
+    {
+        tipoDocumentoAgregar = null;
+        cargandoModalAgregar = false;
+        StateHasChanged();
+
+        // Actualizar contadores cuando se cierre el modal (en caso de que se haya agregado algo)
+        await ActualizarRequisitosAutomaticamente();
+    }
+
+    private void OnIframeLoaded()
+    {
+        // Método para manejar cuando el iframe se ha cargado completamente
+        cargandoModalAgregar = false;
+        StateHasChanged();
+    }
+
+    private string GetUrlAgregarDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "/agregar-investigacion?returnTo=modal",
+            "articulos" => "/agregar-articulo?returnTo=modal", 
+            "experiencias" => "/agregar-experiencia-laboral?returnTo=modal",
+            "evaluaciones" => "/agregar-evaluacion?returnTo=modal",
+            "cursos" => "/agregar-curso?returnTo=modal",
+            "tesis" => "/agregar-tesis?returnTo=modal",
+            _ => "/gestion-documentos"
+        };
+    }
+
+    private string GetIconoTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "fa-microscope",
+            "articulos" => "fa-newspaper",
+            "experiencias" => "fa-briefcase", 
+            "evaluaciones" => "fa-chart-line",
+            "cursos" => "fa-graduation-cap",
+            "tesis" => "fa-book",
+            _ => "fa-file"
+        };
+    }
+
+    private string GetNombreTipoDocumento(string tipoDocumento)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => "Investigación",
+            "articulos" => "Artículo",
+            "experiencias" => "Experiencia Laboral",
+            "evaluaciones" => "Evaluación",
+            "cursos" => "Curso",
+            "tesis" => "Tesis",
+            _ => "Documento"
+        };
     }
 
     // Métodos para actualizar contadores específicos (más eficiente)

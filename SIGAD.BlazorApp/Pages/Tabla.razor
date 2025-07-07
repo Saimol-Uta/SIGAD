@@ -1100,12 +1100,20 @@
 
     private async Task AgregarDocumento()
     {
+        Console.WriteLine($"Debug - Tabla.AgregarDocumento llamado para: {TipoDocumento}");
+        Console.WriteLine($"Debug - OnAgregar.HasDelegate: {OnAgregar.HasDelegate}");
+        
         if (OnAgregar.HasDelegate)
         {
+            Console.WriteLine($"Debug - Invocando OnAgregar con: {TipoDocumento}");
             await OnAgregar.InvokeAsync(TipoDocumento);
             // Refrescar los datos después de agregar
             await Task.Delay(500); // Pequeña pausa para que se complete la operación
             await CargarDocumentos();
+        }
+        else
+        {
+            Console.WriteLine("Debug - OnAgregar no tiene delegate!");
         }
     }
 
