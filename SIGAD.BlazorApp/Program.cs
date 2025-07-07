@@ -18,7 +18,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Agregar el servicio ISolicitudesService que también se necesita
 builder.Services.AddScoped<ISolicitudesService, SolicitudesService>();
 builder.Services.AddScoped<SolicitudesService>();
-
+builder.Services.AddScoped<INotificacionClienteService, NotificacionClienteService>();
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudService, SIGAD.BlazorApp.Services.SolicitudService>();
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.BlazorApp.Services.SolicitudesService>();
 
@@ -35,5 +35,16 @@ builder.Services.AddScoped(sp =>
         Timeout = TimeSpan.FromMinutes(10) // 10 minutos para operaciones críticas como apelaciones
     };
 });
+
+builder.Services.AddScoped<AuthorizationMessageHandler>();
+
+builder.Services.AddHttpClient("SIGAD.WebApi", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5217"); // La dirección de tu API
+    client.Timeout = TimeSpan.FromMinutes(10);
+})
+.AddHttpMessageHandler<AuthorizationMessageHandler>();
+
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("SIGAD.WebApi"));
 
 await builder.Build().RunAsync();

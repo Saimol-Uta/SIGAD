@@ -1,4 +1,5 @@
 ﻿using SIGAD.Domain.Entities;
+using SIGAD.Application.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,14 +10,11 @@ namespace SIGAD.Application.Interfaces
 {
     public interface INotificacionService
     {
-        /// <summary>
-        /// Notifica al docente sobre la APROBACIÓN de su solicitud, usando una plantilla HTML.
-        /// </summary>
         Task EnviarNotificacionAprobacionAsync(SolicitudAscenso solicitud, string observaciones);
-
-        /// <summary>
-        /// Notifica al docente sobre el RECHAZO de su solicitud, usando una plantilla HTML.
-        /// </summary>
         Task EnviarNotificacionRechazoAsync(SolicitudAscenso solicitud, string observaciones);
+        Task<int> GetUnreadCountByCedulaAsync(string cedula);
+        Task<IEnumerable<NotificacionDto>> GetNotificacionesByCedulaAsync(string cedula);
+        Task<bool> MarkAsReadAsync(int notificacionId, string userCedula);
+
     }
 }
