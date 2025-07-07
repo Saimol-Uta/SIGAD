@@ -826,6 +826,90 @@
         }
     }
 
+    /* Estilos para el modal de editar documento */
+    .edit-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1003;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .edit-modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow: hidden;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .edit-modal-header {
+        background: linear-gradient(135deg, #dc3545 0%, #b91d2b 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px 12px 0 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .edit-modal-header h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .edit-modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background-color 0.2s ease;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edit-modal-close-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .edit-modal-body {
+        padding: 0;
+        max-height: calc(90vh - 200px);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .edit-modal-footer {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        border-radius: 0 0 12px 12px;
+    }
+
     /* Estilos para documentos utilizados en tablas */
     .document-row-used {
         background: linear-gradient(90deg, #fff3cd 0%, #fff 15%);
@@ -1227,6 +1311,7 @@
                                    Cedula="@cedula" 
                                    OnImportar="ImportarDocumentos" 
                                    OnAgregar="AbrirModalAgregar"
+                                   OnEditar="AbrirModalEditarString"
                                    OnCerrar="@(async () => await CerrarTabla())"
                                    OnDocumentosActualizados="ActualizarRequisitosAutomaticamente" />
                         </div>
@@ -1273,6 +1358,44 @@
                         </div>
                         <div class="add-modal-footer">
                             <button class="btn btn-secondary" @onclick="CerrarModalAgregar">
+                                <i class="fas fa-times"></i> Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Modal para editar documento -->
+            @if (!string.IsNullOrEmpty(tipoDocumentoEditar) && !string.IsNullOrEmpty(documentoIdEditar))
+            {
+                <div class="edit-modal-overlay" @onclick="CerrarModalEditar">
+                    <div class="edit-modal-content" @onclick:stopPropagation="true">
+                        <div class="edit-modal-header">
+                            <h3>
+                                <i class="fas @(GetIconoTipoDocumento(tipoDocumentoEditar))"></i>
+                                Editar @(GetNombreTipoDocumento(tipoDocumentoEditar))
+                            </h3>
+                            <button class="edit-modal-close-btn" @onclick="CerrarModalEditar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="edit-modal-body">
+                            @if (cargandoModalEditar)
+                            {
+                                <div class="loading-iframe">
+                                    <i class="fas fa-spinner"></i>
+                                    Cargando formulario de edición...
+                                </div>
+                            }
+                            else
+                            {
+                                <iframe src="@GetUrlEditarDocumento(tipoDocumentoEditar, documentoIdEditar)" 
+                                        class="iframe-container"
+                                        @onload="OnIframeEditarLoaded"></iframe>
+                            }
+                        </div>
+                        <div class="edit-modal-footer">
+                            <button class="btn btn-secondary" @onclick="CerrarModalEditar">
                                 <i class="fas fa-times"></i> Cerrar
                             </button>
                         </div>
@@ -1503,6 +1626,11 @@
     // Variables para modal de agregar documento
     private string? tipoDocumentoAgregar = null;
     private bool cargandoModalAgregar = false;
+
+    // Variables para modal de editar documento
+    private string? tipoDocumentoEditar = null;
+    private string? documentoIdEditar = null;
+    private bool cargandoModalEditar = false;
 
     // Variables de conteo de documentos
     private int conteoInvestigaciones = 0;
@@ -2280,6 +2408,80 @@
         };
     }
 
+    // Métodos para el modal de editar documentos
+    private async Task AbrirModalEditarString(string data)
+    {
+        try
+        {
+            // Parsear el string con formato "tipo:id"
+            var parts = data.Split(':');
+            if (parts.Length != 2)
+            {
+                Console.WriteLine($"Error - Formato de datos de edición inválido: {data}");
+                return;
+            }
+
+            string tipoDocumento = parts[0];
+            string documentoId = parts[1];
+
+            Console.WriteLine($"Debug - AbrirModalEditarString llamado con: Tipo={tipoDocumento}, ID={documentoId}");
+            
+            cargandoModalEditar = true;
+            tipoDocumentoEditar = tipoDocumento;
+            documentoIdEditar = documentoId;
+            StateHasChanged();
+
+            Console.WriteLine($"Debug - Modal editar state: cargandoModalEditar={cargandoModalEditar}, tipoDocumentoEditar={tipoDocumentoEditar}, documentoIdEditar={documentoIdEditar}");
+
+            // Simular una pequeña carga para mostrar el loading
+            await Task.Delay(300);
+            cargandoModalEditar = false;
+            StateHasChanged();
+            
+            Console.WriteLine($"Debug - Modal editar cargado: cargandoModalEditar={cargandoModalEditar}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al abrir modal editar: {ex.Message}");
+            cargandoModalEditar = false;
+            tipoDocumentoEditar = null;
+            documentoIdEditar = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarModalEditar()
+    {
+        tipoDocumentoEditar = null;
+        documentoIdEditar = null;
+        cargandoModalEditar = false;
+        StateHasChanged();
+
+        // Actualizar contadores cuando se cierre el modal (en caso de que se haya editado algo)
+        await ActualizarRequisitosAutomaticamente();
+    }
+
+    private void OnIframeEditarLoaded()
+    {
+        // Método para manejar cuando el iframe de edición se ha cargado completamente
+        cargandoModalEditar = false;
+        StateHasChanged();
+    }
+
+    private string GetUrlEditarDocumento(string tipoDocumento, string documentoId)
+    {
+        return tipoDocumento switch
+        {
+            "investigaciones" => $"/editar-investigacion/{documentoId}?returnTo=modal",
+            "articulos" => $"/editar-articulo/{Uri.EscapeDataString(documentoId)}?returnTo=modal",
+            "experiencias" => $"/editar-experiencia/{documentoId}?returnTo=modal",
+            "evaluaciones" => $"/editar-evaluacion/{documentoId}?returnTo=modal",
+            "cursos" => $"/editar-curso/{documentoId}?returnTo=modal",
+            "tesis" => $"/editar-tesis/{documentoId}?returnTo=modal",
+            _ => "/gestion-documentos"
+        };
+    }
+
     // Métodos para actualizar contadores específicos (más eficiente)
     private async Task ActualizarContadorEspecifico(string tipoDocumento)
     {
@@ -2306,6 +2508,11 @@
                     break;
                 case "tesis":
                     await CargarConteoTesis();
+                    break;
+            
+                // También permitir actualización de todos los contadores
+                case "todos":
+                    await CargarConteoDocumentos();
                     break;
             }
             
