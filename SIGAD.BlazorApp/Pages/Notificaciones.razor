@@ -1,16 +1,28 @@
 ﻿@page "/notificaciones"
 
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
-@inject INotificacionClienteService NotificacionService
+@using SIGAD.BlazorApp.Models
+@attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject INotificacionClienteService NotificacionService
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "DOCENTE")]
+@using SIGAD.BlazorApp.Layout
+@using SIGAD.BlazorApp.Services
+@using SIGAD.BlazorApp.Components
+@using System.Text.Json
 
 <PageTitle>Mis Notificaciones</PageTitle>
 
 <div class="notifications-container">
     <h1 class="page-title">Centro de Notificaciones</h1>
 
-    @if (isLoading)
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div style="color: red; border: 1px solid red; padding: 1rem;">@errorMessage</div>
+    }
+    else if (isLoading)
     {
         <p>Cargando notificaciones...</p>
     }
@@ -42,25 +54,56 @@
 @code {
     private List<NotificacionDto> notificaciones;
     private bool isLoading = true;
+    private string errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        notificaciones = await NotificacionService.GetNotificacionesAsync();
-        isLoading = false;
+        try
+        {
+            // ---- INICIO DEL BLOQUE DE SEGURIDAD MANUAL (igual que en Dashboard) ----
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Navigation.NavigateTo("/login", true); // Redirigir si no hay token
+                return; // Detener la ejecución para no continuar
+            }
+
+            // Añadimos el token al HttpClient para esta y todas las llamadas que salgan de esta página
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            // ---- FIN DEL BLOQUE DE SEGURIDAD MANUAL ----
+
+
+            // Ahora que el token está establecido, cargamos los datos de forma segura
+            isLoading = true;
+            notificaciones = await NotificacionService.GetNotificacionesAsync();
+        }
+        catch (System.Net.Http.HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized || httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            // Si el token es inválido o expiró, redirigir al login
+            errorMessage = "Tu sesión ha expirado. Serás redirigido a la página de inicio de sesión.";
+            StateHasChanged(); // Actualiza la UI para mostrar el mensaje
+            await Task.Delay(2500); // Espera 2.5 segundos para que el usuario lea
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocurrió un error al cargar las notificaciones: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task HandleNotificationClick(NotificacionDto notificacion)
     {
         if (!notificacion.EsLeida)
         {
-            // Marcar como leída en el backend (no esperamos la respuesta para que la UI sea rápida)
             await NotificacionService.MarkAsReadAsync(notificacion.Id);
-
-            // Actualizar la UI inmediatamente
             notificacion.EsLeida = true;
-            StateHasChanged(); // Forzar re-renderizado
+            StateHasChanged();
         }
-
         if (!string.IsNullOrEmpty(notificacion.UrlRedireccion))
         {
             Navigation.NavigateTo(notificacion.UrlRedireccion);
@@ -104,7 +147,6 @@
 
     .notification-message {
         margin: 0;
-        font-size: 0.95rem;
     }
 
     .notification-time {
