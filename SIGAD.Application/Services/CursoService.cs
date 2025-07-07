@@ -63,14 +63,14 @@ namespace SIGAD.Application.Services
 
             // Subir archivo usando FileStorageService
             var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
-                certificado, 
-                "cursos", 
+                certificado,
+                "cursos",
                 new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
                 10 * 1024 * 1024 // 10MB
             );
 
             // Verificar que la solicitud existe SOLO si se proporciona un SolicitudId
-            if (crearCursoDto.SolicitudId.HasValue && 
+            if (crearCursoDto.SolicitudId.HasValue &&
                 !await _solicitudRepository.ExistsAsync(crearCursoDto.SolicitudId.Value))
             {
                 throw new ArgumentException("La solicitud especificada no existe");
@@ -103,7 +103,7 @@ namespace SIGAD.Application.Services
                 ContenidoHash = contentHash,
                 TipoCurso = Enum.Parse<TipoCurso>(crearCursoDto.TipoCurso),
                 ImpartidoPorDocente = crearCursoDto.ImpartidoPorDocente,
-                HorasImpartidas = crearCursoDto.HorasImpartidas 
+                HorasImpartidas = crearCursoDto.HorasImpartidas
             };
 
             await _cursoRepository.AddAsync(curso);
@@ -143,8 +143,8 @@ namespace SIGAD.Application.Services
 
                 // Subir nuevo archivo
                 var (localPath, cloudinaryUrl, contentHash) = await _fileStorageService.UploadFileAsync(
-                    certificado, 
-                    "cursos", 
+                    certificado,
+                    "cursos",
                     new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" },
                     10 * 1024 * 1024 // 10MB
                 );
@@ -215,12 +215,32 @@ namespace SIGAD.Application.Services
         public async Task<(byte[] FileContent, string ContentType, string FileName)> DownloadCertificadoAsync(int id)
         {
             var curso = await _cursoRepository.GetByIdAsync(id);
-            if (curso == null || !File.Exists(curso.CertificadoRuta))
+            if (curso == null || (string.IsNullOrEmpty(curso.CertificadoRuta) && string.IsNullOrEmpty(curso.UrlCloudinary)))
                 throw new FileNotFoundException("Certificado no encontrado");
 
-            var fileContent = await File.ReadAllBytesAsync(curso.CertificadoRuta);
-            var extension = Path.GetExtension(curso.CertificadoRuta).ToLowerInvariant();
-            
+            byte[] fileContent;
+
+            // Obtener la mejor URL disponible y descargar
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(curso.CertificadoRuta, curso.UrlCloudinary);
+
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(curso.UrlCloudinary) && mejorUrl == curso.UrlCloudinary)
+            {
+                using var httpClient = new HttpClient();
+                fileContent = await httpClient.GetByteArrayAsync(mejorUrl);
+            }
+            // Si no, intentar desde archivo local
+            else if (!string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta))
+            {
+                fileContent = await File.ReadAllBytesAsync(curso.CertificadoRuta);
+            }
+            else
+            {
+                throw new FileNotFoundException("Certificado no encontrado en ninguna ubicación");
+            }
+
+            var extension = Path.GetExtension(curso.CertificadoRuta ?? ".pdf").ToLowerInvariant();
+
             var contentType = extension switch
             {
                 ".pdf" => "application/pdf",
@@ -260,8 +280,8 @@ namespace SIGAD.Application.Services
                 TipoOrganizacion = curso.Organizacion?.TipoOrganizacion ?? "No especificado",
                 NumeroHoras = curso.NumeroHoras,
                 FechaFinalizacion = curso.FechaFinalizacion,
-                NombreDocente = curso.Docente != null 
-                    ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}" 
+                NombreDocente = curso.Docente != null
+                    ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}"
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
                 CertificadoRuta = curso.CertificadoRuta,
@@ -271,7 +291,7 @@ namespace SIGAD.Application.Services
                 TipoCurso = curso.TipoCurso.ToString(),
                 ImpartidoPorDocente = curso.ImpartidoPorDocente,
                 HorasImpartidas = curso.HorasImpartidas,
-                
+
                 // Mapeo de solicitudes asociadas
                 SolicitudId = curso.CursosPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
                 Solicitudes = curso.CursosPorSolicitud?.Select(cs => new SolicitudBasicaDto
@@ -291,8 +311,8 @@ namespace SIGAD.Application.Services
                 NombreOrganizacion = curso.Organizacion?.Nombre ?? "Sin organización",
                 NumeroHoras = curso.NumeroHoras,
                 FechaFinalizacion = curso.FechaFinalizacion,
-                NombreDocente = curso.Docente != null 
-                    ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}" 
+                NombreDocente = curso.Docente != null
+                    ? $"{curso.Docente.Nombre1} {curso.Docente.Apellido1}"
                     : "Docente no encontrado",
                 DocenteCedula = curso.DocenteCedula,
                 TieneCertificado = !string.IsNullOrEmpty(curso.CertificadoRuta) && File.Exists(curso.CertificadoRuta),

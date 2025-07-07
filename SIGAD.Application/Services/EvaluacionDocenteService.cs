@@ -202,28 +202,20 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
-            // Obtener la mejor URL y usarla para descargar el archivo
+            // Obtener la mejor URL disponible y descargar
             var mejorUrl = _fileStorageService.ObtenerMejorUrl(evaluacion.InformeRuta, evaluacion.UrlCloudinary);
-            
-            // Si la mejor URL es local, leer el archivo directamente
-            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && mejorUrl.Contains("localhost"))
+
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(evaluacion.UrlCloudinary) && mejorUrl == evaluacion.UrlCloudinary)
             {
-                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
-                if (File.Exists(rutaCompleta))
-                {
-                    return await File.ReadAllBytesAsync(rutaCompleta);
-                }
+                using var httpClient = new HttpClient();
+                return await httpClient.GetByteArrayAsync(mejorUrl);
             }
 
-            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
-            // Por ahora, intentamos usar el archivo local como fallback
-            if (!string.IsNullOrEmpty(evaluacion.InformeRuta))
+            // Si no, intentar desde archivo local
+            if (!string.IsNullOrEmpty(evaluacion.InformeRuta) && File.Exists(evaluacion.InformeRuta))
             {
-                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", evaluacion.InformeRuta.TrimStart('/'));
-                if (File.Exists(rutaCompleta))
-                {
-                    return await File.ReadAllBytesAsync(rutaCompleta);
-                }
+                return await File.ReadAllBytesAsync(evaluacion.InformeRuta);
             }
 
             return null;
@@ -238,7 +230,7 @@ namespace SIGAD.Application.Services
         public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesDisponiblesAsync(string docenteCedula, Guid? solicitudActualId = null)
         {
             var evaluacionesDisponibles = await _evaluacionRepository.GetEvaluacionesDisponiblesParaSolicitudAsync(docenteCedula, solicitudActualId);
-            
+
             return evaluacionesDisponibles.Select(e => new EvaluacionDocenteDto
             {
                 Id = e.Id,
@@ -256,7 +248,7 @@ namespace SIGAD.Application.Services
         public async Task<IEnumerable<EvaluacionDocenteDto>> GetEvaluacionesUsadasAsync(string docenteCedula)
         {
             var evaluacionesUsadas = await _evaluacionRepository.GetEvaluacionesUsadasEnSolicitudesAsync(docenteCedula);
-            
+
             return evaluacionesUsadas.Select(e => new EvaluacionDocenteDto
             {
                 Id = e.Id,
@@ -291,20 +283,20 @@ namespace SIGAD.Application.Services
                         Estado = eps.Solicitud.Estado.ToString(),
                         FechaCreacion = eps.Solicitud.FechaCreacion
                     }).ToList();
-                
+
                 // Debug: Log información de solicitudes para esta evaluación
                 Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} tiene {solicitudes.Count} solicitudes asociadas:");
                 foreach (var sol in solicitudes)
                 {
                     Console.WriteLine($"  - Solicitud ID: {sol.SolicitudId}, Estado: {sol.Estado}, Fecha: {sol.FechaCreacion}");
                 }
-                
+
                 // Priorizar solicitud en estado Borrador o Enviada para mostrar como principal
                 var solicitudPrincipal = solicitudes
                     .Where(s => s.Estado == "Borrador" || s.Estado == "Enviada")
                     .OrderByDescending(s => s.FechaCreacion)
                     .FirstOrDefault();
-                
+
                 // Si no hay solicitud en estados activos, buscar EnRevision también
                 if (solicitudPrincipal == null)
                 {
@@ -313,10 +305,10 @@ namespace SIGAD.Application.Services
                         .OrderByDescending(s => s.FechaCreacion)
                         .FirstOrDefault();
                 }
-                
+
                 // Si no hay solicitud activa, usar la más reciente
                 solicitudIdPrincipal = solicitudPrincipal?.SolicitudId ?? solicitudes.FirstOrDefault()?.SolicitudId;
-                
+
                 // Debug: Log resultado del mapeo
                 Console.WriteLine($"Debug - Evaluación ID {evaluacion.Id} - Solicitud principal seleccionada: {solicitudIdPrincipal}");
                 if (solicitudPrincipal != null)

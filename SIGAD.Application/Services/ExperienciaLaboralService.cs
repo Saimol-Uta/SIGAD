@@ -104,7 +104,7 @@ namespace SIGAD.Application.Services
             };
 
             await _experienciaRepository.AddAsync(experiencia);
-            
+
             // Guardar cambios para generar el ID
             await _unitOfWork.SaveChangesAsync();
 
@@ -209,28 +209,20 @@ namespace SIGAD.Application.Services
                 return null;
             }
 
-            // Obtener la mejor URL y usarla para descargar el archivo
+            // Obtener la mejor URL disponible y descargar
             var mejorUrl = _fileStorageService.ObtenerMejorUrl(experiencia.CertificadoRuta, experiencia.UrlCloudinary);
-            
-            // Si la mejor URL es local, leer el archivo directamente
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && mejorUrl.Contains("localhost"))
+
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(experiencia.UrlCloudinary) && mejorUrl == experiencia.UrlCloudinary)
             {
-                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
-                if (File.Exists(rutaCompleta))
-                {
-                    return await File.ReadAllBytesAsync(rutaCompleta);
-                }
+                using var httpClient = new HttpClient();
+                return await httpClient.GetByteArrayAsync(mejorUrl);
             }
 
-            // Para URLs de Cloudinary, se necesitaría un HttpClient para descargar
-            // Por ahora, intentamos usar el archivo local como fallback
-            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta))
+            // Si no, intentar desde archivo local
+            if (!string.IsNullOrEmpty(experiencia.CertificadoRuta) && File.Exists(experiencia.CertificadoRuta))
             {
-                var rutaCompleta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", experiencia.CertificadoRuta.TrimStart('/'));
-                if (File.Exists(rutaCompleta))
-                {
-                    return await File.ReadAllBytesAsync(rutaCompleta);
-                }
+                return await File.ReadAllBytesAsync(experiencia.CertificadoRuta);
             }
 
             return null;
@@ -269,7 +261,7 @@ namespace SIGAD.Application.Services
                 UrlCloudinary = experiencia.UrlCloudinary,
                 ContenidoHash = experiencia.ContenidoHash,
                 AniosExperiencia = Math.Round(aniosExperiencia, 1),
-                
+
                 // Mapeo de solicitudes asociadas
                 SolicitudId = experiencia.ExperienciasPorSolicitud?.FirstOrDefault()?.SolicitudId.ToString(),
                 Solicitudes = experiencia.ExperienciasPorSolicitud?.Select(eps => new SolicitudBasicaDto
@@ -281,4 +273,4 @@ namespace SIGAD.Application.Services
         }
 
     }
-} 
+}

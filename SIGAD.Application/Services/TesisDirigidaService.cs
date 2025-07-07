@@ -144,6 +144,34 @@ namespace SIGAD.Application.Services
             var tesis = await _repository.GetByIdAsync(id);
             return tesis?.CertificacionRuta;
         }
+
+        public async Task<byte[]?> GetArchivoPdfAsync(int id)
+        {
+            var tesis = await _repository.GetByIdAsync(id);
+            if (tesis == null || (string.IsNullOrEmpty(tesis.CertificacionRuta) && string.IsNullOrEmpty(tesis.UrlCloudinary)))
+            {
+                return null;
+            }
+
+            // Obtener la mejor URL disponible y descargar
+            var mejorUrl = _fileStorageService.ObtenerMejorUrl(tesis.CertificacionRuta, tesis.UrlCloudinary);
+
+            // Si es una URL de Cloudinary, descargar desde allí
+            if (!string.IsNullOrEmpty(tesis.UrlCloudinary) && mejorUrl == tesis.UrlCloudinary)
+            {
+                using var httpClient = new HttpClient();
+                return await httpClient.GetByteArrayAsync(mejorUrl);
+            }
+
+            // Si no, intentar desde archivo local
+            if (!string.IsNullOrEmpty(tesis.CertificacionRuta) && File.Exists(tesis.CertificacionRuta))
+            {
+                return await File.ReadAllBytesAsync(tesis.CertificacionRuta);
+            }
+
+            return null;
+        }
+
         public async Task<TesisDirigidaDto?> ObtenerPorIdAsync(int id)
         {
             var tesis = await _repository.GetByIdAsync(id);

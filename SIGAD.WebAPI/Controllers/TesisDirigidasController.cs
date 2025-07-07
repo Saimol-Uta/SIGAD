@@ -48,7 +48,7 @@ namespace SIGAD.API.Controllers
                 }
 
                 await _service.AsociarASolicitudAsync(request.SolicitudId, id);
-                
+
                 return Ok(new
                 {
                     success = true,
@@ -141,19 +141,29 @@ namespace SIGAD.API.Controllers
         [HttpGet("{id}/pdf")]
         public async Task<IActionResult> DescargarPdf(int id)
         {
-            var relativa = await _service.ObtenerRutaPdfAsync(id);
-            if (string.IsNullOrEmpty(relativa))
-                return NotFound();
+            try
+            {
+                var archivo = await _service.GetArchivoPdfAsync(id);
+                if (archivo == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Archivo no encontrado"
+                    });
+                }
 
-            // Asegura que la ruta sea relativa a la carpeta 'uploads'
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            var rutaAbsoluta = Path.Combine(uploadsFolder, relativa.Replace('/', Path.DirectorySeparatorChar));
-
-            if (!System.IO.File.Exists(rutaAbsoluta))
-                return NotFound();
-
-            var bytes = await System.IO.File.ReadAllBytesAsync(rutaAbsoluta);
-            return File(bytes, "application/pdf", $"tesis_{id}.pdf");
+                return File(archivo, "application/pdf", $"tesis_{id}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error interno del servidor",
+                    error = ex.Message
+                });
+            }
         }
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
@@ -184,21 +194,21 @@ namespace SIGAD.API.Controllers
             try
             {
                 Console.WriteLine($"🔄 [TesisDirigidasController] Iniciando subida de archivo: {file.FileName}, Tamaño: {file.Length} bytes");
-                
+
                 // Usar FileStorageService para almacenamiento dual
                 var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(file, "tesis");
-                
+
                 Console.WriteLine($"✅ [TesisDirigidasController] Archivo subido - Local: {rutaLocal}, Cloudinary: {!string.IsNullOrEmpty(urlCloudinary)}, Hash: {hash}");
-                
+
                 createDto.CertificacionRuta = rutaLocal;
                 createDto.UrlCloudinary = urlCloudinary;
                 createDto.ContenidoHash = hash;
-                
+
                 var nueva = await _service.CrearAsync(createDto);
-                
-                return Ok(new 
-                { 
-                    success = true, 
+
+                return Ok(new
+                {
+                    success = true,
                     data = nueva,
                     message = "Tesis creada exitosamente con almacenamiento dual",
                     certificadoRuta = rutaLocal,
@@ -239,17 +249,17 @@ namespace SIGAD.API.Controllers
 
                 // Subir nuevo archivo con almacenamiento dual
                 var (rutaLocal, urlCloudinary, hash) = await _fileStorageService.UploadFileAsync(file, "tesis");
-                
+
                 createDto.CertificacionRuta = rutaLocal;
                 createDto.UrlCloudinary = urlCloudinary;
                 createDto.ContenidoHash = hash;
-                
+
                 var actualizado = await _service.EditarAsync(id, createDto);
                 if (actualizado)
                 {
-                    return Ok(new 
-                    { 
-                        success = true, 
+                    return Ok(new
+                    {
+                        success = true,
                         message = "Tesis actualizada exitosamente con almacenamiento dual",
                         certificadoRuta = rutaLocal,
                         urlCloudinary = urlCloudinary
