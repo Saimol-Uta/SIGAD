@@ -1452,11 +1452,12 @@
 
             string endpoint = tipoDocumento.ToLower() switch
             {
-                "articulo" => $"api/articulos/{id}/archivo",
+                "articulo" => $"api/articulos/archivo/{id}",
                 "investigacion" => $"api/investigaciones/{id}/descargar-informe",
                 "curso" => $"api/cursos/{id}/certificado",
                 "experiencia" => $"api/experienciaslaborales/{id}/archivo",
                 "evaluacion" => $"api/evaluaciones/{id}/archivo",
+                "tesis" => $"api/tesisdirigidas/{id}/pdf",
                 _ => ""
             };
 
