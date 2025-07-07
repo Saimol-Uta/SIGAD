@@ -1,0 +1,141 @@
+﻿@page "/notificaciones"
+
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject INotificacionClienteService NotificacionService
+@inject NavigationManager Navigation
+
+<PageTitle>Mis Notificaciones</PageTitle>
+
+<div class="notifications-container">
+    <h1 class="page-title">Centro de Notificaciones</h1>
+
+    @if (isLoading)
+    {
+        <p>Cargando notificaciones...</p>
+    }
+    else if (notificaciones == null || !notificaciones.Any())
+    {
+        <div class="no-notifications">
+            <p>🎉 ¡Estás al día! No tienes notificaciones pendientes.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="notifications-list">
+            @foreach (var notificacion in notificaciones)
+            {
+                <li class="@(notificacion.EsLeida ? "read" : "unread")" @onclick="() => HandleNotificationClick(notificacion)">
+                    <div class="notification-icon">
+                        <span class="@(notificacion.EsLeida ? "icon-read" : "icon-unread")"></span>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-message">@notificacion.Mensaje</p>
+                        <span class="notification-time">@notificacion.TiempoTranscurrido</span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private List<NotificacionDto> notificaciones;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        notificaciones = await NotificacionService.GetNotificacionesAsync();
+        isLoading = false;
+    }
+
+    private async Task HandleNotificationClick(NotificacionDto notificacion)
+    {
+        if (!notificacion.EsLeida)
+        {
+            // Marcar como leída en el backend (no esperamos la respuesta para que la UI sea rápida)
+            await NotificacionService.MarkAsReadAsync(notificacion.Id);
+
+            // Actualizar la UI inmediatamente
+            notificacion.EsLeida = true;
+            StateHasChanged(); // Forzar re-renderizado
+        }
+
+        if (!string.IsNullOrEmpty(notificacion.UrlRedireccion))
+        {
+            Navigation.NavigateTo(notificacion.UrlRedireccion);
+        }
+    }
+}
+
+<style>
+    .notifications-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+
+    .page-title {
+        color: #0a1d44;
+        margin-bottom: 2rem;
+    }
+
+    .notifications-list {
+        list-style: none;
+        padding: 0;
+    }
+
+        .notifications-list li {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+            .notifications-list li:hover {
+                background-color: #f8f9fa;
+            }
+
+    .notification-content {
+        flex-grow: 1;
+    }
+
+    .notification-message {
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .notification-time {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .unread {
+        background-color: #eaf2ff;
+        font-weight: bold;
+    }
+
+    .read {
+        color: #6c757d;
+    }
+
+    .notification-icon {
+        margin-right: 1rem;
+    }
+
+    .icon-unread {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: #0d6efd;
+        border-radius: 50%;
+    }
+
+    .no-notifications {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+</style>

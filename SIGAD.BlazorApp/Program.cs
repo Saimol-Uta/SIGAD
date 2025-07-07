@@ -18,7 +18,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Agregar el servicio ISolicitudesService que también se necesita
 builder.Services.AddScoped<ISolicitudesService, SolicitudesService>();
 builder.Services.AddScoped<SolicitudesService>();
-
+builder.Services.AddScoped<INotificacionClienteService, NotificacionClienteService>();
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudService, SIGAD.BlazorApp.Services.SolicitudService>();
 builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.BlazorApp.Services.SolicitudesService>();
 
