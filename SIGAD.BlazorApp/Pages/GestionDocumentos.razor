@@ -6,6 +6,7 @@
 @using SIGAD.BlazorApp.Services
 @using SIGAD.BlazorApp.Components
 @using System.Text.Json
+@using Microsoft.JSInterop
 @attribute [Layout(typeof(EmptyLayout))]
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -1615,6 +1616,37 @@
     <img src="/images/triangulos.jpg" alt="Background Graphic" class="triangle-bg" />
 </body>
 
+<script>
+    // Listener para mensajes de los iframes
+    window.addEventListener('message', function(event) {
+        console.log('Debug - Mensaje recibido del iframe:', event.data);
+        
+        if (event.data && event.data.type === 'operationComplete' && event.data.success) {
+            console.log('Debug - Operación completada exitosamente en iframe');
+            
+            // Notificar a Blazor para cerrar el modal
+            if (window.blazorModalManager && window.blazorModalManager.cerrarModal) {
+                window.blazorModalManager.cerrarModal();
+            }
+        }
+    });
+
+    // Función para que Blazor registre el manejador de cierre de modal
+    window.blazorModalManager = {
+        cerrarModal: null
+    };
+
+    // Función para registrar el modal manager desde Blazor
+    window.registerModalManager = function(dotNetObjectRef) {
+        console.log('Debug - Registrando modal manager');
+        window.currentPageInstance = dotNetObjectRef;
+        window.blazorModalManager.cerrarModal = function() {
+            console.log('Debug - Cerrando modal desde JavaScript');
+            window.currentPageInstance.invokeMethodAsync('CerrarModalActivo');
+        };
+    };
+</script>
+
 @code {
     // Variables para información del usuario
     private string nombreUsuario = "";
@@ -1674,17 +1706,21 @@
     {
         await base.OnAfterRenderAsync(firstRender);
         
+        if (firstRender)
+        {
+            // Registrar la función para cerrar modales desde JavaScript
+            var objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerModalManager", objRef);
+            
+            hasCargadoContadores = true;
+        }
         // Si no es el primer render y aún no se han cargado los contadores,
         // significa que el usuario regresó a la p├ígina
-        if (!firstRender && !hasCargadoContadores)
+        else if (!hasCargadoContadores)
         {
             await CargarConteoDocumentos();
             hasCargadoContadores = true;
             StateHasChanged();
-        }
-        else if (firstRender)
-        {
-            hasCargadoContadores = true;
         }
     }
 
@@ -2754,5 +2790,25 @@
     private bool RangoRequiereTesis()
     {
         return requisitosInfo?.ValoresRequeridos?.TesisDirigidas > 0;
+    }
+
+    // Método para cerrar modal llamado desde JavaScript
+    [JSInvokable]
+    public async Task CerrarModalActivo()
+    {
+        Console.WriteLine("Debug - CerrarModalActivo llamado desde JavaScript");
+        
+        if (!string.IsNullOrEmpty(tipoDocumentoAgregar))
+        {
+            Console.WriteLine("Debug - Cerrando modal de agregar");
+            await CerrarModalAgregar();
+        }
+        else if (!string.IsNullOrEmpty(tipoDocumentoEditar))
+        {
+            Console.WriteLine("Debug - Cerrando modal de editar");
+            await CerrarModalEditar();
+        }
+        
+        StateHasChanged();
     }
 }

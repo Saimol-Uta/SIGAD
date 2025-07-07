@@ -259,6 +259,26 @@
     }
 </style>
 
+<script>
+    // Función para notificar al modal parent de una operación completada
+    window.notifyModalParent = function(success) {
+        console.log('Debug - Notificando al parent modal, success:', success);
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'operationComplete',
+                    success: success
+                }, '*');
+                console.log('Debug - Mensaje enviado al parent exitosamente');
+            } else {
+                console.log('Debug - No hay parent window disponible');
+            }
+        } catch (error) {
+            console.error('Debug - Error al enviar mensaje al parent:', error);
+        }
+    };
+</script>
+
 <body>
     <div class="header">
         <div class="branding">
@@ -610,8 +630,18 @@
                 if (response.IsSuccessStatusCode)
                 {
                     cursoGuardado = true;
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo(GetReturnUrl());
+                    
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        await Task.Delay(2000);
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {
@@ -669,20 +699,31 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Mostrar SweetAlert con cierre automático
-                    await JSRuntime.InvokeVoidAsync("Swal.fire", new
-                    {
-                        position = "center",
-                        icon = "success",
-                        title = Id != null ? "¡Curso actualizado!" : "¡Curso guardado!",
-                        text = "La información se ha guardado correctamente",
-                        showConfirmButton = false,
-                        timer = 2000
-                    });
+                    cursoGuardado = true;
                     
-                    // Esperar y redirigir
-                    await Task.Delay(2200); // Esperar a que termine el SweetAlert
-                    Navigation.NavigateTo(GetReturnUrl());
+                    // Si viene de modal, notificar al parent y no navegar
+                    if (returnTo == "modal")
+                    {
+                        await JSRuntime.InvokeVoidAsync("notifyModalParent", true);
+                        await Task.Delay(500); // Pequeña pausa para asegurar que el mensaje se envíe
+                    }
+                    else
+                    {
+                        // Mostrar SweetAlert con cierre automático
+                        await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                        {
+                            position = "center",
+                            icon = "success",
+                            title = "¡Curso guardado!",
+                            text = "La información se ha guardado correctamente",
+                            showConfirmButton = false,
+                            timer = 2000
+                        });
+                        
+                        // Esperar y redirigir
+                        await Task.Delay(2200); // Esperar a que termine el SweetAlert
+                        Navigation.NavigateTo(GetReturnUrl());
+                    }
                 }
                 else
                 {

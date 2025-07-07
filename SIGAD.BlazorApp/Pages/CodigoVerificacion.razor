@@ -57,7 +57,7 @@
 
         try
         {
-            var response = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/verificar-codigo", new
+            var response = await Http.PostAsJsonAsync("https://localhost:5250/api/Auth/verificar-codigo", new
             {
                 Email = correo,
                 Codigo = codigo
