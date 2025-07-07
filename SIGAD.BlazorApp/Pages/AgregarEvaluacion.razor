@@ -351,8 +351,18 @@
                             Período Académico <span class="required">*</span>
                         </label>
                         <InputText @bind-Value="evaluacionModel.TipoEvaluacion" class="form-control"
-                                   placeholder="Ej: 2024-1, Enero-Junio 2024, etc." />
+                                   placeholder="Formato: MES-MES-AÑO (Ej: ENERO-JUNIO-2024)" 
+                                   @oninput="ValidarFormatoPeriodo" />
                         <ValidationMessage For="@(() => evaluacionModel.TipoEvaluacion)" />
+                        @if (!string.IsNullOrEmpty(errorPeriodo))
+                        {
+                            <div style="color: #dc3545; font-size: 0.875rem; margin-top: 0.25rem;">
+                                @errorPeriodo
+                            </div>
+                        }
+                        <small style="color: #6c757d; font-size: 0.875rem;">
+                            Formato requerido: MES-MES-AÑO (ejemplo: ENERO-JUNIO-2024)
+                        </small>
                     </div>
 
                     <div class="form-row">
@@ -437,6 +447,14 @@
     private string? errorMessage;
     private string returnTo = "gestion-documentos"; // Por defecto volver a gestión
 
+    // Variables para validación del período académico
+    private string errorPeriodo = "";
+    private readonly string[] mesesValidos = 
+    {
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+    };
+
     protected override async Task OnInitializedAsync()
     {
         // Leer parámetro returnTo de la query string
@@ -477,6 +495,63 @@
     private string GetReturnUrl()
     {
         return returnTo == "inventario" ? "/inventario" : "/gestion-documentos";
+    }
+
+    private void ValidarFormatoPeriodo(ChangeEventArgs e)
+    {
+        var valor = e?.Value?.ToString()?.Trim();
+        errorPeriodo = "";
+
+        if (string.IsNullOrEmpty(valor))
+        {
+            return;
+        }
+
+        // Validar formato MES-MES-AÑO
+        var partes = valor.Split('-');
+        if (partes.Length != 3)
+        {
+            errorPeriodo = "El formato debe ser MES-MES-AÑO (ejemplo: ENERO-JUNIO-2024)";
+            return;
+        }
+
+        var mesInicio = partes[0].Trim().ToUpper();
+        var mesFin = partes[1].Trim().ToUpper();
+        var anio = partes[2].Trim();
+
+        // Validar que los meses sean válidos
+        if (!mesesValidos.Contains(mesInicio))
+        {
+            errorPeriodo = $"'{partes[0]}' no es un mes válido. Use nombres completos en mayúscula (ENERO, FEBRERO, etc.)";
+            return;
+        }
+
+        if (!mesesValidos.Contains(mesFin))
+        {
+            errorPeriodo = $"'{partes[1]}' no es un mes válido. Use nombres completos en mayúscula (ENERO, FEBRERO, etc.)";
+            return;
+        }
+
+        // Validar que el año sea un número de 4 dígitos
+        if (!int.TryParse(anio, out int year) || year < 1900 || year > 2100)
+        {
+            errorPeriodo = "El año debe ser un número válido de 4 dígitos entre 1900 y 2100";
+            return;
+        }
+
+        // Validar que el mes de inicio sea anterior o igual al mes de fin
+        var indiceInicio = Array.IndexOf(mesesValidos, mesInicio);
+        var indiceFin = Array.IndexOf(mesesValidos, mesFin);
+
+        if (indiceInicio > indiceFin)
+        {
+            errorPeriodo = $"El mes de inicio ({mesInicio}) no puede ser posterior al mes de fin ({mesFin})";
+            return;
+        }
+
+        // Si llegamos aquí, el formato es válido
+        evaluacionModel.TipoEvaluacion = valor.ToUpper();
+        StateHasChanged();
     }
 
     private async Task VerificarSolicitudActiva()
@@ -553,6 +628,20 @@
     {
         if (enviandoFormulario) return;
 
+        // Validar formato del período académico antes de continuar
+        if (!string.IsNullOrEmpty(errorPeriodo))
+        {
+            errorMessage = "Por favor corrija el formato del período académico antes de continuar.";
+            return;
+        }
+
+        // Validar que el período académico no esté vacío
+        if (string.IsNullOrWhiteSpace(evaluacionModel.TipoEvaluacion))
+        {
+            errorMessage = "El período académico es obligatorio.";
+            return;
+        }
+
         // Al agregar, el archivo es obligatorio. Al editar, solo si se selecciona uno nuevo.
         if (!Id.HasValue && archivoFormulario == null)
         {
@@ -623,7 +712,11 @@
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al actualizar la evaluación: {errorContent}";
+                    // Crear un mensaje de error más amigable
+                    errorMessage = "Error al actualizar la evaluación. Por favor verifique que todos los campos estén correctamente completados e intente nuevamente.";
+                    
+                    // Log del error real para debugging (opcional)
+                    Console.WriteLine($"Error del servidor: {errorContent}");
                 }
             }
             else
@@ -692,13 +785,21 @@
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    errorMessage = $"Error al guardar la evaluación: {errorContent}";
+                    // Crear un mensaje de error más amigable
+                    errorMessage = "Error al guardar la evaluación. Por favor verifique que todos los campos estén correctamente completados e intente nuevamente.";
+                    
+                    // Log del error real para debugging (opcional)
+                    Console.WriteLine($"Error del servidor: {errorContent}");
                 }
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al procesar la solicitud: {ex.Message}";
+            // Crear un mensaje de error más amigable para el usuario
+            errorMessage = "Ocurrió un error inesperado al procesar la solicitud. Por favor intente nuevamente más tarde.";
+            
+            // Log del error real para debugging (opcional)
+            Console.WriteLine($"Excepción: {ex.Message}");
         }
         finally
         {

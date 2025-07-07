@@ -313,14 +313,14 @@
                             <label class="form-label">
                                 Fecha de Inicio <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaInicio" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaInicio" @bind-Value:after="CalcularMesesInvestigacion" class="form-control" />
                             <ValidationMessage For="@(() => investigacionModel.FechaInicio)" />
                         </div>
                         <div class="form-group">
                             <label class="form-label">
                                 Fecha de Finalización <span class="required">*</span>
                             </label>
-                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" class="form-control" />
+                            <InputDate @bind-Value="investigacionModel.FechaFinalizacion" @bind-Value:after="CalcularMesesInvestigacion" class="form-control" />
                             <ValidationMessage For="@(() => investigacionModel.FechaFinalizacion)" />
                         </div>
                     </div>
@@ -341,8 +341,12 @@
                         <div class="form-group">
                             <label class="form-label">
                                 Meses de Investigación <span class="required">*</span>
+                                <small class="text-muted">(Calculado automáticamente)</small>
                             </label>
-                            <InputNumber @bind-Value="investigacionModel.MesesDeInvestigacion" class="form-control" min="1" max="120" />
+                            <InputNumber @bind-Value="investigacionModel.MesesDeInvestigacion" class="form-control" readonly="true" min="1" max="120" />
+                            <small class="form-text text-muted">
+                                Este campo se calcula automáticamente basándose en las fechas de inicio y finalización.
+                            </small>
                             <ValidationMessage For="@(() => investigacionModel.MesesDeInvestigacion)" />
                         </div>
                     </div>
@@ -420,6 +424,12 @@
 
         await CargarInformacionUsuario();
 
+        // Para nuevas investigaciones, calcular meses iniciales
+        if (!Id.HasValue)
+        {
+            CalcularMesesInvestigacion();
+        }
+
         if (Id.HasValue)
         {
             // Cargar datos de la investigación para edición
@@ -437,6 +447,9 @@
                     investigacionModel.MesesDeInvestigacion = inv.MesesDeInvestigacion;
                     archivoActualRuta = inv.InformeRuta;
                     archivoActualNombre = Path.GetFileName(inv.InformeRuta);
+                    
+                    // Recalcular meses por si las fechas han cambiado
+                    CalcularMesesInvestigacion();
                 }
             }
             else
@@ -669,6 +682,34 @@
         }
     }
 
+    private void CalcularMesesInvestigacion()
+    {
+        // Solo calcular si ambas fechas están establecidas y la fecha de fin es posterior a la de inicio
+        if (investigacionModel.FechaInicio != default && 
+            investigacionModel.FechaFinalizacion != default && 
+            investigacionModel.FechaFinalizacion > investigacionModel.FechaInicio)
+        {
+            // Calcular la diferencia en meses
+            var fechaInicio = investigacionModel.FechaInicio;
+            var fechaFin = investigacionModel.FechaFinalizacion;
+            
+            // Calcular meses completos
+            var meses = ((fechaFin.Year - fechaInicio.Year) * 12) + fechaFin.Month - fechaInicio.Month;
+            
+            // Si el día de finalización es menor que el de inicio, restar un mes
+            if (fechaFin.Day < fechaInicio.Day)
+            {
+                meses--;
+            }
+            
+            // Asegurar que sea al menos 1 mes (mínimo requerido)
+            investigacionModel.MesesDeInvestigacion = Math.Max(meses, 1);
+            
+            // Forzar actualización de la UI
+            StateHasChanged();
+        }
+    }
+
     private async Task<string?> ObtenerCedulaUsuario()
     {
         try
@@ -713,7 +754,7 @@
         public DateTime FechaInicio { get; set; } = DateTime.Today;
         public DateTime FechaFinalizacion { get; set; } = DateTime.Today.AddMonths(6);
         public string RolEnInvestigacion { get; set; } = "";
-        public int MesesDeInvestigacion { get; set; } = 1;
+        public int MesesDeInvestigacion { get; set; } = 6; // Inicializar con 6 meses por defecto
         public bool EsInternacional { get; set; } = false;
     }
 
