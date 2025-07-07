@@ -318,14 +318,6 @@
                     <DataAnnotationsValidator />
 
                     <div class="form-group">
-                        <label class="form-label">¿Tipo de curso? <span class="required">*</span></label>
-                        <InputRadioGroup @bind-Value="cursoModel.ImpartidoPorDocente">
-                            <InputRadio Value="false" /> Recibido
-                            <InputRadio Value="true" /> Impartido (dictado por usted)
-                        </InputRadioGroup>
-                    </div>
-
-                    <div class="form-group">
                         <label class="form-label">
                             Nombre del Curso <span class="required">*</span>
                         </label>
@@ -393,9 +385,15 @@
                             <label class="form-label">
                                 Tipo de Curso <span class="required">*</span>
                             </label>
-                            <InputText @bind-Value="cursoModel.TipoCurso" class="form-control"
-                                       placeholder="Ej: Diplomado, Seminario, Taller" />
+                            <InputSelect @bind-Value="cursoModel.TipoCurso" class="form-control">
+                                <option value="">Seleccione el tipo de curso</option>
+                                @foreach (var tipo in TiposCurso)
+                                {
+                                    <option value="@tipo.Key">@tipo.Value</option>
+                                }
+                            </InputSelect>
                             <ValidationMessage For="@(() => cursoModel.TipoCurso)" />
+                            <small class="text-muted">Seleccione el tipo según el reglamento académico</small>
                         </div>
                     </div>
                     <div class="form-group">
@@ -456,6 +454,20 @@
 
 @code {
     [Parameter] public int? Id { get; set; }
+
+    // Constantes locales para tipos de curso (evitar dependencia directa del enum del dominio)
+    private static readonly Dictionary<string, string> TiposCurso = new()
+    {
+        { "ActualizacionCientifica", "Actualización Científica" },
+        { "ActualizacionPedagogica", "Actualización Pedagógica" },
+        { "Especializacion", "Especialización" },
+        { "Diplomado", "Diplomado" },
+        { "Seminario", "Seminario/Taller" },
+        { "Conferencia", "Conferencia/Ponencia" },
+        { "Certificacion", "Certificación Profesional" },
+        { "CapacitacionImpartida", "Capacitación Impartida" },
+        { "CapacitacionTecnica", "Capacitación Técnica" }
+    };
 
     private string nombreUsuario = "";
     private CursoModel cursoModel = new();
@@ -586,6 +598,14 @@
             return;
         }
 
+        // Validar tipo de curso seleccionado
+        if (string.IsNullOrEmpty(cursoModel.TipoCurso) || !TiposCurso.ContainsKey(cursoModel.TipoCurso))
+        {
+            errorMessage = "Debe seleccionar un tipo de curso válido.";
+            enviandoFormulario = false;
+            return;
+        }
+
         // Validar archivo (obligatorio al agregar, opcional al editar)
         if (!Id.HasValue && certificadoFile == null)
         {
@@ -612,7 +632,7 @@
                 content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
                 content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
                 content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
-                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
+                content.Add(new StringContent(cursoModel.TipoCurso!), "TipoCurso");
                 content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
                 content.Add(new StringContent(cedula), "DocenteCedula");
@@ -684,7 +704,7 @@
                 content.Add(new StringContent(cursoModel.NumeroHoras.ToString()), "NumeroHoras");
                 content.Add(new StringContent((cursoModel.HorasImpartidas ?? 0).ToString()), "HorasImpartidas");
                 content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
-                content.Add(new StringContent(cursoModel.TipoCurso), "TipoCurso");
+                content.Add(new StringContent(cursoModel.TipoCurso!), "TipoCurso");
                 content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
                 content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
                 content.Add(new StringContent(cedula), "DocenteCedula");
@@ -812,7 +832,7 @@
         public int? HorasImpartidas { get; set; } = 0;
         public bool ImpartidoPorDocente { get; set; } = false;
         public int? OrganizacionId { get; set; }
-        public string TipoCurso { get; set; } = "";
+        public string? TipoCurso { get; set; }
         public string? CertificadoRuta { get; set; }
     }
 
