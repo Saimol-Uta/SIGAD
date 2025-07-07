@@ -15,7 +15,7 @@ docker run --rm -it --network sigad_sigad-network `
     -e ASPNETCORE_ENVIRONMENT=Docker `
     -e ConnectionStrings__DefaultConnection="Server=sigad-database;Database=SISTEMA_DOCENTES;User Id=SA;Password=SIGAD123456!;TrustServerCertificate=True;Encrypt=False;" `
     mcr.microsoft.com/dotnet/sdk:9.0 `
-    bash -c "dotnet tool install --global dotnet-ef && /root/.dotnet/tools/dotnet-ef database update --project SIGAD.Infrastructure --startup-project SIGAD.WebAPI"
+    bash -c "dotnet tool install --global dotnet-ef && /root/.dotnet/tools/dotnet-ef database update --project `"SIGAD.Infrastructure`" --startup-project `"SIGAD.WebAPI`""
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Migraciones aplicadas exitosamente!" -ForegroundColor Green
