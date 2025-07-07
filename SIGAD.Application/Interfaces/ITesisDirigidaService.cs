@@ -10,10 +10,11 @@ namespace SIGAD.Application.Interfaces
         Task DesasociarDeSolicitudAsync(Guid solicitudId, int tesisId);
         Task<bool> ExistePorHashAsync(string hash);
 
-        // Métodos nuevos:
+        // MÃ©todos nuevos:
         Task<bool> EliminarAsync(int id);
         Task<bool> EditarAsync(int id, CreateTesisDirigidaDto dto);
         Task<string?> ObtenerRutaPdfAsync(int id);
+        Task<byte[]?> GetArchivoPdfAsync(int id);
         Task<TesisDirigidaDto?> ObtenerPorIdAsync(int id);
     }
 }
