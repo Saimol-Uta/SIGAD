@@ -771,6 +771,7 @@
             content.Add(new StringContent(cursoModel.ImpartidoPorDocente.ToString()), "ImpartidoPorDocente");
             content.Add(new StringContent(cursoModel.TipoCurso!), "TipoCurso");
             content.Add(new StringContent(cursoModel.FechaFinalizacion.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaFinalizacion");
+            content.Add(new StringContent(cursoModel.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ss")), "FechaInicio");
             content.Add(new StringContent(cedula), "DocenteCedula");
 
             // Para edición, agregar el ID
