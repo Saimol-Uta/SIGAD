@@ -33,7 +33,7 @@
 
         try
         {
-            var respuesta = await Http.PostAsJsonAsync("https://localhost:7072/api/Auth/restablecer-contrasena", new
+            var respuesta = await Http.PostAsJsonAsync("api/Auth/restablecer-contrasena", new
             {
                 email = email,
                 codigo = codigo,
