@@ -212,7 +212,7 @@ docker-compose restart sigad-webapi
    ```
 
 3. **Verificar frontend:**
-   Abrir http://localhost:5250 en el navegador
+   Abrir http://localhdf -host:5250 en el navegador
 
 ## 🗄️ Gestión de Base de Datos
 
