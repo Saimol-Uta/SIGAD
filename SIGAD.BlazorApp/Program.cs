@@ -27,7 +27,7 @@ builder.Services.AddScoped<ReporteService>();
 builder.Services.AddScoped(sp => 
 {
     // Para BlazorApp, usar la URL del navegador actual ya que el contenedor usa nginx
-    var baseAddress = "http://localhost:5217";
+    var baseAddress = "https://super-space-spoon-pj99gqvv95vwf6wrp-5217.app.github.dev";
     
     return new HttpClient
     {
@@ -40,7 +40,7 @@ builder.Services.AddScoped<AuthorizationMessageHandler>();
 
 builder.Services.AddHttpClient("SIGAD.WebApi", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5217"); // La dirección de tu API
+    client.BaseAddress = new Uri("https://super-space-spoon-pj99gqvv95vwf6wrp-5217.app.github.dev"); // La dirección de tu API
     client.Timeout = TimeSpan.FromMinutes(10);
 })
 .AddHttpMessageHandler<AuthorizationMessageHandler>();
