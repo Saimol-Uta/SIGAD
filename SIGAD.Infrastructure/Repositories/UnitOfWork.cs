@@ -8,7 +8,8 @@ namespace SIGAD.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly SigadDbContext _context;
-        private IDbContextTransaction? _transaction; public UnitOfWork(SigadDbContext context)
+        private IDbContextTransaction? _transaction;
+        public UnitOfWork(SigadDbContext context)
         {
             _context = context;
             Articulos = new EfArticuloRepository(context);
@@ -65,6 +66,7 @@ namespace SIGAD.Infrastructure.Repositories
             _transaction?.Dispose();
             _context.Dispose();
         }
+        
         public IArticuloRepository Articulos { get; }
         public ICursoRepository Cursos { get; }
         public IEvaluacionDocenteRepository Evaluaciones { get; }

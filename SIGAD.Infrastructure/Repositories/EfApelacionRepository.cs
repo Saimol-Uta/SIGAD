@@ -12,6 +12,11 @@ namespace SIGAD.Infrastructure.Repositories
     /// </summary>
     public class EfApelacionRepository : IApelacionRepository
     {
+        // Inyección del contexto de base de datos
+        // se asume que SigadDbContext está correctamente configurado
+        // y registrado en el contenedor de DI
+        //DI es Dependency Injection (inyección de dependencias)
+        //el _context sirve para interactuar con la base de datos
         private readonly SigadDbContext _context;
 
         public EfApelacionRepository(SigadDbContext context)
@@ -21,6 +26,10 @@ namespace SIGAD.Infrastructure.Repositories
 
         public async Task UpdateAsync(Apelacion apelacion)
         {
+            //el Update no es async en EF Core, pero el SaveChanges sí
+            // update es un metodo que marca la entidad como modificada
+
+
             _context.Apelaciones.Update(apelacion);
             await _context.SaveChangesAsync();
         }
