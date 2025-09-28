@@ -6,6 +6,7 @@ Sistema desarrollado con arquitectura Clean Architecture usando .NET 9, Blazor W
 
 - [Descripción](#descripción)
 - [Arquitectura](#arquitectura)
+   - [Arquitectura y SOLID (detallado)](README.Arquitectura-SOLID.md)
 - [Requisitos Previos](#requisitos-previos)
 - [Instalación y Configuración](#instalación-y-configuración)
 - [Ejecución del Proyecto](#ejecución-del-proyecto)
@@ -29,7 +30,7 @@ SIGAD es un sistema integral para la gestión de acciones de personal en institu
 
 ## 🏗️ Arquitectura
 
-
+Para una explicación detallada de la arquitectura, la aplicación de principios SOLID y las refactorizaciones sugeridas, consulta: [README.Arquitectura-SOLID.md](README.Arquitectura-SOLID.md).
 
 ## 🏗️ Arquitectura Detallada
 

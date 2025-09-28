@@ -24,15 +24,15 @@ builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.B
 
 builder.Services.AddScoped<ReporteService>();
 
-builder.Services.AddScoped(sp => 
+builder.Services.AddScoped(sp =>
 {
-    // Para BlazorApp, usar la URL del navegador actual ya que el contenedor usa nginx
-    var baseAddress = "https://super-space-spoon-pj99gqvv95vwf6wrp-5217.app.github.dev";
-    
+    // Leer la base URL desde configuración (wwwroot/appsettings.json)
+    var baseAddress = builder.Configuration["ApiSettings:BaseUrl"]
+        ?? builder.HostEnvironment.BaseAddress; // fallback razonable
     return new HttpClient
     {
         BaseAddress = new Uri(baseAddress),
-        Timeout = TimeSpan.FromMinutes(10) // 10 minutos para operaciones críticas como apelaciones
+        Timeout = TimeSpan.FromMinutes(10)
     };
 });
 
@@ -40,10 +40,11 @@ builder.Services.AddScoped<AuthorizationMessageHandler>();
 
 builder.Services.AddHttpClient("SIGAD.WebApi", client =>
 {
-    client.BaseAddress = new Uri("https://super-space-spoon-pj99gqvv95vwf6wrp-5217.app.github.dev"); // La dirección de tu API
+    var baseAddress = builder.Configuration["ApiSettings:BaseUrl"]
+        ?? builder.HostEnvironment.BaseAddress;
+    client.BaseAddress = new Uri(baseAddress);
     client.Timeout = TimeSpan.FromMinutes(10);
-})
-.AddHttpMessageHandler<AuthorizationMessageHandler>();
+}).AddHttpMessageHandler<AuthorizationMessageHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("SIGAD.WebApi"));
 
