@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SIGAD.Application.Services;
+using SIGAD.Infrastructure.Services; // Movido de Application.Services
 
 
 namespace SIGAD.WebAPI.Controllers

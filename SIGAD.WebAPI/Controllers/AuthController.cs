@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SIGAD.Application.Contracts.Services; // ✅ Servicios segregados
 using SIGAD.Application.DTOs;
 using SIGAD.Application.Interfaces;
 using SIGAD.Application.Services;
@@ -20,7 +21,7 @@ namespace SIGAD.WebAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> VerificarCodigo([FromBody] VerificarCodigoDto dto)
         {
-            var valido = await _authService.VerificarCodigoAsync(dto.Email, dto.Codigo);
+            var valido = await _passwordRecoveryService.VerificarCodigoAsync(dto.Email, dto.Codigo);
 
             if (!valido)
             {
@@ -34,7 +35,7 @@ namespace SIGAD.WebAPI.Controllers
         [Microsoft.AspNetCore.Authorization.AllowAnonymous] // Un usuario sin sesión debe poder usar esto
         public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto dto)
         {
-            await _authService.SolicitarRecuperacionAsync(dto.Email);
+            await _passwordRecoveryService.SolicitarRecuperacionAsync(dto.Email);
 
             // Por seguridad, siempre devolvemos una respuesta genérica exitosa
             return Ok(new { Message = "Si su correo electrónico está registrado en nuestro sistema, recibirá un correo con las instrucciones para restablecer su contraseña." });
@@ -44,7 +45,7 @@ namespace SIGAD.WebAPI.Controllers
         [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public async Task<IActionResult> RestablecerContrasena([FromBody] RestablecerContrasenaDto dto)
         {
-            var success = await _authService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena, dto.ConfirmarContrasena);
+            var success = await _passwordRecoveryService.RestablecerContrasenaAsync(dto.Email, dto.Codigo, dto.NuevaContrasena, dto.ConfirmarContrasena);
 
             if (!success)
             {
@@ -54,17 +55,31 @@ namespace SIGAD.WebAPI.Controllers
             return Ok(new { Message = "Su contraseña ha sido restablecida exitosamente." });
         }
 
-        private readonly IAuthService _authService;
+        // ✅ SERVICIOS SEGREGADOS (SOLID - SRP)
+        private readonly ITokenService _tokenService;
+        private readonly IAuthenticationService _authenticationService;
+        private readonly IUserRegistrationService _userRegistrationService;
+        private readonly IPasswordRecoveryService _passwordRecoveryService;
         private readonly ILogger<AuthController> _logger;
         private readonly SigadDbContext _context;
         private readonly INotificacionService _notificacionService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger, SigadDbContext context, INotificacionService notificacionService)
+        public AuthController(
+            ITokenService tokenService,
+            IAuthenticationService authenticationService,
+            IUserRegistrationService userRegistrationService,
+            IPasswordRecoveryService passwordRecoveryService,
+            ILogger<AuthController> logger,
+            SigadDbContext context,
+            INotificacionService notificacionService)
         {
-            _authService = authService;
+            _tokenService = tokenService;
+            _authenticationService = authenticationService;
+            _userRegistrationService = userRegistrationService;
+            _passwordRecoveryService = passwordRecoveryService;
             _logger = logger;
             _context = context;
-            _notificacionService = notificacionService; // <-- Y AQUÍ
+            _notificacionService = notificacionService;
         }
 
         /// <summary>
@@ -239,7 +254,7 @@ namespace SIGAD.WebAPI.Controllers
                 return BadRequest("Password is required");
             }
 
-            var hash = _authService.HashPassword(password);
+            var hash = _userRegistrationService.HashPassword(password);
 
             return Ok(new
             {
@@ -283,7 +298,7 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 // Intentar registrar
-                var result = await _authService.RegisterAsync(registerRequest);
+                var result = await _userRegistrationService.RegisterAsync(registerRequest);
                 if (!result)
                 {
                     _logger.LogWarning("Registro fallido para el correo: {Correo} - Usuario ya existe", registerRequest.Correo);
@@ -348,7 +363,7 @@ namespace SIGAD.WebAPI.Controllers
             var cuenta = new SIGAD.Domain.Entities.Cuenta
             {
                 Correo = model.Correo,
-                ClaveHash = _authService.HashPassword(model.Clave),
+                ClaveHash = _userRegistrationService.HashPassword(model.Clave),
                 DocenteCedula = model.Cedula,
                 // Puedes asignar un rol por defecto si lo necesitas
                 Rol = Domain.Enums.Rol.DOCENTE
@@ -404,7 +419,7 @@ namespace SIGAD.WebAPI.Controllers
                 }
 
                 // Intentar autenticar
-                var result = await _authService.LoginAsync(loginRequest);
+                var result = await _authenticationService.LoginAsync(loginRequest);
                 if (result == null)
                 {
                     _logger.LogWarning("Login fallido para el correo: {Correo}", loginRequest.Correo);
@@ -957,7 +972,7 @@ namespace SIGAD.WebAPI.Controllers
 
                 // Generar hash con el sistema actual
                 var password = "123456";
-                var hash = _authService.HashPassword(password);
+                var hash = _userRegistrationService.HashPassword(password);
                 _logger.LogInformation("Hash generado para '123456': {Hash}", hash.Substring(0, 20) + "...");
 
                 // Crear usuarios de prueba
@@ -984,7 +999,7 @@ namespace SIGAD.WebAPI.Controllers
                         Rol = user.Rol
                     };
 
-                    var result = await _authService.RegisterAsync(registerRequest);
+                    var result = await _userRegistrationService.RegisterAsync(registerRequest);
                     if (!result)
                     {
                         _logger.LogError("Error al crear usuario {Correo}", user.Correo);

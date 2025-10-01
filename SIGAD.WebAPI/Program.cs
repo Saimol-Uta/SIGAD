@@ -122,10 +122,8 @@ builder.Services.AddScoped<IExperienciaLaboralRepository, ExperienciaLaboralRepo
 builder.Services.AddScoped<ITesisDirigidaRepository, EfTesisDirigidaRepository>();
 builder.Services.AddScoped<IOrganizacionRepository, EfOrganizacionRepository>();
 
-// Servicios de aplicación
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// NUEVO: Servicios segregados de autenticación (SOLID - SRP)
+// ✅ Servicios segregados de autenticación (SOLID - SRP)
+// AuthService monolítico ELIMINADO - ahora usamos servicios especializados
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();

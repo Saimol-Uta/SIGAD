@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SIGAD.Application.DTOs;
-using SIGAD.Domain.Entities; // Asegúrate que el using a tus entidades es correcto
+using SIGAD.Application.Interfaces; // Interfaz en Application
+using SIGAD.Domain.Entities;
 using SIGAD.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -8,10 +9,13 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SIGAD.Application.Interfaces;
 
-namespace SIGAD.Application.Services
+namespace SIGAD.Infrastructure.Services // Movido de Application.Services a Infrastructure.Services
 {
+    /// <summary>
+    /// Servicio de reportes que utiliza EF Core directamente.
+    /// Ubicado en Infrastructure ya que depende de implementaciones específicas de EF Core (ToListAsync, etc).
+    /// </summary>
     public class ReporteBackendService
     {
         private readonly IApplicationDbContext _context;
