@@ -1,6 +1,9 @@
 ﻿using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using SIGAD.BlazorApp.Models;
+using SIGAD.BlazorApp.Abstractions;
+using SIGAD.BlazorApp.ApiClients;
+using SIGAD.BlazorApp.Extensions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -9,44 +12,66 @@ using System.Threading.Tasks;
 
 namespace SIGAD.BlazorApp.Services
 {
+    /// <summary>
+    /// Servicio de autenticación refactorizado con principios SOLID.
+    /// Usa IAuthApiClient (cliente tipado) e ITokenProvider (abstracción de almacenamiento).
+    /// Fase 3: Usa métodos de extensión para mapeo de DTOs.
+    /// </summary>
     public class AuthService : IAuthService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IAuthApiClient _authClient;
+        private readonly ITokenProvider _tokenProvider;
         private readonly AuthenticationStateProvider _authenticationStateProvider;
-        private readonly ILocalStorageService _localStorage;
+        private readonly HttpClient _httpClient; // Mantener temporalmente para métodos legacy
 
-        public AuthService(HttpClient httpClient,
-                           AuthenticationStateProvider authenticationStateProvider,
-                           ILocalStorageService localStorage)
+        public AuthService(
+            IAuthApiClient authClient,
+            ITokenProvider tokenProvider,
+            AuthenticationStateProvider authenticationStateProvider,
+            HttpClient httpClient)
         {
-            _httpClient = httpClient;
+            _authClient = authClient;
+            _tokenProvider = tokenProvider;
             _authenticationStateProvider = authenticationStateProvider;
-            _localStorage = localStorage;
+            _httpClient = httpClient;
         }
 
         public async Task<LoginResponseDto?> Login(LoginRequestDto loginRequest)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/Auth/login", loginRequest);
-            if (!response.IsSuccessStatusCode)
+            // Mapear el DTO de Blazor al DTO de Application
+            var appLoginRequest = new Application.DTOs.LoginRequestDto
             {
-                return null; // O manejar el error específico
-            }
+                Correo = loginRequest.Correo,
+                Clave = loginRequest.Clave
+            };
 
-            var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
-            if (loginResponse == null || string.IsNullOrEmpty(loginResponse.Token))
+            // Usar el cliente tipado para la llamada a la API
+            var appLoginResponse = await _authClient.LoginAsync(appLoginRequest);
+
+            if (appLoginResponse == null || string.IsNullOrEmpty(appLoginResponse.Token))
             {
                 return null;
             }
 
-            await _localStorage.SetItemAsync("authToken", loginResponse.Token);
+            // Usar el método de extensión para mapear (Fase 3: DtoMappingExtensions)
+            var loginResponse = appLoginResponse.ToBlazorLoginResponseDto();
+
+            // Usar la abstracción de token provider
+            await _tokenProvider.SetTokenAsync(loginResponse.Token);
+
+            // Notificar al provider de autenticación
             ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsAuthenticated(loginResponse.Token);
+
+            // Mantener compatibilidad con HttpClient legacy
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", loginResponse.Token);
 
             return loginResponse;
         }
         public async Task<bool> Register(RegisterRequestDto registerRequest)
         {
-            // Solo enviar los campos requeridos por el nuevo flujo
+            // El DTO de Application.RegisterRequestDto tiene más campos que el de Blazor
+            // Por ahora, mantener la implementación legacy usando HttpClient directamente
+            // TODO: Actualizar cuando se alineen los DTOs o se cree un RegisterSimpleRequestDto en Application
             var apiRequest = new
             {
                 Correo = registerRequest.Correo,
@@ -60,6 +85,7 @@ namespace SIGAD.BlazorApp.Services
         // Verifica si la cédula existe en la base de datos
         public async Task<bool> CedulaExisteAsync(string cedula)
         {
+            // Mantener implementación legacy por ahora (no está en IAuthApiClient)
             var response = await _httpClient.GetAsync($"api/Auth/cedula-existe/{cedula}");
             if (!response.IsSuccessStatusCode)
                 return false;
@@ -69,12 +95,16 @@ namespace SIGAD.BlazorApp.Services
 
         public async Task Logout()
         {
-            await _localStorage.RemoveItemAsync("authToken");
+            // Usar la abstracción de token provider
+            await _tokenProvider.RemoveTokenAsync();
+
             ((ApiAuthenticationStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
             _httpClient.DefaultRequestHeaders.Authorization = null;
         }
+
         public async Task<bool> RegisterSimple(RegisterSimpleDto registerRequest)
         {
+            // Mantener implementación legacy por ahora (no está en IAuthApiClient)
             var response = await _httpClient.PostAsJsonAsync("api/Auth/register-simple", registerRequest);
             return response.IsSuccessStatusCode;
         }

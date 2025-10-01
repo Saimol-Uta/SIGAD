@@ -1,23 +1,27 @@
-﻿using Blazored.LocalStorage;
+﻿using SIGAD.BlazorApp.Abstractions;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SIGAD.BlazorApp.Services
 {
+    /// <summary>
+    /// Handler HTTP que inyecta automáticamente el token JWT en las peticiones.
+    /// Refactorizado para usar ITokenProvider (principio DIP).
+    /// </summary>
     public class AuthorizationMessageHandler : DelegatingHandler
     {
-        private readonly ILocalStorageService _localStorage;
+        private readonly ITokenProvider _tokenProvider;
 
-        public AuthorizationMessageHandler(ILocalStorageService localStorage)
+        public AuthorizationMessageHandler(ITokenProvider tokenProvider)
         {
-            _localStorage = localStorage;
+            _tokenProvider = tokenProvider;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            // Intentar obtener el token del local storage
-            var token = await _localStorage.GetItemAsync<string>("authToken", cancellationToken);
+            // Usar la abstracción para obtener el token
+            var token = await _tokenProvider.GetTokenAsync();
 
             // Si el token existe, lo añadimos al encabezado de la petición
             if (!string.IsNullOrEmpty(token))

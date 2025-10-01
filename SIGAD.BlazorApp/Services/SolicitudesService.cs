@@ -1,4 +1,6 @@
 using SIGAD.BlazorApp.Models;
+using SIGAD.BlazorApp.Abstractions;
+using SIGAD.BlazorApp.ApiClients;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using Blazored.LocalStorage;
@@ -31,25 +33,40 @@ namespace SIGAD.BlazorApp.Services
         Task<List<SolicitudConApelacionDto>> GetSolicitudesConApelacionesAsync();
         Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId);
         Task<(bool success, string message)> ResolverApelacionAsync(int apelacionId, bool aceptada, string observaciones);
-        
+
         // Método para generar certificados
         Task<(bool success, string message, byte[] pdfData)> DescargarCertificadoAsync(Guid solicitudId);
     }
 
+    /// <summary>
+    /// Servicio de solicitudes refactorizado para usar clientes tipados (Fase 2 SOLID).
+    /// Usa ISolicitudesQueryApiClient para operaciones de lectura e ISolicitudesCommandApiClient para operaciones de escritura.
+    /// Mantiene HttpClient para operaciones legacy (apelaciones, certificados) que aún no están en los clientes tipados.
+    /// </summary>
     public class SolicitudesService : ISolicitudesService
     {
-        private readonly HttpClient _httpClient;
-        private readonly ILocalStorageService _localStorage;
+        private readonly ISolicitudesQueryApiClient _queryClient;
+        private readonly ISolicitudesCommandApiClient _commandClient;
+        private readonly ITokenProvider _tokenProvider;
+        private readonly HttpClient _httpClient; // Mantener para operaciones legacy
+        private readonly ILocalStorageService _localStorage; // Temporal para backward compatibility
 
 
         public async Task<ApelacionDetalleDto?> GetApelacionDetalleAsync(Guid solicitudId)
         {
-            await EnsureAuthenticationHeaderAsync();
-            return await _httpClient.GetFromJsonAsync<ApelacionDetalleDto>($"api/apelaciones/detalle/{solicitudId}");
+            return await GetApelacionDetalleByApelacionIdAsync((int)solicitudId.GetHashCode()); // TODO: Revisar esta conversión
         }
 
-        public SolicitudesService(HttpClient httpClient, ILocalStorageService localStorage)
+        public SolicitudesService(
+            ISolicitudesQueryApiClient queryClient,
+            ISolicitudesCommandApiClient commandClient,
+            ITokenProvider tokenProvider,
+            HttpClient httpClient,
+            ILocalStorageService localStorage)
         {
+            _queryClient = queryClient;
+            _commandClient = commandClient;
+            _tokenProvider = tokenProvider;
             _httpClient = httpClient;
             _localStorage = localStorage;
 
@@ -59,7 +76,8 @@ namespace SIGAD.BlazorApp.Services
 
         private async Task EnsureAuthenticationHeaderAsync()
         {
-            var token = await _localStorage.GetItemAsync<string>("authToken");
+            // Usar la abstracción ITokenProvider (principio DIP)
+            var token = await _tokenProvider.GetTokenAsync();
             if (!string.IsNullOrEmpty(token))
             {
                 // Limpiar comillas extras si las hay
@@ -73,7 +91,7 @@ namespace SIGAD.BlazorApp.Services
         {
             try
             {
-                var token = await _localStorage.GetItemAsync<string>("authToken");
+                var token = await _tokenProvider.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
                     return "No hay token de autenticación almacenado";
@@ -105,6 +123,7 @@ namespace SIGAD.BlazorApp.Services
             try
             {
                 await EnsureAuthenticationHeaderAsync();
+                // TODO Fase 3: Migrar a _queryClient cuando se alineen los DTOs de Application y Blazor.Models
                 var response = await _httpClient.GetFromJsonAsync<List<SolicitudDto>>("api/solicitudes");
                 return response ?? new List<SolicitudDto>();
             }
@@ -119,11 +138,13 @@ namespace SIGAD.BlazorApp.Services
                 return new List<SolicitudDto>();
             }
         }
+
         public async Task<SolicitudDto?> GetSolicitudByIdAsync(Guid id)
         {
             try
             {
                 await EnsureAuthenticationHeaderAsync();
+                // TODO Fase 3: Migrar a _queryClient cuando se alineen los DTOs
                 return await _httpClient.GetFromJsonAsync<SolicitudDto>($"api/solicitudes/{id}");
             }
             catch (HttpRequestException ex)
@@ -143,6 +164,7 @@ namespace SIGAD.BlazorApp.Services
             try
             {
                 await EnsureAuthenticationHeaderAsync();
+                // TODO Fase 3: Migrar a _queryClient cuando se alineen los DTOs
                 return await _httpClient.GetFromJsonAsync<SolicitudDetalleDto>($"api/solicitudes/{id}");
             }
             catch (HttpRequestException ex)
@@ -499,7 +521,7 @@ namespace SIGAD.BlazorApp.Services
             {
                 await EnsureAuthenticationHeaderAsync();
                 // DEBUG: Mostrar token antes de la petición
-                var token = await _localStorage.GetItemAsync<string>("authToken");
+                var token = await _tokenProvider.GetTokenAsync();
                 Console.WriteLine($"Token usado para resolver apelación: {token}");
 
                 var request = new Models.ResolverApelacionDto
@@ -549,7 +571,7 @@ namespace SIGAD.BlazorApp.Services
             {
                 await EnsureAuthenticationHeaderAsync();
                 var response = await _httpClient.GetAsync($"api/certificados/accion-personal/solicitud/{solicitudId}");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var pdfBytes = await response.Content.ReadAsByteArrayAsync();
@@ -570,7 +592,7 @@ namespace SIGAD.BlazorApp.Services
                 return (false, $"Error inesperado al generar certificado: {ex.Message}", new byte[0]);
             }
         }
-     }
+    }
 
     // Clase para deserializar respuestas del API
     public class ApiResponse

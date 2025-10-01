@@ -4,14 +4,50 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using SIGAD.BlazorApp;
 using SIGAD.BlazorApp.Services;
+using SIGAD.BlazorApp.Abstractions;
+using SIGAD.BlazorApp.ApiClients;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// Configuración de base URL para la API
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"]
+    ?? builder.HostEnvironment.BaseAddress;
+
 builder.Services.AddBlazoredLocalStorage(); // Registrar el servicio de local storage
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
+
+// ========== FASE 1: NUEVOS SERVICIOS SOLID ==========
+
+// 1. Registrar abstracción de token (DIP)
+builder.Services.AddScoped<ITokenProvider, LocalStorageTokenProvider>();
+
+// 2. Registrar AuthorizationMessageHandler (necesario para clientes tipados)
+builder.Services.AddScoped<AuthorizationMessageHandler>();
+
+// 3. Registrar clientes tipados de API con HttpClient configurado
+builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+}).AddHttpMessageHandler<AuthorizationMessageHandler>();
+
+builder.Services.AddHttpClient<ISolicitudesQueryApiClient, SolicitudesQueryApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+}).AddHttpMessageHandler<AuthorizationMessageHandler>();
+
+builder.Services.AddHttpClient<ISolicitudesCommandApiClient, SolicitudesCommandApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+}).AddHttpMessageHandler<AuthorizationMessageHandler>();
+
+// ========== SERVICIOS EXISTENTES (temporalmente mantener compatibilidad) ==========
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 //REVISAR21
 //builder.Services.AddScoped<ISolicitudService, SolicitudService>();
@@ -24,6 +60,8 @@ builder.Services.AddScoped<SIGAD.BlazorApp.Services.ISolicitudesService, SIGAD.B
 
 builder.Services.AddScoped<ReporteService>();
 
+// ========== HTTPCLIENT LEGACY (mantener para servicios que aún no se migraron) ==========
+
 builder.Services.AddScoped(sp =>
 {
     // Leer la base URL desde configuración (wwwroot/appsettings.json)
@@ -35,8 +73,6 @@ builder.Services.AddScoped(sp =>
         Timeout = TimeSpan.FromMinutes(10)
     };
 });
-
-builder.Services.AddScoped<AuthorizationMessageHandler>();
 
 builder.Services.AddHttpClient("SIGAD.WebApi", client =>
 {

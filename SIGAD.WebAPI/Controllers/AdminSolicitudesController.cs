@@ -6,7 +6,7 @@ namespace SIGAD.WebAPI.Controllers
 {
     [ApiController]
     [Route("api/admin/solicitudes")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Policy = "RequireAdminRole")] // Fase 4: Política centralizada para rol administrador (nivel clase)
     public class AdminSolicitudesController : ControllerBase
     {
         private readonly GestionSolicitudesAppService _gestionSolicitudesService;
@@ -31,7 +31,7 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error al obtener solicitudes con apelaciones",
                     details = ex.Message
                 };
-                
+
                 Console.WriteLine($"Error en GetSolicitudesConApelaciones: {ex}");
                 return StatusCode(500, errorDetails);
             }
@@ -43,10 +43,10 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var solicitudes = await _gestionSolicitudesService.GetSolicitudesConApelacionesAsync();
-                
+
                 // Filtrar solo las que tienen apelaciones pendientes
                 var pendientes = solicitudes.Where(s => s.TieneApelacion && !s.ApelacionVencida).ToList();
-                
+
                 return Ok(pendientes);
             }
             catch (Exception ex)
@@ -56,7 +56,7 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error al obtener solicitudes pendientes de apelación",
                     details = ex.Message
                 };
-                
+
                 Console.WriteLine($"Error en GetSolicitudesPendientesApelacion: {ex}");
                 return StatusCode(500, errorDetails);
             }
@@ -68,7 +68,7 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 var solicitudes = await _gestionSolicitudesService.GetSolicitudesConApelacionesAsync();
-                
+
                 var dashboard = new
                 {
                     TotalSolicitudes = solicitudes.Count,
@@ -81,7 +81,7 @@ namespace SIGAD.WebAPI.Controllers
                         .Take(5)
                         .ToList()
                 };
-                
+
                 return Ok(dashboard);
             }
             catch (Exception ex)
@@ -91,7 +91,7 @@ namespace SIGAD.WebAPI.Controllers
                     message = "Error al obtener datos del dashboard",
                     details = ex.Message
                 };
-                
+
                 Console.WriteLine($"Error en GetDashboardData: {ex}");
                 return StatusCode(500, errorDetails);
             }

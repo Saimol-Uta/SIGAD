@@ -42,7 +42,7 @@ namespace SIGAD.WebAPI.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Policy = "RequireAdminRole")] // Fase 4: Política centralizada para rol administrador
         public async Task<IActionResult> GenerarAccionPersonal([FromBody] AccionPersonalDto datos)
         {
             try

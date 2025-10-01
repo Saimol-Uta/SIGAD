@@ -25,7 +25,7 @@ namespace SIGAD.WebAPI.Services
             try
             {
                 // 1. Verificar si necesita compresión
-                var pdfFinal = pdfBinario.Length > TAMANO_MAXIMO_SIN_COMPRESION 
+                var pdfFinal = pdfBinario.Length > TAMANO_MAXIMO_SIN_COMPRESION
                     ? ComprimirPdf(pdfBinario)
                     : pdfBinario;
 
@@ -78,7 +78,7 @@ namespace SIGAD.WebAPI.Services
 
                 // Solo retornar comprimido si realmente es más pequeño
                 var porcentajeReduccion = ((double)(pdfOriginal.Length - pdfComprimido.Length) / pdfOriginal.Length) * 100;
-                
+
                 _logger.LogInformation($"Compresión PDF: {pdfOriginal.Length} -> {pdfComprimido.Length} bytes ({porcentajeReduccion:F1}% reducción)");
 
                 return pdfComprimido.Length < pdfOriginal.Length ? pdfComprimido : pdfOriginal;

@@ -1032,7 +1032,7 @@ namespace SIGAD.WebAPI.Controllers
         /// </summary>
         /// <returns>Estado de la solicitud activa</returns>
         [HttpGet("verificar-solicitud-activa")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "RequireDocenteRole")] // Fase 4: Política específica
         public async Task<IActionResult> VerificarSolicitudActiva()
         {
             try
@@ -1094,7 +1094,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="request">Datos de la solicitud</param>
         /// <returns>Resultado de la creación</returns>
         [HttpPost("crear-solicitud")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "CanCreateSolicitud")] // Fase 4: Política específica
         public async Task<IActionResult> CrearSolicitudAscenso([FromBody] CrearSolicitudRequestDto request)
         {
             try
@@ -1190,7 +1190,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="solicitudId">ID de la solicitud a verificar</param>
         /// <returns>Estado de los requisitos</returns>
         [HttpGet("verificar-requisitos/{solicitudId}")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "RequireDocenteRole")] // Fase 4: Política específica
         public async Task<IActionResult> VerificarRequisitosSolicitud(Guid solicitudId)
         {
             try
@@ -1238,7 +1238,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="solicitudId">ID de la solicitud a enviar</param>
         /// <returns>Resultado del envío</returns>
         [HttpPost("enviar-solicitud/{solicitudId}")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "CanCreateSolicitud")] // Fase 4: Política específica
         public async Task<IActionResult> EnviarSolicitudAscenso(Guid solicitudId)
         {
             try
@@ -1318,7 +1318,7 @@ namespace SIGAD.WebAPI.Controllers
         /// <param name="solicitudId">ID de la solicitud a cancelar</param>
         /// <returns>Resultado de la cancelación</returns>
         [HttpDelete("cancelar-solicitud/{solicitudId}")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "RequireDocenteRole")] // Fase 4: Política específica
         public async Task<IActionResult> CancelarSolicitudAscenso(Guid solicitudId)
         {
             try

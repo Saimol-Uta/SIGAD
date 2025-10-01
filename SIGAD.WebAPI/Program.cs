@@ -8,6 +8,7 @@ using SIGAD.Application.Interfaces;
 using SIGAD.Application.Interfaces.Integraciones;
 using SIGAD.Application.Services;
 using SIGAD.Application.Services.ExternalServices;
+using SIGAD.Application.Contracts.Services; // NUEVO: interfaces segregadas
 using SIGAD.Domain.Interfaces;
 using SIGAD.Infrastructure.ExternalServices;
 using SIGAD.Infrastructure.Persistence;
@@ -72,6 +73,34 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Configurar políticas de autorización
+builder.Services.AddAuthorization(options =>
+{
+    // Política para administradores
+    options.AddPolicy("RequireAdminRole", policy =>
+        policy.RequireRole("ADMINISTRADOR")); // Fase 4: Corregido para coincidir con enum Rol
+
+    // Política para docentes
+    options.AddPolicy("RequireDocenteRole", policy =>
+        policy.RequireRole("DOCENTE")); // Fase 4: Corregido para coincidir con enum Rol
+
+    // Política para administradores o docentes
+    options.AddPolicy("RequireAdminOrDocente", policy =>
+        policy.RequireRole("ADMINISTRADOR", "DOCENTE")); // Fase 4: Corregido para coincidir con enum Rol
+
+    // Política para gestionar solicitudes (solo admin)
+    options.AddPolicy("CanManageSolicitudes", policy =>
+        policy.RequireRole("ADMINISTRADOR")); // Fase 4: Corregido para coincidir con enum Rol
+
+    // Política para crear solicitudes (solo docentes)
+    options.AddPolicy("CanCreateSolicitud", policy =>
+        policy.RequireRole("DOCENTE")); // Fase 4: Corregido para coincidir con enum Rol
+
+    // Política para ver solicitudes propias
+    options.AddPolicy("CanViewOwnSolicitud", policy =>
+        policy.RequireAuthenticatedUser());
+});
+
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<SmtpEmailService>();
 builder.Services.AddScoped<IApiEmailService, ApiEmailService>();
@@ -95,6 +124,13 @@ builder.Services.AddScoped<IOrganizacionRepository, EfOrganizacionRepository>();
 
 // Servicios de aplicación
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// NUEVO: Servicios segregados de autenticación (SOLID - SRP)
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
+builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
+
 builder.Services.AddScoped<IEvaluacionDocenteService, EvaluacionDocenteService>();
 builder.Services.AddScoped<IArticuloService, ArticuloService>();
 builder.Services.AddScoped<ICursoService, CursoService>();

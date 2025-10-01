@@ -24,7 +24,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // GET: api/solicitudes
         [HttpGet]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "RequireAdminRole")] // Fase 4: Política en lugar de Roles hardcoded
         public async Task<IActionResult> GetAll()
         {
             try
@@ -78,7 +78,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // POST: api/solicitudes
         [HttpPost]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "CanCreateSolicitud")] // Fase 4: Política específica para creación
         public async Task<IActionResult> EnviarSolicitud([FromBody] EnviarSolicitudDto dto)
         {
             var docenteCedula = User.FindFirst("cedula")?.Value;
@@ -101,7 +101,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // PUT: api/solicitudes/{id}/aprobar
         [HttpPut("{id}/aprobar")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "CanManageSolicitudes")] // Fase 4: Política para gestión
         public async Task<IActionResult> Aprobar(Guid id, [FromBody] string observaciones)
         {
             try
@@ -145,7 +145,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // PUT: api/solicitudes/{id}/rechazar
         [HttpPut("{id}/rechazar")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "CanManageSolicitudes")] // Fase 4: Política para gestión
         public async Task<IActionResult> Rechazar(Guid id, [FromBody] string observaciones)
         {
             try
@@ -211,7 +211,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // PUT: api/solicitudes/{id}/aprobar-comision
         [HttpPut("{id}/aprobar-comision")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "CanManageSolicitudes")] // Fase 4: Política para gestión
         public async Task<IActionResult> AprobarPorComision(Guid id, [FromBody] AprobacionRequest request)
         {
             try
@@ -222,18 +222,18 @@ namespace SIGAD.WebAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al aprobar por Comisión la solicitud {SolicitudId}: {Message}", id, ex.Message);
-                
+
                 // Obtener detalles del inner exception si existe
                 var innerMessage = ex.InnerException?.Message ?? "Sin detalles adicionales";
                 var fullMessage = $"Error: {ex.Message}. Detalles: {innerMessage}";
-                
+
                 return BadRequest(new { success = false, message = fullMessage });
             }
         }
 
         // PUT: api/solicitudes/{id}/aprobar-consejo
         [HttpPut("{id}/aprobar-consejo")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "CanManageSolicitudes")] // Fase 4: Política para gestión
         public async Task<IActionResult> AprobarPorConsejo(Guid id, [FromBody] AprobacionRequest request)
         {
             try
@@ -250,7 +250,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // PUT: api/solicitudes/{id}/finalizar
         [HttpPut("{id}/finalizar")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "CanManageSolicitudes")] // Fase 4: Política para gestión
         public async Task<IActionResult> FinalizarProceso(Guid id, [FromBody] AprobacionRequest request)
         {
             try
@@ -278,8 +278,9 @@ namespace SIGAD.WebAPI.Controllers
         public IActionResult TestAuth()
         {
             var userClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
-            return Ok(new { 
-                message = "Autenticación exitosa", 
+            return Ok(new
+            {
+                message = "Autenticación exitosa",
                 user = User.Identity?.Name,
                 roles = User.Claims.Where(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
                                   .Select(c => c.Value).ToArray(),
@@ -289,7 +290,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // GET: api/solicitudes/verif-solicitud-activa
         [HttpGet("verif-solicitud-activa")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "RequireDocenteRole")] // Fase 4: Política específica
         public async Task<IActionResult> VerificarSolicitudActiva()
         {
             var docenteCedula = User.FindFirst("cedula")?.Value;
@@ -336,14 +337,14 @@ namespace SIGAD.WebAPI.Controllers
             try
             {
                 // Debug: Log todos los claims del usuario
-                _logger.LogInformation("Claims del usuario: {Claims}", 
+                _logger.LogInformation("Claims del usuario: {Claims}",
                     string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
 
                 var cedulaClaim = User.FindFirst("cedula")?.Value;
                 var rolClaim = User.FindFirst(ClaimTypes.Role)?.Value;
-                
+
                 _logger.LogInformation("Cedula claim: {Cedula}, Rol claim: {Rol}", cedulaClaim, rolClaim);
-                
+
                 if (string.IsNullOrEmpty(cedulaClaim))
                 {
                     _logger.LogError("No se encontró el claim de cédula");
@@ -359,7 +360,7 @@ namespace SIGAD.WebAPI.Controllers
 
                 _logger.LogInformation("Obteniendo historial para docente: {Cedula}", cedulaClaim);
                 var solicitudes = await _solicitudesService.GetHistorialDocenteAsync(cedulaClaim);
-                
+
                 _logger.LogInformation("Se encontraron {Count} solicitudes", solicitudes?.Count() ?? 0);
 
                 if (solicitudes == null)
@@ -389,7 +390,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // GET: api/solicitudes/con-apelaciones
         [HttpGet("con-apelaciones")]
-        [Authorize(Roles = "ADMINISTRADOR")]
+        [Authorize(Policy = "RequireAdminRole")] // Fase 4: Política específica
         public async Task<IActionResult> GetSolicitudesConApelaciones()
         {
             try

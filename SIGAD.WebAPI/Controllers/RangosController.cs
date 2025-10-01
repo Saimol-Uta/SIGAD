@@ -88,7 +88,7 @@ namespace SIGAD.WebAPI.Controllers
 
         // GET: api/rangos/disponibles/{rangoActualId}
         [HttpGet("disponibles/{rangoActualId}")]
-        [Authorize(Roles = "DOCENTE")]
+        [Authorize(Policy = "RequireDocenteRole")] // Fase 4: Política centralizada para rol docente
         public async Task<IActionResult> GetRangosDisponiblesParaPromocion(int rangoActualId)
         {
             try

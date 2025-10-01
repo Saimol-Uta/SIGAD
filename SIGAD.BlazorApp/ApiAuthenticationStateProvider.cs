@@ -1,6 +1,7 @@
 ﻿// En: SIGAD.BlazorApp/ApiAuthenticationStateProvider.cs
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using SIGAD.BlazorApp.Abstractions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Claims;
@@ -12,21 +13,25 @@ using System.Linq;
 
 namespace SIGAD.BlazorApp
 {
+    /// <summary>
+    /// Provider de estado de autenticación refactorizado para usar ITokenProvider (Fase 2 SOLID).
+    /// Principio DIP: Depende de la abstracción ITokenProvider en lugar de ILocalStorageService concreto.
+    /// </summary>
     public class ApiAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly HttpClient _httpClient;
-        private readonly ILocalStorageService _localStorage;
+        private readonly ITokenProvider _tokenProvider;
 
-        public ApiAuthenticationStateProvider(HttpClient httpClient, ILocalStorageService localStorage)
+        public ApiAuthenticationStateProvider(HttpClient httpClient, ITokenProvider tokenProvider)
         {
             _httpClient = httpClient;
-            _localStorage = localStorage;
+            _tokenProvider = tokenProvider;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             Console.WriteLine("GetAuthenticationStateAsync: Verificando estado de autenticación...");
-            var savedToken = await _localStorage.GetItemAsync<string>("authToken");
+            var savedToken = await _tokenProvider.GetTokenAsync();
 
             if (string.IsNullOrWhiteSpace(savedToken))
             {
