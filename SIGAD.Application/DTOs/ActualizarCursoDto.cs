@@ -16,7 +16,7 @@ namespace SIGAD.Application.DTOs
         [Display(Name = "ID de la Organización")]
         public int OrganizacionId { get; set; }
 
-       
+        
         
 
         [Required(ErrorMessage = "La fecha de finalización es requerida")]

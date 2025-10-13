@@ -10,8 +10,4 @@ namespace SIGAD.Application.DTOs
         [StringLength(1000, ErrorMessage = "Las observaciones no pueden exceder 1000 caracteres")]
         public string? ObservacionesComision { get; set; }
     }
-
-    // Eliminada para evitar duplicidad. Usar la versión de SIGAD.Application.DTOs.ApeliacionDetalleDto.cs
-
-    // Eliminada para evitar duplicidad. Usar la versión de SIGAD.Application.DTOs.SolicitudConApelacionDto.cs
 }
